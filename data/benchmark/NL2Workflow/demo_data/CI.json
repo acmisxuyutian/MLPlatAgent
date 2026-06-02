@@ -1,0 +1,260 @@
+[
+    {
+        "Instruction": "我需要你使用银行信用贷款的训练数据，构建一个能够预测客户是否会流失的随机森林模型。然后，用这个模型对测试数据进行预测，最后把预测结果保存下来。",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2111",
+                    "source_node_id": "2561",
+                    "target_node_id": "2565"
+                },
+                {
+                    "edge_id": "2112",
+                    "source_node_id": "2562",
+                    "target_node_id": "2567"
+                },
+                {
+                    "edge_id": "2115",
+                    "source_node_id": "2565",
+                    "target_node_id": "2567"
+                },
+                {
+                    "edge_id": "2116",
+                    "source_node_id": "2567",
+                    "target_node_id": "2568"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2561",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "银行信用贷款训练数据",
+                    "node_params": {
+                        "table_name": "bank_customer_churn_train",
+                        "target_column": "Exited"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2562",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "银行信用贷款测试数据",
+                    "node_params": {
+                        "table_name": "bank_customer_churn_test",
+                        "target_column": "Exited"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2565",
+                    "algorithm_step_name": "Random Forest",
+                    "node_name": "随机森林模型",
+                    "node_params": {},
+                    "contrast_level": 1,
+                    "node_type": "model"
+                },
+                {
+                    "node_id": "2567",
+                    "algorithm_step_name": "Test Dataset Predictions",
+                    "node_name": "预测结果",
+                    "node_params": {
+                        "output_attrs": true,
+                        "output_predictions": true,
+                        "output_probabilities": true
+                    },
+                    "contrast_level": 2,
+                    "node_type": "predict"
+                },
+                {
+                    "node_id": "2568",
+                    "algorithm_step_name": "Save Data",
+                    "node_name": "保存预测结果",
+                    "node_params": {},
+                    "contrast_level": 2,
+                    "node_type": "io"
+                }
+            ]
+        }
+    },
+    {
+        "Instruction": "请你使用生物信号训练数据集来预测个体是否为吸烟者，你的最终目标是建立一个能够准确判断个体吸烟状态的XGboost模型，学习率使用0.1，学习器使用DART模型。",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2117",
+                    "source_node_id": "2570",
+                    "target_node_id": "2572"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2570",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "生物信号训练数据",
+                    "node_params": {
+                        "table_name": "smoker_status_bio_signals_train",
+                        "target_column": "smoking"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2572",
+                    "algorithm_step_name": "XGBoost",
+                    "node_name": "XGBoost模型",
+                    "node_params": {
+                        "booster": "dart",
+                        "learning_rate": 0.1
+                    },
+                    "contrast_level": 2,
+                    "node_type": "model"
+                }
+            ]
+        }
+    },
+    {
+        "Instruction": "你需要使用人类的肾结石相关指标数据，开发一个机器学习模型预测一个人是否患有肾结石。我需要你在特征工程之后模型训练之前，加一步数据划分的数据处理，最后还要用划分后的验证集对模型进行评估。",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2119",
+                    "source_node_id": "2577",
+                    "target_node_id": "2578"
+                },
+                {
+                    "edge_id": "2120",
+                    "source_node_id": "2578",
+                    "target_node_id": "2579"
+                },
+                {
+                    "edge_id": "2121",
+                    "source_node_id": "2578",
+                    "target_node_id": "2580"
+                },
+                {
+                    "edge_id": "2123",
+                    "source_node_id": "2579",
+                    "target_node_id": "2580"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2577",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "肾结石指标训练数据",
+                    "node_params": {
+                        "table_name": "kidney_stone_train",
+                        "target_column": "target"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2578",
+                    "algorithm_step_name": "Dataset Division",
+                    "node_name": "数据划分",
+                    "node_params": {},
+                    "contrast_level": 1,
+                    "node_type": "preprocess"
+                },
+                {
+                    "node_id": "2579",
+                    "algorithm_step_name": "LightGBM",
+                    "node_name": "LightGBM分类器",
+                    "node_params": {},
+                    "contrast_level": 0,
+                    "node_type": "model"
+                },
+                {
+                    "node_id": "2580",
+                    "algorithm_step_name": "Model Evaluate",
+                    "node_name": "模型评估",
+                    "node_params": {},
+                    "contrast_level": 2,
+                    "node_type": "evaluate"
+                }
+            ]
+        }
+    },
+    {
+        "Instruction": "你的目标是帮助我的酒店更好地预判客户是否会取消预订。你首先要加载酒店预定的训练数据和测试数据，用训练数据训练一个LightGBM模型，然后用LightGBM模型对酒店预定的测试数据进行预测，最后将预测结果保存。",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2133",
+                    "source_node_id": "2582",
+                    "target_node_id": "2586"
+                },
+                {
+                    "edge_id": "2129",
+                    "source_node_id": "2586",
+                    "target_node_id": "2587"
+                },
+                {
+                    "edge_id": "2131",
+                    "source_node_id": "2583",
+                    "target_node_id": "2587"
+                },
+                {
+                    "edge_id": "2130",
+                    "source_node_id": "2587",
+                    "target_node_id": "2588"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2582",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "酒店预定训练数据",
+                    "node_params": {
+                        "table_name": "reservation_cancellation_train",
+                        "target_column": "booking_status"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2583",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "酒店预定测试数据",
+                    "node_params": {
+                        "table_name": "reservation_cancellation_test",
+                        "target_column": "booking_status"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2586",
+                    "algorithm_step_name": "LightGBM",
+                    "node_name": "LightGBM模型",
+                    "node_params": {},
+                    "contrast_level": 1,
+                    "node_type": "model"
+                },
+                {
+                    "node_id": "2587",
+                    "algorithm_step_name": "Test Dataset Predictions",
+                    "node_name": "预测",
+                    "node_params": {
+                        "output_attrs": true,
+                        "output_predictions": true,
+                        "output_probabilities": true
+                    },
+                    "contrast_level": 2,
+                    "node_type": "predict"
+                },
+                {
+                    "node_id": "2588",
+                    "algorithm_step_name": "Save Data",
+                    "node_name": "保存预测结果",
+                    "node_params": {},
+                    "contrast_level": 2,
+                    "node_type": "io"
+                }
+            ]
+        }
+    }
+]

@@ -1,0 +1,88 @@
+[
+    {
+        "Instruction": "帮我把加载的鸢尾花示例数据修改为加载房价示例数据集。",
+        "Input Workflow": "from ml_platform.actions import action_agent\n\ndef add_node(widget_name, node_name):\n    args = {\"widget_name\": widget_name, \"node_name\": node_name}\n    node_id = action_agent.add_node(args)\n    return node_id\n\ndef delete_node(node_id):\n    args = {\"node_id\": node_id}\n    return action_agent.delete_node(args)\n\ndef update_node_params(node_id, widget_name, node_params):\n    args = {\"node_id\": node_id, \"widget_name\": widget_name, \"node_params\": node_params}\n    return action_agent.update_node_params(args)\n\ndef add_edge(source_node_id, target_node_id):\n    args = {\"source_node_id\": source_node_id, \"target_node_id\": target_node_id}\n    return action_agent.add_edge(args)\n\ndef delete_edge(edge_id):\n    args = {\"edge_id\": edge_id}\n    return action_agent.delete_edge(args)\n\naction_agent.relevant_widgets_names = [\"File\",\"LightGBM\"]\nfile_node_id = add_node(\"File\", \"鸢尾花示例数据\")\nmodel_node_id = add_node(\"LightGBM\", \"LightGBM分类器\")\nadd_edge(file_node_id, model_node_id)",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2376",
+                    "source_node_id": "2895",
+                    "target_node_id": "2896"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2895",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "鸢尾花示例数据",
+                    "node_params": {
+                        "type": "sample",
+                        "filename": "housing.csv"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2896",
+                    "algorithm_step_name": "LightGBM",
+                    "node_name": "LightGBM分类器",
+                    "node_params": {
+                        "boosting_type": "gbdt",
+                        "n_estimators": 10,
+                        "learning_rate": 0.1,
+                        "sampling_rate": 0.1,
+                        "max_depth_check": false,
+                        "max_depth": 3,
+                        "num_leaves_check": false,
+                        "num_leaves": 31
+                    },
+                    "contrast_level": 2,
+                    "node_type": "model"
+                }
+            ]
+        }
+    },
+    {
+        "Instruction": "帮我把LightGBM模型的学习器类型重新设置为rf，学习率修改为0.01。",
+        "Input Workflow": "from ml_platform.actions import action_agent\n\ndef add_node(widget_name, node_name):\n    args = {\"widget_name\": widget_name, \"node_name\": node_name}\n    node_id = action_agent.add_node(args)\n    return node_id\n\ndef delete_node(node_id):\n    args = {\"node_id\": node_id}\n    return action_agent.delete_node(args)\n\ndef update_node_params(node_id, widget_name, node_params):\n    args = {\"node_id\": node_id, \"widget_name\": widget_name, \"node_params\": node_params}\n    return action_agent.update_node_params(args)\n\ndef add_edge(source_node_id, target_node_id):\n    args = {\"source_node_id\": source_node_id, \"target_node_id\": target_node_id}\n    return action_agent.add_edge(args)\n\ndef delete_edge(edge_id):\n    args = {\"edge_id\": edge_id}\n    return action_agent.delete_edge(args)\n\naction_agent.relevant_widgets_names = [\"File\",\"LightGBM\"]\nfile_node_id = add_node(\"File\", \"鸢尾花示例数据\")\nmodel_node_id = add_node(\"LightGBM\", \"LightGBM分类器\")\nadd_edge(file_node_id, model_node_id)",
+        "requirements": {
+            "dependency_requirements": [
+                {
+                    "edge_id": "2376",
+                    "source_node_id": "2895",
+                    "target_node_id": "2896"
+                }
+            ],
+            "step_requirements": [
+                {
+                    "node_id": "2895",
+                    "algorithm_step_name": "Tabular Dataset Loading",
+                    "node_name": "鸢尾花示例数据",
+                    "node_params": {
+                        "type": "sample",
+                        "filename": "iris.csv"
+                    },
+                    "contrast_level": 2,
+                    "node_type": "io"
+                },
+                {
+                    "node_id": "2896",
+                    "algorithm_step_name": "LightGBM",
+                    "node_name": "LightGBM分类器",
+                    "node_params": {
+                        "boosting_type": "rf",
+                        "n_estimators": 10,
+                        "learning_rate": 0.01,
+                        "sampling_rate": 0.1,
+                        "max_depth_check": false,
+                        "max_depth": 3,
+                        "num_leaves_check": false,
+                        "num_leaves": 31
+                    },
+                    "contrast_level": 2,
+                    "node_type": "model"
+                }
+            ]
+        }
+    }
+]

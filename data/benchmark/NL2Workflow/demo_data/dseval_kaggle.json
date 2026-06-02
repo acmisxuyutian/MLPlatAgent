@@ -1,0 +1,1568 @@
+[
+    {
+        "instruction": "Train data: bank_customer_churn_train\ntest data: bank_customer_churn_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Drop the columns that will not be interesting to models, such as \"CustomerId\", \"Complain\", and \"Surname\".\n2. Use one-hot encoding for \"Geography\" and \"Card Type\".\n3. Construct a model using XGBoost to predict categorical target variable \"Exited\".\n4. Make predictions on the test set.\n5. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "503",
+            "source_node_id": "694",
+            "target_node_id": "696"
+        },
+        {
+            "edge_id": "504",
+            "source_node_id": "695",
+            "target_node_id": "697"
+        },
+        {
+            "edge_id": "505",
+            "source_node_id": "696",
+            "target_node_id": "698"
+        },
+        {
+            "edge_id": "506",
+            "source_node_id": "697",
+            "target_node_id": "699"
+        },
+        {
+            "edge_id": "507",
+            "source_node_id": "698",
+            "target_node_id": "700"
+        },
+        {
+            "edge_id": "508",
+            "source_node_id": "699",
+            "target_node_id": "701"
+        },
+        {
+            "edge_id": "509",
+            "source_node_id": "700",
+            "target_node_id": "701"
+        },
+        {
+            "edge_id": "510",
+            "source_node_id": "701",
+            "target_node_id": "702"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "694",
+            "widget_name": "SQL Table",
+            "node_name": "银行客户流失训练数据",
+            "node_params": {
+                "table_name": "bank_customer_churn_train",
+                "target_column": "Exited"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "695",
+            "widget_name": "SQL Table",
+            "node_name": "银行客户流失测试数据",
+            "node_params": {
+                "table_name": "bank_customer_churn_test",
+                "target_column": "Exited"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "696",
+            "widget_name": "Select Columns",
+            "node_name": "选择训练数据列",
+            "node_params": {
+                "ignores": [],
+                "features": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    11,
+                    12,
+                    13
+                ],
+                "targets": [
+                    10
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "697",
+            "widget_name": "Select Columns",
+            "node_name": "选择测试数据列",
+            "node_params": {
+                "ignores": [],
+                "features": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    11,
+                    12,
+                    13
+                ],
+                "targets": [
+                    10
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "698",
+            "widget_name": "One Hot Encoder",
+            "node_name": "训练数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Geography",
+                    "CardType"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "699",
+            "widget_name": "One Hot Encoder",
+            "node_name": "测试数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Geography",
+                    "CardType"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "700",
+            "widget_name": "XGBoost",
+            "node_name": "XGBoost",
+            "node_params": {
+                "booster": "gbtree",
+                "learning_rate": 0.3,
+                "gamma": 0,
+                "max_depth": 6,
+                "min_child_widget": 1,
+                "max_delta_step": 0,
+                "subsample": 1,
+                "sampling_method": "uniform",
+                "lambda": 1,
+                "alpha": 0,
+                "tree_method": "auto",
+                "scale_pos_weight": 1,
+                "updater": "grow_colmaker",
+                "process_type": "default",
+                "grow_policy": "depthwise"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "701",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": true
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "702",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: cardiovascular_diseases_risk_prediction_train\ntest data: cardiovascular_diseases_risk_prediction_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Drop all rows with missing values from the dataset. And then drop the duplicates.\n2. Perform feature construction to build a new feature named \"BMI_Category\" to categorize the BMI (Body Mass Index) of each individual into one of four categories:\n    - \"Underweight\" is a BMI less than 18.5,\n    - \"Normal weight\" is a BMI from 18.5 to 24.9,\n    - \"Overweight\" is a BMI from 25 to 29.9,\n    - \"Obesity\" is a BMI of 30 or higher.\n3. Try to predict Heart_Disease based on all other variables.\nConstruct a model to predict Heart_Disease.\nFit the model on the training set.\n4. Make predictions on the test set.\n5. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "811",
+            "source_node_id": "1043",
+            "target_node_id": "1036"
+        },
+        {
+            "edge_id": "812",
+            "source_node_id": "1044",
+            "target_node_id": "1037"
+        },
+        {
+            "edge_id": "813",
+            "source_node_id": "1036",
+            "target_node_id": "1038"
+        },
+        {
+            "edge_id": "814",
+            "source_node_id": "1037",
+            "target_node_id": "1039"
+        },
+        {
+            "edge_id": "815",
+            "source_node_id": "1038",
+            "target_node_id": "1040"
+        },
+        {
+            "edge_id": "816",
+            "source_node_id": "1039",
+            "target_node_id": "1041"
+        },
+        {
+            "edge_id": "817",
+            "source_node_id": "1040",
+            "target_node_id": "1041"
+        },
+        {
+            "edge_id": "818",
+            "source_node_id": "1041",
+            "target_node_id": "1042"
+        },
+        {
+            "edge_id": "819",
+            "source_node_id": "1035",
+            "target_node_id": "1044"
+        },
+        {
+            "edge_id": "820",
+            "source_node_id": "1034",
+            "target_node_id": "1043"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "1034",
+            "widget_name": "SQL Table",
+            "node_name": "心血管疾病风险预测训练数据",
+            "node_params": {
+                "table_name": "cardiovascular_diseases_risk_prediction_train",
+                "target_column": "Heart_Disease"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1035",
+            "widget_name": "SQL Table",
+            "node_name": "心血管疾病风险预测测试数据",
+            "node_params": {
+                "table_name": "cardiovascular_diseases_risk_prediction_test",
+                "target_column": "Heart_Disease"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1036",
+            "widget_name": "Unique",
+            "node_name": "训练数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Drop"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1037",
+            "widget_name": "Unique",
+            "node_name": "测试数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Drop"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1038",
+            "widget_name": "Feature Constructor",
+            "node_name": "训练数据特征构建",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "BMI_Category",
+                        "expression": "'Underweight' if BMI < 18.5 else 'Normal weight' if 18.5 <= BMI < 24.9 else 'Overweight' if 25 <= BMI < 29.9 else 'Obesity'",
+                        "type": "1",
+                        "image": "C",
+                        "categories": "Underweight, Normal weight, Overweight, Obesity"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1039",
+            "widget_name": "Feature Constructor",
+            "node_name": "测试数据特征构建",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "BMI_Category",
+                        "expression": "'Underweight' if BMI < 18.5 else 'Normal weight' if 18.5 <= BMI < 24.9 else 'Overweight' if 25 <= BMI < 29.9 else 'Obesity'",
+                        "type": "1",
+                        "image": "C",
+                        "categories": "Underweight, Normal weight, Overweight, Obesity"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1040",
+            "widget_name": "Random Forest",
+            "node_name": "随机森林模型",
+            "node_params": {
+                "n_estimators": 10,
+                "use_max_features": false,
+                "max_features": "auto",
+                "use_random_state": false,
+                "use_max_depth": false,
+                "max_depth": 3,
+                "use_min_samples_split": true,
+                "min_samples_split": 2
+            },
+            "contrast_level": 0
+        },
+        {
+            "node_id": "1041",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": true
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1042",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1043",
+            "widget_name": "Impute",
+            "node_name": "缺失值处理",
+            "node_params": {
+                "method": 1
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1044",
+            "widget_name": "Impute",
+            "node_name": "缺失值处理",
+            "node_params": {
+                "method": 1
+            },
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: coffee_quality_data_cqi_train\ntest data path: coffee_quality_data_cqi_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Drop duplicated rows from the dataset.\n2. Drop the following columns from the dataset: \"ID\", \"ICO Number\", \"Owner\", \"Region\", \"Certification Contact\", \"Certification Address\", \"Farm Name\", \"Lot Number\", \"Mill\", \"ICO Number\", \"Producer\", \"Company\", \"Expiration\", \"Harvest Year\", \"Unnamed: 0\", \"Number of Bags\", \"Bag Weight\", \"In-Country Partner\", \"Country of Origin\", \"Processing Method\", \"Grading Date\", \"Variety\", \"Status\", \"Defects\", \"Uniformity\", \"Clean Cup\", \"Sweetness\", and \"Certification Body\".\n3. For categorical column \"Color\", use one-hot encoding.\n4. Try to predict Total Cup Points.\nBuild a regressor on the training set with RandomForestRegressor.\n5. Make predictions on the test set.\n6. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "600",
+            "source_node_id": "805",
+            "target_node_id": "807"
+        },
+        {
+            "edge_id": "601",
+            "source_node_id": "806",
+            "target_node_id": "808"
+        },
+        {
+            "edge_id": "602",
+            "source_node_id": "807",
+            "target_node_id": "809"
+        },
+        {
+            "edge_id": "603",
+            "source_node_id": "808",
+            "target_node_id": "810"
+        },
+        {
+            "edge_id": "604",
+            "source_node_id": "809",
+            "target_node_id": "811"
+        },
+        {
+            "edge_id": "605",
+            "source_node_id": "810",
+            "target_node_id": "812"
+        },
+        {
+            "edge_id": "606",
+            "source_node_id": "811",
+            "target_node_id": "813"
+        },
+        {
+            "edge_id": "607",
+            "source_node_id": "812",
+            "target_node_id": "814"
+        },
+        {
+            "edge_id": "608",
+            "source_node_id": "813",
+            "target_node_id": "814"
+        },
+        {
+            "edge_id": "609",
+            "source_node_id": "814",
+            "target_node_id": "815"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "805",
+            "widget_name": "SQL Table",
+            "node_name": "咖啡质量训练数据",
+            "node_params": {
+                "table_name": "coffee_quality_data_cqi_train",
+                "target_column": "Total_Cup_Points"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "806",
+            "widget_name": "SQL Table",
+            "node_name": "咖啡质量测试数据",
+            "node_params": {
+                "table_name": "coffee_quality_data_cqi_test",
+                "target_column": "Total_Cup_Points"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "807",
+            "widget_name": "Unique",
+            "node_name": "训练数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Last instance"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "808",
+            "widget_name": "Unique",
+            "node_name": "测试数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Last instance"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "809",
+            "widget_name": "Select Columns",
+            "node_name": "训练数据列选择",
+            "node_params": {
+                "ignores": [],
+                "features": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13
+                ],
+                "targets": [
+                    8
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "810",
+            "widget_name": "Select Columns",
+            "node_name": "测试数据列选择",
+            "node_params": {
+                "ignores": [],
+                "features": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13
+                ],
+                "targets": [
+                    8
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "811",
+            "widget_name": "One Hot Encoder",
+            "node_name": "训练数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Color"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "812",
+            "widget_name": "One Hot Encoder",
+            "node_name": "测试数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Color"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "813",
+            "widget_name": "Random Forest",
+            "node_name": "随机森林回归模型",
+            "node_params": {
+                "n_estimators": 10,
+                "use_max_features": false,
+                "max_features": "auto",
+                "use_random_state": false,
+                "use_max_depth": false,
+                "max_depth": 3,
+                "use_min_samples_split": true,
+                "min_samples_split": 2
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "814",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": false
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "815",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: diabetes_prediction_dataset_train\ntest data: diabetes_prediction_dataset_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Drop duplicate rows from the dataset.\n2. Perform one-hot encoding on the \"gender\" and \"smoking_history\" columns.\n3. Rank the most important features.\n4. Build a random forest classifier to predict diabetes using all features. Fit the model on the training set.\n5. Make predictions on the test set.\n6. Save predictions.\n7. Show the confusion matrix.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "610",
+            "source_node_id": "816",
+            "target_node_id": "818"
+        },
+        {
+            "edge_id": "611",
+            "source_node_id": "817",
+            "target_node_id": "819"
+        },
+        {
+            "edge_id": "612",
+            "source_node_id": "818",
+            "target_node_id": "820"
+        },
+        {
+            "edge_id": "613",
+            "source_node_id": "819",
+            "target_node_id": "821"
+        },
+        {
+            "edge_id": "614",
+            "source_node_id": "820",
+            "target_node_id": "822"
+        },
+        {
+            "edge_id": "615",
+            "source_node_id": "820",
+            "target_node_id": "823"
+        },
+        {
+            "edge_id": "616",
+            "source_node_id": "821",
+            "target_node_id": "824"
+        },
+        {
+            "edge_id": "617",
+            "source_node_id": "823",
+            "target_node_id": "824"
+        },
+        {
+            "edge_id": "618",
+            "source_node_id": "824",
+            "target_node_id": "825"
+        },
+        {
+            "edge_id": "619",
+            "source_node_id": "824",
+            "target_node_id": "826"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "816",
+            "widget_name": "SQL Table",
+            "node_name": "糖尿病预测训练数据",
+            "node_params": {
+                "table_name": "diabetes_prediction_dataset_train",
+                "target_column": "diabetes"
+            }
+        },
+        {
+            "node_id": "817",
+            "widget_name": "SQL Table",
+            "node_name": "糖尿病预测测试数据",
+            "node_params": {
+                "table_name": "diabetes_prediction_dataset_test",
+                "target_column": "diabetes"
+            }
+        },
+        {
+            "node_id": "818",
+            "widget_name": "Unique",
+            "node_name": "训练数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Drop"
+            }
+        },
+        {
+            "node_id": "819",
+            "widget_name": "Unique",
+            "node_name": "测试数据去重",
+            "node_params": {
+                "selGroupByVariables": [],
+                "configure": "Drop"
+            }
+        },
+        {
+            "node_id": "820",
+            "widget_name": "One Hot Encoder",
+            "node_name": "训练数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "gender",
+                    "smoking_history"
+                ]
+            }
+        },
+        {
+            "node_id": "821",
+            "widget_name": "One Hot Encoder",
+            "node_name": "测试数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "gender",
+                    "smoking_history"
+                ]
+            }
+        },
+        {
+            "node_id": "822",
+            "widget_name": "Rank",
+            "node_name": "特征重要性排序",
+            "node_params": {}
+        },
+        {
+            "node_id": "823",
+            "widget_name": "Random Forest",
+            "node_name": "随机森林模型",
+            "node_params": {
+                "n_estimators": 10,
+                "use_max_features": false,
+                "max_features": "auto",
+                "use_random_state": false,
+                "use_max_depth": false,
+                "max_depth": 3,
+                "use_min_samples_split": true,
+                "min_samples_split": 2
+            }
+        },
+        {
+            "node_id": "824",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_attrs": true,
+                "output_predictions": true,
+                "output_probabilities": true
+            }
+        },
+        {
+            "node_id": "825",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {}
+        },
+        {
+            "node_id": "826",
+            "widget_name": "Confusion Matrix",
+            "node_name": "混淆矩阵",
+            "node_params": {}
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: disease_symptoms_and_patient_profile_dataset_train\ntest data: disease_symptoms_and_patient_profile_dataset_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\nyou need build two logistic regression models to predict categorical target variable 'outcome variable'.\n1. categorical features (except \"Disease\" column) into numerical features using one-hot encoding.\n2. Use a feature selection technique to select the most important 5 features.\n3. Build a logistic regression model1 using all features one-hot encoded.\n4. Build a logistic regression model2 using only the most important 5 features.\n5. Evaluate the performance of the model1 and model2 on the test set.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "661",
+            "source_node_id": "860",
+            "target_node_id": "862"
+        },
+        {
+            "edge_id": "662",
+            "source_node_id": "861",
+            "target_node_id": "863"
+        },
+        {
+            "edge_id": "663",
+            "source_node_id": "862",
+            "target_node_id": "864"
+        },
+        {
+            "edge_id": "664",
+            "source_node_id": "862",
+            "target_node_id": "865"
+        },
+        {
+            "edge_id": "665",
+            "source_node_id": "864",
+            "target_node_id": "866"
+        },
+        {
+            "edge_id": "666",
+            "source_node_id": "862",
+            "target_node_id": "867"
+        },
+        {
+            "edge_id": "667",
+            "source_node_id": "863",
+            "target_node_id": "867"
+        },
+        {
+            "edge_id": "668",
+            "source_node_id": "865",
+            "target_node_id": "867"
+        },
+        {
+            "edge_id": "669",
+            "source_node_id": "863",
+            "target_node_id": "868"
+        },
+        {
+            "edge_id": "670",
+            "source_node_id": "866",
+            "target_node_id": "868"
+        },
+        {
+            "edge_id": "671",
+            "source_node_id": "864",
+            "target_node_id": "868"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "860",
+            "widget_name": "SQL Table",
+            "node_name": "疾病症状和患者资料训练数据",
+            "node_params": {
+                "table_name": "disease_symptoms_and_patient_profile_dataset_train",
+                "target_column": "Outcome_Variable"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "861",
+            "widget_name": "SQL Table",
+            "node_name": "疾病症状和患者资料测试数据",
+            "node_params": {
+                "table_name": "disease_symptoms_and_patient_profile_dataset_test",
+                "target_column": "Outcome_Variable"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "862",
+            "widget_name": "One Hot Encoder",
+            "node_name": "训练数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Fever",
+                    "Cough",
+                    "Fatigue",
+                    "Difficulty_Breathing",
+                    "Gender",
+                    "Blood_Pressure_Categorical",
+                    "Cholesterol_Categorical"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "863",
+            "widget_name": "One Hot Encoder",
+            "node_name": "测试数据独热编码",
+            "node_params": {
+                "encode_vars": [
+                    "Fever",
+                    "Cough",
+                    "Fatigue",
+                    "Difficulty_Breathing",
+                    "Gender",
+                    "Blood_Pressure_Categorical",
+                    "Cholesterol_Categorical"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "864",
+            "widget_name": "Select Best N Attributes",
+            "node_name": "特征选择",
+            "node_params": {
+                "n": 5
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "865",
+            "widget_name": "Logistic Regression",
+            "node_name": "逻辑回归模型",
+            "node_params": {
+                "C": 1,
+                "penalty": "l2"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "866",
+            "widget_name": "Logistic Regression",
+            "node_name": "逻辑回归模型2",
+            "node_params": {
+                "C": 1,
+                "penalty": "l2"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "867",
+            "widget_name": "Test & Score",
+            "node_name": "测试评分",
+            "node_params": {},
+            "contrast_level": 1
+        },
+        {
+            "node_id": "868",
+            "widget_name": "Test & Score",
+            "node_name": "测试评分",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: employee_train\ntest data: employee_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Perform feature construction to build a new feature named \"YearsInCompany\" to represent the number of years each employee has been in the company. It is calculated as 2023 minus the 'JoiningYear'.\n2. Encode the categorical columns using one-hot encoding.\n3. Build a random forest classifier to predict the 'LeaveOrNot' variable.\n4. Make predictions on the test set.\n5. Save predictions.\n6. Confusion matrix showing predicted results.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "749",
+            "source_node_id": "967",
+            "target_node_id": "969"
+        },
+        {
+            "edge_id": "750",
+            "source_node_id": "968",
+            "target_node_id": "970"
+        },
+        {
+            "edge_id": "751",
+            "source_node_id": "969",
+            "target_node_id": "971"
+        },
+        {
+            "edge_id": "752",
+            "source_node_id": "970",
+            "target_node_id": "972"
+        },
+        {
+            "edge_id": "753",
+            "source_node_id": "971",
+            "target_node_id": "973"
+        },
+        {
+            "edge_id": "754",
+            "source_node_id": "972",
+            "target_node_id": "974"
+        },
+        {
+            "edge_id": "755",
+            "source_node_id": "973",
+            "target_node_id": "974"
+        },
+        {
+            "edge_id": "756",
+            "source_node_id": "974",
+            "target_node_id": "975"
+        },
+        {
+            "edge_id": "757",
+            "source_node_id": "974",
+            "target_node_id": "976"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "967",
+            "widget_name": "SQL Table",
+            "node_name": "员工训练数据",
+            "node_params": {
+                "table_name": "employee_train",
+                "target_column": "LeaveOrNot"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "968",
+            "widget_name": "SQL Table",
+            "node_name": "员工测试数据",
+            "node_params": {
+                "table_name": "employee_test",
+                "target_column": "LeaveOrNot"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "969",
+            "widget_name": "Feature Constructor",
+            "node_name": "特征构造_训练数据",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "YearsInCompany",
+                        "expression": "2023 - JoiningYear",
+                        "type": "2",
+                        "image": "N",
+                        "categories": "A, B"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "970",
+            "widget_name": "Feature Constructor",
+            "node_name": "特征构造_测试数据",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "YearsInCompany",
+                        "expression": "2023 - JoiningYear",
+                        "type": "2",
+                        "image": "N",
+                        "categories": "A, B"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "971",
+            "widget_name": "One Hot Encoder",
+            "node_name": "One Hot Encoder_训练数据",
+            "node_params": {
+                "encode_vars": [
+                    "Education",
+                    "City",
+                    "Gender",
+                    "EverBenched"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "972",
+            "widget_name": "One Hot Encoder",
+            "node_name": "One Hot Encoder_测试数据",
+            "node_params": {
+                "encode_vars": [
+                    "Education",
+                    "City",
+                    "Gender",
+                    "EverBenched"
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "973",
+            "widget_name": "Random Forest",
+            "node_name": "随机森林分类器",
+            "node_params": {
+                "n_estimators": 10,
+                "use_max_features": false,
+                "max_features": "auto",
+                "use_random_state": false,
+                "use_max_depth": false,
+                "max_depth": 3,
+                "use_min_samples_split": true,
+                "min_samples_split": 2
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "974",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": true
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "975",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        },
+        {
+            "node_id": "976",
+            "widget_name": "Confusion Matrix",
+            "node_name": "混淆矩阵",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: global_data_on_sustainable_energy_train\ntest data: global_data_on_sustainable_energy__test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. The features are all other columns except 'Entity' and 'Year'.\n2. The target variable is 'Renewable energy share in the total final energy consumption (%)'. Build a linear regression model to predict the outcome variable using all features. Fit the model on the training set.\n3. Make predictions on the test set.\n4. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "759",
+            "source_node_id": "977",
+            "target_node_id": "980"
+        },
+        {
+            "edge_id": "760",
+            "source_node_id": "978",
+            "target_node_id": "981"
+        },
+        {
+            "edge_id": "762",
+            "source_node_id": "980",
+            "target_node_id": "983"
+        },
+        {
+            "edge_id": "766",
+            "source_node_id": "981",
+            "target_node_id": "985"
+        },
+        {
+            "edge_id": "767",
+            "source_node_id": "983",
+            "target_node_id": "985"
+        },
+        {
+            "edge_id": "768",
+            "source_node_id": "985",
+            "target_node_id": "986"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "977",
+            "widget_name": "SQL Table",
+            "node_name": "全球可持续能源训练数据",
+            "node_params": {
+                "table_name": "global_data_on_sustainable_energy_train",
+                "target_column": "Renewable_energy_share_total_final_energy_consumption_percentage"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "978",
+            "widget_name": "SQL Table",
+            "node_name": "全球可持续能源测试数据",
+            "node_params": {
+                "table_name": "global_data_on_sustainable_energy__test",
+                "target_column": "Renewable_energy_share_total_final_energy_consumption_percentage"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "980",
+            "widget_name": "Select Columns",
+            "node_name": "训练数据列选择",
+            "node_params": {
+                "ignores": [
+                    0
+                ],
+                "features": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19
+                ],
+                "targets": [
+                    5
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "981",
+            "widget_name": "Select Columns",
+            "node_name": "测试数据列选择",
+            "node_params": {
+                "ignores": [
+                    0
+                ],
+                "features": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19
+                ],
+                "targets": [
+                    5
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "983",
+            "widget_name": "Linear Regression",
+            "node_name": "线性回归模型",
+            "node_params": {
+                "regression_type": "0"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "985",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": false
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "986",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+
+    ]
+}
+    },
+    {
+        "instruction": "Train data: heart_attack_prediction_dataset_train\ntest data: heart_attack_prediction_dataset_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Convert the values in the data for the category column 'Diet'. Use 1, 2, 3 for 'Healthy', 'Average', and 'Unhealthy' respectively.\n2. Build a RandomForest model to predict the Heart Attack Risk using all features. Fit the model on the training set.\n3. Make predictions on the test set.\n4. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "772",
+            "source_node_id": "994",
+            "target_node_id": "996"
+        },
+        {
+            "edge_id": "773",
+            "source_node_id": "995",
+            "target_node_id": "997"
+        },
+        {
+            "edge_id": "778",
+            "source_node_id": "1000",
+            "target_node_id": "1001"
+        },
+        {
+            "edge_id": "779",
+            "source_node_id": "1001",
+            "target_node_id": "1002"
+        },
+        {
+            "edge_id": "780",
+            "source_node_id": "997",
+            "target_node_id": "1001"
+        },
+        {
+            "edge_id": "781",
+            "source_node_id": "996",
+            "target_node_id": "1000"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "994",
+            "widget_name": "SQL Table",
+            "node_name": "训练数据",
+            "node_params": {
+                "table_name": "heart_attack_prediction_dataset_train",
+                "target_column": "Heart_Attack_Risk"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "995",
+            "widget_name": "SQL Table",
+            "node_name": "测试数据",
+            "node_params": {
+                "table_name": "heart_attack_prediction_dataset_test",
+                "target_column": "Heart_Attack_Risk"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "996",
+            "widget_name": "Edit Domain",
+            "node_name": "编辑域",
+            "node_params": {
+                "column_name": "Diet",
+                "valueMappings": [
+                    {
+                        "key": 1,
+                        "originValue": "Healthy",
+                        "currentValue": "1"
+                    },
+                    {
+                        "key": 2,
+                        "originValue": "Average",
+                        "currentValue": "2"
+                    },
+                    {
+                        "key": 3,
+                        "originValue": "Unhealthy",
+                        "currentValue": "3"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "997",
+            "widget_name": "Edit Domain",
+            "node_name": "编辑域",
+            "node_params": {
+                "column_name": "Diet",
+                "valueMappings": [
+                    {
+                        "key": 1,
+                        "originValue": "Healthy",
+                        "currentValue": "1"
+                    },
+                    {
+                        "key": 2,
+                        "originValue": "Average",
+                        "currentValue": "2"
+                    },
+                    {
+                        "key": 3,
+                        "originValue": "Unhealthy",
+                        "currentValue": "3"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1000",
+            "widget_name": "Random Forest",
+            "node_name": "随机森林模型",
+            "node_params": {
+                "n_estimators": 10,
+                "use_max_features": false,
+                "max_features": "auto",
+                "use_random_state": false,
+                "use_max_depth": false,
+                "max_depth": 3,
+                "use_min_samples_split": true,
+                "min_samples_split": 2
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1001",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": true
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1002",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data path: housing_price_prediction_train\ntest data path: housing_price_prediction_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. loading 'housing_price_prediction_train' data and loading 'housing_price_prediction_test' data\n2. Build a linear regression model to predict the housing price. Fit the model on the training set.\n3. Make predictions on the test set.\n4. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "789",
+            "source_node_id": "1009",
+            "target_node_id": "1012"
+        },
+        {
+            "edge_id": "790",
+            "source_node_id": "1012",
+            "target_node_id": "1013"
+        },
+        {
+            "edge_id": "791",
+            "source_node_id": "1005",
+            "target_node_id": "1012"
+        },
+        {
+            "edge_id": "792",
+            "source_node_id": "1004",
+            "target_node_id": "1009"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "1004",
+            "widget_name": "SQL Table",
+            "node_name": "房价预测训练数据",
+            "node_params": {
+                "table_name": "housing_price_prediction_train",
+                "target_column": "price"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1005",
+            "widget_name": "SQL Table",
+            "node_name": "房价预测测试数据",
+            "node_params": {
+                "table_name": "housing_price_prediction_test",
+                "target_column": "price"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1009",
+            "widget_name": "Linear Regression",
+            "node_name": "线性回归模型",
+            "node_params": {
+                "regression_type": "0"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1012",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": false
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1013",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    },
+    {
+        "instruction": "Train data: life_expectancy_data_train\ntest data: life_expectancy_data_test\nUse the training data and test data to go through all of the following tasks, taking care not to leave anything out:\n1. Perform feature construction to build a new feature named \"GDP_bins\" to categorize the GDP into several bins. The GDP bins are defined as follows:\n  - \"Low GDP\": GDP <= 1000\n  - \"Medium GDP\": 1000 < GDP <= 10000\n  - \"High GDP\": GDP > 10000\n2. Create a predictive model to predict life expectancy. Use Linear regression as the model. Fit the model on the training set.\n3. Make predictions on the test set.\n4. Save predictions.",
+        "requirements": {
+    "edges": [
+        {
+            "edge_id": "797",
+            "source_node_id": "1018",
+            "target_node_id": "1020"
+        },
+        {
+            "edge_id": "798",
+            "source_node_id": "1019",
+            "target_node_id": "1021"
+        },
+        {
+            "edge_id": "799",
+            "source_node_id": "1020",
+            "target_node_id": "1022"
+        },
+        {
+            "edge_id": "800",
+            "source_node_id": "1021",
+            "target_node_id": "1023"
+        },
+        {
+            "edge_id": "801",
+            "source_node_id": "1022",
+            "target_node_id": "1023"
+        },
+        {
+            "edge_id": "802",
+            "source_node_id": "1023",
+            "target_node_id": "1024"
+        }
+    ],
+    "nodes": [
+        {
+            "node_id": "1018",
+            "widget_name": "SQL Table",
+            "node_name": "预期寿命训练数据",
+            "node_params": {
+                "table_name": "life_expectancy_data_train",
+                "target_column": "Life_expectancy"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1019",
+            "widget_name": "SQL Table",
+            "node_name": "预期寿命测试数据",
+            "node_params": {
+                "table_name": "life_expectancy_data_test",
+                "target_column": "Life_expectancy"
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1020",
+            "widget_name": "Feature Constructor",
+            "node_name": "特征构建_训练数据",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "GDP_bins",
+                        "expression": "'Low GDP' if GDP <= 1000 else 'Medium GDP' if GDP <= 10000 else 'High GDP'",
+                        "type": "1",
+                        "image": "C",
+                        "categories": "Low GDP, Medium GDP, High GDP"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1021",
+            "widget_name": "Feature Constructor",
+            "node_name": "特征构建_测试数据",
+            "node_params": {
+                "expressions": [
+                    {
+                        "key": 0,
+                        "name": "GDP_bins",
+                        "expression": "'Low GDP' if GDP <= 1000 else 'Medium GDP' if GDP <= 10000 else 'High GDP'",
+                        "type": "1",
+                        "image": "C",
+                        "categories": "Low GDP, Medium GDP, High GDP"
+                    }
+                ]
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1022",
+            "widget_name": "Linear Regression",
+            "node_name": "线性回归模型",
+            "node_params": {
+                "regression_type": "0"
+            },
+            "contrast_level": 1
+        },
+        {
+            "node_id": "1023",
+            "widget_name": "Predictions",
+            "node_name": "预测",
+            "node_params": {
+                "output_probabilities": false
+            },
+            "contrast_level": 2
+        },
+        {
+            "node_id": "1024",
+            "widget_name": "Save Data",
+            "node_name": "保存预测结果",
+            "node_params": {},
+            "contrast_level": 1
+        }
+    ]
+}
+    }
+]
