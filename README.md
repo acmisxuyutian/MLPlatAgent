@@ -2,9 +2,6 @@
 
 > **Collaborating with Specialized Software: A System-AI Collaborative Agent for Automated Machine Learning Workflow Construction**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-
 Welcome to the official repository for **MLPlatAgent**. 
 
 We are exploring a novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
