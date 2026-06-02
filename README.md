@@ -52,9 +52,14 @@ MLPlatAgent processes unstructured natural language instructions and translates 
 * OpenAI API Key (or equivalent LLM provider)
 
 ### Installation
+Download dependencies
 ```bash
 git clone https://github.com/acmisxuyutian/MLPlatAgent.git
 cd MLPlatAgent
 conda create -n mlagent python=3.11
 conda activate mlagent
 pip install -r requirements.txt
+```
+
+https://huggingface.co/intfloat/multilingual-e5-large
+
