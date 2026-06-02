@@ -104,7 +104,7 @@ conda activate mlagent
 # Install required dependencies
 pip install -r requirements.txt
 
-# run 
+# run "Load the Iris example dataset and build a model."
 python run.py
 ```
 
