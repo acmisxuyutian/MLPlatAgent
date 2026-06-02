@@ -61,5 +61,5 @@ conda activate mlagent
 pip install -r requirements.txt
 ```
 
-https://huggingface.co/intfloat/multilingual-e5-large
+由于涉及数据集和示例检索需要获取embedding模型：https://huggingface.co/intfloat/multilingual-e5-large，下载完成后将文件放到embedding_models目录下。
 
