@@ -53,7 +53,7 @@ MLPlatAgent processes unstructured natural language instructions and translates 
 
 ### Installation
 ```bash
-git clone [https://github.com/your-anonymous-account/MLPlatAgent.git](https://github.com/your-anonymous-account/MLPlatAgent.git)
+git clone https://github.com/acmisxuyutian/MLPlatAgent.git
 cd MLPlatAgent
 conda create -n mlagent python=3.11
 conda activate mlagent
