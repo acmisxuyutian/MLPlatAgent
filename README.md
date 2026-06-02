@@ -1,1 +1,58 @@
-# MLPlatAgent: A-Large-Language-Model-based-Agent-for-Automated-Machine-Learning-Workflow-Construction
+# MLPlatAgent 🤖🛠️
+
+> **Collaborating with Specialized Software: A System-AI Collaborative Agent for Automated Machine Learning Workflow Construction**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Paper](https://img.shields.io/badge/Paper-Submitted_to_JSS-orange.svg)]()
+
+Welcome to the official repository for **MLPlatAgent**. 
+
+This repository contains the source code, evaluation framework, and **Supplementary Materials** (detailed raw predictive metrics) for our paper exploring the novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
+
+---
+
+## 📌 Supplementary Materials for Reviewers
+
+To ensure full transparency regarding absolute performance differences without exceeding paper space limitations, we have released the detailed raw ML metrics for all baseline agents across all tasks.
+
+* 📊 **[Raw Predictive Performance Metrics (CSV/Excel)](./results/raw_metrics/)**
+  * Contains absolute standard metrics for classification tasks: `F1-score`, `Precision`, `Recall`.
+  * Contains absolute standard metrics for regression tasks: `RMSE`, `MAE`.
+* 📈 **[Macro-Topology Analysis Examples](./results/topology_analysis/)**
+  * Case studies demonstrating how MLPlatAgent automatically incorporates complex procedures (e.g., SMOTE for imbalanced data) mirroring traditional AutoML structural standards.
+
+---
+
+## ✨ Core Features & Paradigm Shift
+
+Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE-Bench that generate raw scripts from scratch, MLPlatAgent acts as an intelligent orchestrator over mature enterprise ML platforms.
+
+* 🔄 **NL2Workflow Paradigm (System-AI Collaboration):** Shields the LLM from highly error-prone low-level syntax generation, avoiding hallucinations and bugs by delegating execution to the native engines of low-code platforms.
+* 🔗 **Function Call Code (FCC) Mechanism:** A novel architectural design that resolves Directed Acyclic Graph (DAG) dependency bottlenecks, successfully passing intermediate states and variables between sequential node operations.
+* 🧠 **Data-Aware Tool Selection:** Dynamically incorporates dataset summary profiles (e.g., target feature distributions) into the context, enabling the agent to proactively retrieve specialized tools (such as resampling widgets for highly imbalanced datasets).
+* 🛡️ **Feedback-Driven Fault Tolerance:** Leverages the robust error-handling of industrial ML platforms, capturing native error logs to prompt the LLM for re-evaluation and self-correction during workflow generation.
+
+---
+
+## 🏗️ System Architecture
+
+MLPlatAgent processes unstructured natural language instructions and translates them into executable workflow topologies through three main phases:
+1. **Intent Identification & Task Decomposition:** Routes intents into specialized paths (Traditional ML, Deep Learning, Modification) utilizing standardized heuristic mappings to align with enterprise low-code templates.
+2. **Hierarchical Tool Retrieval:** Synergizes user queries with dynamic data summaries to retrieve the most context-appropriate platform widgets.
+3. **Workflow Assembly via FCC:** Constructs the explicit DAG topology, ensuring logical soundness and executable structural adherence prior to deployment.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+* Python 3.8 or higher
+* Access credentials for the designated Low-code Machine Learning Platform API (e.g., Uniplore)
+* OpenAI API Key (or equivalent LLM provider)
+
+### Installation
+```bash
+git clone [https://github.com/your-anonymous-account/MLPlatAgent.git](https://github.com/your-anonymous-account/MLPlatAgent.git)
+cd MLPlatAgent
+pip install -r requirements.txt
