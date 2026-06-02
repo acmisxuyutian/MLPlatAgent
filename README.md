@@ -87,7 +87,7 @@ MLPlatAgent/
 ### Prerequisites
 
 * Python 3.10 or higher
-* Access credentials for the designated Low-code Machine Learning Platform API (e.g., Uniplore)
+* Access Credentials for the Low-code ML Platform: Tailored for the Uniplore platform. You can register an account at the [Uniplore Lab Platform](https://lab.guilan.cn/#/login) to obtain authorization and experience the system directly.
 * OpenAI API Key (or an equivalent LLM provider key)
 
 ### Installation
