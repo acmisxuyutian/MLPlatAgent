@@ -118,7 +118,6 @@ Because MLPlatAgent utilizes dataset and example retrieval, you need a local emb
 
 ## 🎥 Video Demo
 
-Check out our demonstration of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform:
-[Demo](https://youtu.be/aN-5xPOluyU)
+Check out our [demonstration](https://youtu.be/aN-5xPOluyU) of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform
 
 ---
