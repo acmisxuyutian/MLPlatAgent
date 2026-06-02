@@ -12,18 +12,6 @@ This repository contains the source code for our paper exploring the novel `Syst
 
 ---
 
-## 📌 Supplementary Materials for Reviewers
-
-To ensure full transparency regarding absolute performance differences without exceeding paper space limitations, we have released the detailed raw ML metrics for all baseline agents across all tasks.
-
-* 📊 **[Raw Predictive Performance Metrics (CSV/Excel)](./results/raw_metrics/)**
-  * Contains absolute standard metrics for classification tasks: `F1-score`, `Precision`, `Recall`.
-  * Contains absolute standard metrics for regression tasks: `RMSE`, `MAE`.
-* 📈 **[Macro-Topology Analysis Examples](./results/topology_analysis/)**
-  * Case studies demonstrating how MLPlatAgent automatically incorporates complex procedures (e.g., SMOTE for imbalanced data) mirroring traditional AutoML structural standards.
-
----
-
 ## ✨ Core Features & Paradigm Shift
 
 Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE-Bench that generate raw scripts from scratch, MLPlatAgent acts as an intelligent orchestrator over mature enterprise ML platforms.
