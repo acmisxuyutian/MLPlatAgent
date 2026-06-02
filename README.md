@@ -19,7 +19,15 @@ Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE
 
 ---
 
-### Architecture
+## 🌐 Methodological Transferability
+
+While the current codebase implementation of MLPlatAgent is specifically tailored for the Uniplore platform, the core architectural designs of our framework are fundamentally platform-agnostic. The operation space defined in this framework (comprising universal actions such as adding/deleting nodes, configuring parameters, and establishing edge connections) is completely independent of any specific platform's underlying implementation.
+
+To migrate MLPlatAgent to a new environment or an alternative low-code ML platform (such as KNIME or RapidMiner), developers only need to modify the platform-specific implementations under the `ml_platform/` directory. Specifically, by updating `actions.py`, you can easily map this unified operation space to the heterogeneous APIs of your target underlying platform. Through this straightforward wrapper layer adaptation and by updating the corresponding meta-descriptions in the tool library, MLPlatAgent can be seamlessly transferred to other mainstream workflows.
+
+---
+
+## Architecture
 
 <p align="center">
   <img src="static/NL2Workflow_NL2Code.png" alt="Comparison of the NL2Code and NL2Workflow paradigms" width="48%">
@@ -30,14 +38,6 @@ MLPlatAgent processes unstructured natural language instructions and translates 
 1. **Intent Identification & Task Decomposition:** Routes intents into specialized paths (Traditional ML, Deep Learning, Modification) utilizing standardized heuristic mappings to align with enterprise low-code templates.
 2. **Hierarchical Tool Retrieval:** Synergizes user queries with dynamic data summaries to retrieve the most context-appropriate platform widgets.
 3. **Workflow Assembly via FCC:** Constructs the explicit DAG topology, ensuring logical soundness and executable structural adherence prior to deployment.
-
----
-
-## 🌐 Methodological Transferability
-
-While the current codebase implementation of MLPlatAgent is specifically tailored for the Uniplore platform, the core architectural designs of our framework are fundamentally platform-agnostic. The operation space defined in this framework (comprising universal actions such as adding/deleting nodes, configuring parameters, and establishing edge connections) is completely independent of any specific platform's underlying implementation.
-
-To migrate MLPlatAgent to a new environment or an alternative low-code ML platform (such as KNIME or RapidMiner), developers only need to modify the platform-specific implementations under the `ml_platform/` directory. Specifically, by updating `actions.py`, you can easily map this unified operation space to the heterogeneous APIs of your target underlying platform. Through this straightforward wrapper layer adaptation and by updating the corresponding meta-descriptions in the tool library, MLPlatAgent can be seamlessly transferred to other mainstream workflows.
 
 ---
 
