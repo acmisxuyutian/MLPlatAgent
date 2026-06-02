@@ -4,6 +4,7 @@
 
 Welcome to the official repository for **MLPlatAgent**. We are exploring a novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
 
+🎥 Video Demo: Check out our [demonstration](https://youtu.be/aN-5xPOluyU) of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform
 ---
 
 ## ✨ Core Features
@@ -107,13 +108,5 @@ python run.py
 Because MLPlatAgent utilizes dataset and example retrieval, you need a local embedding model.
 * Download the [`multilingual-e5-large`](https://huggingface.co/intfloat/multilingual-e5-large) model from HuggingFace.
 * Place the downloaded model files into the `embedding_models/` directory in this repository.
-
-
-
----
-
-## 🎥 Video Demo
-
-Check out our [demonstration](https://youtu.be/aN-5xPOluyU) of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform
 
 ---
