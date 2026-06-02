@@ -104,6 +104,8 @@ conda activate mlagent
 # Install required dependencies
 pip install -r requirements.txt
 
+# run 
+python run.py
 ```
 
 
