@@ -4,7 +4,7 @@
 
 Welcome to the official repository for **MLPlatAgent**. We are exploring a novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
 
-🎥 Video Demo: Check out our [demonstration](https://youtu.be/aN-5xPOluyU) of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform
+🎥 Video Demo: Check out our [demonstration](https://youtu.be/aN-5xPOluyU) of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform.
 
 ---
 
