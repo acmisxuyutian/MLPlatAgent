@@ -8,7 +8,7 @@
 
 Welcome to the official repository for **MLPlatAgent**. 
 
-This repository contains the source code for our paper exploring the novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
+We exploring the novel `System-AI Collaborative` software engineering path. MLPlatAgent orchestrates professional low-code Machine Learning platforms via Large Language Models (LLMs), pioneering the transition from traditional code generation (NL2Code) to workflow orchestration (**NL2Workflow**).
 
 ---
 
@@ -22,15 +22,15 @@ Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE
 * 🛡️ **Feedback-Driven Fault Tolerance:** Leverages the robust error-handling of industrial ML platforms, capturing native error logs to prompt the LLM for re-evaluation and self-correction during workflow generation.
 
 ---
-
+![Comparison of the NL2Code and NL2Workflow paradigms.](MLPlatAgent/static/NL2Workflow_NL2Code.png){width=50%}
 ## 🏗️ System Architecture
 
 MLPlatAgent processes unstructured natural language instructions and translates them into executable workflow topologies through three main phases:
 1. **Intent Identification & Task Decomposition:** Routes intents into specialized paths (Traditional ML, Deep Learning, Modification) utilizing standardized heuristic mappings to align with enterprise low-code templates.
 2. **Hierarchical Tool Retrieval:** Synergizes user queries with dynamic data summaries to retrieve the most context-appropriate platform widgets.
 3. **Workflow Assembly via FCC:** Constructs the explicit DAG topology, ensuring logical soundness and executable structural adherence prior to deployment.
-
 ---
+![Overview of the MLPlatAgent framework.](MLPlatAgent/static/MLPlatAgent_overview.png){width=50%}
 
 ## 🚀 Quick Start
 
@@ -49,5 +49,5 @@ conda activate mlagent
 pip install -r requirements.txt
 ```
 
-由于涉及数据集和示例检索需要获取embedding模型：https://huggingface.co/intfloat/multilingual-e5-large，下载完成后将文件放到embedding_models目录下。
+由于涉及数据集和示例检索需要获取embedding模型下载完成后将文件放到embedding_models目录下。：https://huggingface.co/intfloat/multilingual-e5-large
 
