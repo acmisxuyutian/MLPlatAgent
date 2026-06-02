@@ -49,5 +49,6 @@ conda activate mlagent
 pip install -r requirements.txt
 ```
 
+a demo is https://youtu.be/aN-5xPOluyU
 由于涉及数据集和示例检索需要获取embedding模型下载完成后将文件放到embedding_models目录下。：https://huggingface.co/intfloat/multilingual-e5-large
 
