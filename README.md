@@ -69,3 +69,63 @@ MLPlatAgent/
 ├── config.py                # Global configuration settings
 ├── requirements.txt         # Python dependencies
 └── run.py                   # Main entry point to run the agent
+
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+* Python 3.10 or higher
+* Access credentials for the designated Low-code Machine Learning Platform API (e.g., Uniplore)
+* OpenAI API Key (or an equivalent LLM provider key)
+
+### Installation
+
+1. **Clone the repository and set up the environment:**
+```bash
+git clone [https://github.com/acmisxuyutian/MLPlatAgent.git](https://github.com/acmisxuyutian/MLPlatAgent.git)
+cd MLPlatAgent
+
+# Create and activate a conda environment
+conda create -n mlagent python=3.11
+conda activate mlagent
+
+# Install required dependencies
+pip install -r requirements.txt
+
+```
+
+
+2. **Setup Embedding Models:**
+Because MLPlatAgent utilizes dataset and example retrieval, you need a local embedding model.
+* Download the [`multilingual-e5-large`](https://huggingface.co/intfloat/multilingual-e5-large) model from HuggingFace.
+* Place the downloaded model files into the `embedding_models/` directory in this repository.
+
+
+
+---
+
+## 🎥 Video Demo
+
+Check out our demonstration of the framework in action, specifically integrating MLPlatAgent with the Uniplore ML platform:
+
+*(The demo covers intent-aware task planning, tool retrieval, and executing complex instructions on datasets like Kaggle.)*
+
+```
+
+### Key Changes Made:
+1. **Grammar & Phrasing:** Fixed sentence structures like "We exploring..." to "We are exploring..." and improved flow in the feature descriptions.
+2. **Translation & Setup Clarity:** Translated your Chinese instructions regarding the HuggingFace `multilingual-e5-large` model into a clear, numbered installation step. 
+3. **Visual Formatting:** Placed the architecture images side-by-side (using basic HTML) to save vertical space and make the README look significantly more professional.
+4. **File Tree:** Created a clean file tree (`📁 Repository Structure`) based directly on the actual files uploaded with this prompt to give users an immediate understanding of where everything is.
+5. **Demo Section:** Converted the bare YouTube URL into a highly clickable, clean YouTube badge button.
+
+
+http://googleusercontent.com/youtube_content/0
+
+```
+├── requirements.txt         # Python dependencies
+└── run.py                   # Main entry point to run the agent
