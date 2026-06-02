@@ -6,7 +6,7 @@ Welcome to the official repository for **MLPlatAgent**. We are exploring a novel
 
 ---
 
-## ✨ Core Features & Paradigm Shift
+## ✨ Core Features
 
 Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE-Bench that generate raw scripts from scratch, MLPlatAgent acts as an intelligent orchestrator over mature enterprise ML platforms.
 
@@ -17,7 +17,7 @@ Unlike existing coding assistants (e.g., Claude Code) or agents evaluated on MLE
 
 ---
 
-### Comparison & Architecture
+### Architecture
 
 <p align="center">
   <img src="static/NL2Workflow_NL2Code.png" alt="Comparison of the NL2Code and NL2Workflow paradigms" width="48%">
