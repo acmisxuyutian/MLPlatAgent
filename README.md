@@ -47,7 +47,7 @@ MLPlatAgent processes unstructured natural language instructions and translates 
 ## 🚀 Quick Start
 
 ### Prerequisites
-* Python 3.8 or higher
+* Python 3.10 or higher
 * Access credentials for the designated Low-code Machine Learning Platform API (e.g., Uniplore)
 * OpenAI API Key (or equivalent LLM provider)
 
@@ -55,4 +55,6 @@ MLPlatAgent processes unstructured natural language instructions and translates 
 ```bash
 git clone [https://github.com/your-anonymous-account/MLPlatAgent.git](https://github.com/your-anonymous-account/MLPlatAgent.git)
 cd MLPlatAgent
+conda create -n mlagent python=3.11
+conda activate mlagent
 pip install -r requirements.txt
