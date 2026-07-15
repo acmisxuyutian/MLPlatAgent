@@ -36,8 +36,8 @@ The repository includes the source code, benchmark instruction files, evaluation
 | `agents/`, `ml_platform/`, `prompts/`, `llm/`, `utils/` | MLPlatAgent implementation. |
 | `data/benchmark/ml_benchmark.json` | ML-Benchmark instruction/evaluation file; 8 released instructions. |
 | `data/benchmark/dseval_kaggle.json` | DSEval-Kaggle instruction/evaluation file; 10 released instructions. |
-| `data/benchmark/DSEval-Kaggle-Ext/UCI.json` | User command intent subset for DSEval-Kaggle-Ext; 40 released instructions. |
-| `data/benchmark/DSEval-Kaggle-Ext/CI.json` | Command intent subset for DSEval-Kaggle-Ext; 40 released instructions. |
+| `data/benchmark/DSEval-Kaggle-Ext/UCI.json` | User command intent subset for DSEval-Kaggle-Ext; 14 released instructions. |
+| `data/benchmark/DSEval-Kaggle-Ext/CI.json` | Command intent subset for DSEval-Kaggle-Ext; 14 released instructions. |
 | `data/benchmark/DSEval-Kaggle-Ext/MI.json` | Modification intent subset for DSEval-Kaggle-Ext; 21 released instructions. |
 | `data/benchmark/datasets/ml_benchmark.sql` | SQL dump for ML-Benchmark datasets. |
 | `data/benchmark/datasets/dseval_kaggle.sql` | SQL dump for DSEval-Kaggle datasets. |
@@ -46,7 +46,7 @@ The repository includes the source code, benchmark instruction files, evaluation
 | `data/ml_platform_data_example/` | Example platform widget metadata used by retrieval and workflow generation. |
 | `data/cases_library/` | Case libraries used by planner/executor retrieval. |
 
-Each benchmark JSON entry contains an `Instruction` field and a `requirements` object. The requirements object records both `step_requirements` and `dependency_requirements`, allowing generated workflows to be checked against required nodes, parameters, and DAG dependencies.
+Each benchmark JSON entry contains an `Instruction` field and a `requirements` object. The DSEval-Kaggle-Ext files release 49 instructions in total: 14 UCI, 14 CI, and 21 MI instructions. The requirements object records both `step_requirements` and `dependency_requirements`, allowing generated workflows to be checked against required nodes, parameters, and DAG dependencies.
 
 ## What Is Included and What Requires External Access
 
@@ -74,7 +74,8 @@ The experiments were configured with:
 
 - Python: 3.10 or later; Python 3.11 is recommended.
 - LLM client: `openai==0.27.0` with an OpenAI-compatible chat-completion endpoint.
-- Default LLM setting in `config.py`: `MODEL_NAME = "qwen3.6-plus"`, `Model_PATH = "https://dashscope.aliyuncs.com/compatible-mode/v1"`.
+- Experimental LLM: `Qwen2.5-72B-Instruct`. The official API no longer provides the exact model used in the experiments. To reproduce the experimental setting, download the open-source model from Hugging Face and deploy it on your own server: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct.
+- Case-testing LLM: if you only want to test examples or run the pipeline, you may use any currently available large language model. Configure the corresponding model name and OpenAI-compatible endpoint through `MODEL_NAME` and `Model_PATH` in `config.py`.
 - LLM decoding defaults in `llm/llm.py`: `temperature=0`, `top_p=1`, `max_tokens=4096`.
 - Default retriever in `agents/mlagent.py`: `multilingual-e5-large`.
 - Random seed in `config.py`: `RANDOM_SEED = 42`.
@@ -148,7 +149,7 @@ Credential assumptions:
 
 - `Accesstoken` must authorize workflow creation, node updates, edge updates, execution, and log retrieval on the target low-code ML platform.
 - `Workflow_id` must refer to a workflow that the token can modify.
-- `API_KEY` must be valid for the configured OpenAI-compatible LLM endpoint.
+- `API_KEY` must be valid for the configured OpenAI-compatible LLM endpoint. For experiment reproduction, deploy `Qwen2.5-72B-Instruct` from Hugging Face and point `Model_PATH` to that service. For functional testing, configure any compatible latest LLM by setting the matching `MODEL_NAME` and `Model_PATH`.
 - The MySQL account must allow reading benchmark tables and must be reachable by both MLPlatAgent and the platform service.
 
 ## Quick Start
