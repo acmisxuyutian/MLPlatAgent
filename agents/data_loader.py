@@ -9,7 +9,7 @@ from prompts.data_loader_prompts import SYSTEM_PROMPT, USER_PROMPT, EDA_RESULT_T
 from llm.llm import Qwen_Model
 from utils.utils import load_json, get_project_root,update_data_info
 from ml_platform.ai_studio import AI_Studio
-from config import MySQL_Config
+from config import MySQL_Config, RANDOM_SEED
 from utils.mysql_utils import MySQLDatabase
 from utils.logs import logger
 
@@ -94,7 +94,8 @@ class Data_Loader:
         if len(df_clean) < 3:
             df_clean = data
         # 生成3个随机索引
-        random_indices = random.sample(range(len(df_clean)), 3)
+        rng = random.Random(RANDOM_SEED)
+        random_indices = rng.sample(range(len(df_clean)), 3)
 
         # 选择这些随机索引对应的行
         random_rows = df_clean.iloc[random_indices]

@@ -8,6 +8,7 @@ AI_STUDIO_URL = "https://labgateway.guilan.cn/"
 Model_PATH = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 MODEL_NAME = "qwen3.6-plus"
 API_KEY = "sk-"
+RANDOM_SEED = 42
 
 ############### mysql ###############
 # Provide a MySQL database that can be accessed via the cloud, enabling Uniplore to access your personal data.
