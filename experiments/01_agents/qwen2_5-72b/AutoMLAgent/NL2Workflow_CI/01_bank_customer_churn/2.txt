@@ -1,0 +1,178 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from imblearn.over_sampling import SMOTE
+import joblib
+import random
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Load Datasets
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Step 2: Data Inspection
+def inspect_data(df):
+    print("Data Shape:", df.shape)
+    print("Data Types:\n", df.dtypes)
+    print("Missing Values:\n", df.isnull().sum())
+
+# Step 3: Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Ensure the target variable is present
+    if 'churn' not in train_df.columns:
+        raise ValueError("The 'churn' column is missing in the training dataset.")
+    if 'churn' not in test_df.columns:
+        raise ValueError("The 'churn' column is missing in the test dataset.")
+
+    # Split the datasets
+    X_train = train_df.drop(columns=['churn'])
+    y_train = train_df['churn']
+    X_test = test_df.drop(columns=['churn'])
+    y_test = test_df['churn']
+
+    # Identify categorical and numerical columns
+    categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
+    numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
+
+    # Handle missing values
+    for col in numerical_cols:
+        X_train[col].fillna(X_train[col].mean(), inplace=True)
+        X_test[col].fillna(X_train[col].mean(), inplace=True)
+    for col in categorical_cols:
+        X_train[col].fillna(X_train[col].mode()[0], inplace=True)
+        X_test[col].fillna(X_train[col].mode()[0], inplace=True)
+
+    # Create preprocessing pipeline
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_cols),
+            ('cat', OneHotEncoder(), categorical_cols)
+        ])
+
+    # Apply preprocessing
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+
+    return X_train_processed, y_train, X_test_processed, y_test, preprocessor
+
+# Step 4: Data Augmentation
+def augment_data(X_train, y_train):
+    smote = SMOTE(random_state=SEED)
+    X_train_augmented, y_train_augmented = smote.fit_resample(X_train, y_train)
+    return X_train_augmented, y_train_augmented
+
+# Step 5: Data Analysis
+def analyze_data(train_df):
+    print("Statistical Summary:\n", train_df.describe())
+    print("Correlation Matrix:\n", train_df.corr())
+    print("Class Distribution:\n", train_df['churn'].value_counts(normalize=True))
+
+# Step 6: Model Initialization and Training
+def train_model(X_train, y_train):
+    # Define the model
+    model = RandomForestClassifier(random_state=SEED)
+
+    # Define the hyperparameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'max_depth': [10, 20, 30, 40, 50, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    # Perform hyperparameter tuning
+    randomized_search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=5, scoring='roc_auc', random_state=SEED)
+    randomized_search.fit(X_train, y_train)
+
+    # Train the model with the best hyperparameters
+    best_model = RandomForestClassifier(**randomized_search.best_params_, random_state=SEED)
+    best_model.fit(X_train, y_train)
+
+    return best_model
+
+# Step 7: Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    performance_scores = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'F1 Score': f1_score(y_test, y_pred),
+        'AUC-ROC': roc_auc_score(y_test, y_pred_proba),
+        'Confusion Matrix': confusion_matrix(y_test, y_pred)
+    }
+
+    return performance_scores, y_pred_proba
+
+# Step 8: Save the Trained Model
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# Step 9: Save Predictions
+def save_predictions(y_pred_proba, predictions_path):
+    predictions_df = pd.DataFrame(y_pred_proba, columns=['churn_probability'])
+    predictions_df.to_csv(predictions_path, index=False)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    # Load datasets
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Inspect data
+    inspect_data(train_df)
+    inspect_data(test_df)
+
+    # Preprocess data
+    X_train, y_train, X_test, y_test, preprocessor = preprocess_data(train_df, test_df)
+
+    # Augment data
+    X_train, y_train = augment_data(X_train, y_train)
+
+    # Analyze data
+    analyze_data(train_df)
+
+    # Train model
+    model = train_model(X_train, y_train)
+
+    # Evaluate model
+    performance_scores, y_pred_proba = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:", performance_scores)
+
+    # Save predictions
+    predictions_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/predictions.csv'
+    save_predictions(y_pred_proba, predictions_path)
+
+    # Save the trained model
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/trained_models/random_forest_model.pkl'
+    save_model(model, model_path)
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 164, in <module>
+    main()
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 140, in main
+    X_train, y_train, X_test, y_test, preprocessor = preprocess_data(train_df, test_df)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 35, in preprocess_data
+    raise ValueError("The 'churn' column is missing in the training dataset.")
+ValueError: The 'churn' column is missing in the training dataset.

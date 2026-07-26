@@ -1,0 +1,163 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+from sklearn.feature_selection import RFE
+from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(data_path):
+    df = pd.read_csv(data_path)
+    print("Dataset Schema:")
+    print(df.info())
+    print("Dataset Summary Statistics:")
+    print(df.describe())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handle Missing Values
+    numerical_features = df.select_dtypes(include=['number']).columns
+    df[numerical_features] = df[numerical_features].fillna(df[numerical_features].median())
+    
+    categorical_features = df.select_dtypes(include=['object']).columns
+    df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+    
+    df = df.dropna(thresh=len(df) * 0.5, axis=1)
+    
+    # Remove Duplicates
+    df = df.drop_duplicates()
+    
+    # Encode Categorical Variables
+    df = pd.get_dummies(df, drop_first=True)
+    
+    # Normalize/Standardize Numerical Features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Feature Engineering
+    if 'number_of_transactions' in df.columns and 'account_age' in df.columns:
+        df['transaction_frequency'] = df['number_of_transactions'] / df['account_age']
+    if 'total_transaction_amount' in df.columns and 'number_of_transactions' in df.columns:
+        df['average_transaction_amount'] = df['total_transaction_amount'] / df['number_of_transactions']
+    if 'transaction_frequency' in df.columns and 'average_transaction_amount' in df.columns:
+        df['interaction_feature'] = df['transaction_frequency'] * df['average_transaction_amount']
+    
+    # Create Polynomial Features
+    poly = PolynomialFeatures(degree=2, interaction_only=True)
+    poly_features = poly.fit_transform(df[numerical_features])
+    poly_df = pd.DataFrame(poly_features, columns=poly.get_feature_names_out(numerical_features))
+    df = pd.concat([df, poly_df], axis=1)
+    
+    # Feature Selection
+    model = XGBClassifier()
+    rfe = RFE(model, n_features_to_select=20)
+    df_rfe = rfe.fit_transform(df.drop('churn', axis=1, errors='ignore'), df['churn'])
+    selected_features = df.columns[rfe.support_]
+    df = df[selected_features]
+    
+    return df
+
+# Data Augmentation
+def handle_imbalance(df):
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop('churn', axis=1), df['churn'])
+    df = pd.concat([X_resampled, y_resampled], axis=1)
+    return df
+
+# Data Splitting
+def split_data(df):
+    X = df.drop('churn', axis=1)
+    y = df['churn']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Optimization
+def train_model(X_train, y_train):
+    param_dist = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.5, 0.7, 1.0],
+        'colsample_bytree': [0.5, 0.7, 1.0]
+    }
+
+    model = XGBClassifier()
+    random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=10, scoring='roc_auc', cv=5, random_state=42)
+    random_search.fit(X_train, y_train)
+    best_model = random_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    y_val_prob = model.predict_proba(X_val)[:, 1]
+
+    auc_roc = roc_auc_score(y_val, y_val_prob)
+    precision = precision_score(y_val, y_val_pred)
+    recall = recall_score(y_val, y_val_pred)
+    f1 = f1_score(y_val, y_val_pred)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-Score': f1
+    }
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    df = load_data(data_path)
+    
+    # Ensure 'churn' column is present before preprocessing
+    if 'churn' not in df.columns:
+        raise ValueError("The dataset does not contain the 'churn' column.")
+    
+    df = preprocess_data(df)
+    df = handle_imbalance(df)
+    
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+    
+    model = train_model(X_train, y_train)
+    
+    performance_scores = evaluate_model(model, X_val, y_val)
+    print("Model Performance on Validation Set:", performance_scores)
+    
+    # Retrain the final model on the entire training dataset
+    final_model = train_model(pd.concat([X_train, X_val]), pd.concat([y_train, y_val]))
+    
+    # Save the trained model
+    model_path = r'./agent_workspace/trained_models/xgboost_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(final_model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 127, in main
+    raise ValueError("The dataset does not contain the 'churn' column.")
+ValueError: The dataset does not contain the 'churn' column.

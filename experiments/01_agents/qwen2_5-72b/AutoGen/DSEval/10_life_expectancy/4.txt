@@ -1,0 +1,185 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\10_life_expectancy\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\10_life_expectancy\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Define the GDP bins
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+# Apply the function to create the new feature "GDP_bins"
+train_df['GDP_bins'] = train_df['GDP'].apply(categorize_gdp)
+test_df['GDP_bins'] = test_df['GDP'].apply(categorize_gdp)
+
+# Display the first few rows of the training and test datasets to verify
+print("Training Data:")
+print(train_df.head())
+print("\nTest Data:")
+print(test_df.head())
+
+
+执行结果：
+Training Data:
+     Country      Status  ...  Schooling    GDP_bins
+0      Ghana  Developing  ...       10.9  Medium GDP
+1  Argentina  Developing  ...       16.3  Medium GDP
+2       Peru  Developing  ...       13.2  Medium GDP
+3   Zimbabwe  Developing  ...        9.7     Low GDP
+4   Thailand  Developing  ...       11.2  Medium GDP
+
+[5 rows x 22 columns]
+
+Test Data:
+                    Country      Status  ...  Schooling    GDP_bins
+0                 Indonesia  Developing  ...       11.0  Medium GDP
+1                    Serbia  Developing  ...       13.5  Medium GDP
+2                   Germany   Developed  ...       16.4    High GDP
+3                  Zimbabwe  Developing  ...       10.1     Low GDP
+4  Central African Republic  Developing  ...        6.4     Low GDP
+
+[5 rows x 22 columns]
+
+生成的代码：
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins', 'Schooling', 'Status']
+target = 'Life expectancy '
+
+# Create a column transformer to handle categorical and numerical features
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), ['GDP_bins', 'Status']),
+        ('num', 'passthrough', ['GDP', 'Schooling'])
+    ])
+
+# Create a pipeline that first preprocesses the data and then fits the linear regression model
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
+
+# Fit the model on the training data
+model.fit(train_df[features], train_df[target])
+
+# Display the model to verify
+print(model)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_0fff696ea23f3c840d485c83db9831ceb419c09346ec644c789c0bb89f0973cc.py", line 25, in <module>
+    model.fit(train_df[features], train_df[target])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins', 'Schooling', 'Status']
+target = 'Life expectancy '
+
+# Create a column transformer to handle categorical and numerical features
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), ['GDP_bins', 'Status']),
+        ('num', 'passthrough', ['GDP', 'Schooling'])
+    ])
+
+# Create a pipeline that first preprocesses the data and then fits the linear regression model
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
+
+# Fit the model on the training data
+model.fit(train_df[features], train_df[target])
+
+# Display the model to verify
+print(model)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_0fff696ea23f3c840d485c83db9831ceb419c09346ec644c789c0bb89f0973cc.py", line 25, in <module>
+    model.fit(train_df[features], train_df[target])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score
+
+# Load the training and test datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\10_life_expectancy\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\10_life_expectancy\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Define the GDP bins
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+# Apply the function to create the new feature "GDP_bins"
+train_df['GDP_bins'] = train_df['GDP'].apply(categorize_gdp)
+test_df['GDP_bins'] = test_df['GDP'].apply(categorize_gdp)
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins', 'Schooling', 'Status']
+target = 'Life expectancy '
+
+# Create a column transformer to handle categorical and numerical features
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), ['GDP_bins', 'Status']),
+        ('num', 'passthrough', ['GDP', 'Schooling'])
+    ])
+
+# Create a pipeline that first preprocesses the data and then fits the linear regression model
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
+
+# Fit the model on the training data
+model.fit(train_df[features], train_df[target])
+
+# Display the model to verify
+print(model)
+
+
+执行结果：
+Pipeline(steps=[('preprocessor',
+                 ColumnTransformer(transformers=[('cat', OneHotEncoder(),
+                                                  ['GDP_bins', 'Status']),
+                                                 ('num', 'passthrough',
+                                                  ['GDP', 'Schooling'])])),
+                ('regressor', LinearRegression())])

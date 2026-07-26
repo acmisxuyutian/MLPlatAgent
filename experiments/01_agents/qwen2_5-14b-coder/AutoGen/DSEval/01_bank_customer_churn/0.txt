@@ -1,0 +1,188 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'], drop_first=True)
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'], drop_first=True)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# 分离特征和目标变量
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 构建 XGBoost 模型
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+model.fit(X_train, y_train)
+
+# 在测试集上进行预测
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC 曲线
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_af561e8beaeaecf6c1b2b89cf4d7d8817ea593045a0fb8eba4d3d3b4a30aca8d.py", line 2, in <module>
+    train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'], drop_first=True)
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'], drop_first=True)
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'], drop_first=True)
+
+# 分离特征和目标变量
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 构建 XGBoost 模型
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+model.fit(X_train, y_train)
+
+# 在测试集上进行预测
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC 曲线
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 407, in pandas_feature_info
+    new_feature_types.append(_pandas_dtype_mapper[dtype.name])
+KeyError: 'object'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_1478cb259011b3e45d603071ffb44945c11c83b8748307ebf3fa21acb682937e.py", line 31, in <module>
+    model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 729, in inner_f
+    return func(**kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\sklearn.py", line 1663, in fit
+    train_dmatrix, evals = _wrap_evaluation_matrices(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\sklearn.py", line 628, in _wrap_evaluation_matrices
+    train_dmatrix = create_dmatrix(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\sklearn.py", line 1137, in _create_dmatrix
+    return QuantileDMatrix(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 729, in inner_f
+    return func(**kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 1614, in __init__
+    self._init(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 1678, in _init
+    it.reraise()
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 572, in reraise
+    raise exc  # pylint: disable=raising-bad-type
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 553, in _handle_exception
+    return fn()
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 640, in <lambda>
+    return self._handle_exception(lambda: int(self.next(input_data)), 0)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 1654, in next
+    input_data(**self.kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 729, in inner_f
+    return func(**kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 620, in input_data
+    new, cat_codes, feature_names, feature_types = _proxy_transform(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 1707, in _proxy_transform
+    df, feature_names, feature_types = _transform_pandas_df(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 640, in _transform_pandas_df
+    feature_names, feature_types = pandas_feature_info(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 409, in pandas_feature_info
+    _invalid_dataframe_dtype(data)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 372, in _invalid_dataframe_dtype
+    raise ValueError(msg)
+ValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:Gender: object
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'], drop_first=True)
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'], drop_first=True)
+
+# 将 "Gender" 列转换为数值类型
+train_data['Gender'] = train_data['Gender'].map({'Male': 0, 'Female': 1})
+test_data['Gender'] = test_data['Gender'].map({'Male': 0, 'Female': 1})
+
+# 分离特征和目标变量
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 构建 XGBoost 模型
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+model.fit(X_train, y_train)
+
+# 在测试集上进行预测
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC 曲线
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\training.py:183: UserWarning: [23:24:08] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:738: 
+Parameters: { "use_label_encoder" } are not used.
+
+  bst.update(dtrain, iteration=i, fobj=obj)
+AUC-ROC: 0.8449325549322224

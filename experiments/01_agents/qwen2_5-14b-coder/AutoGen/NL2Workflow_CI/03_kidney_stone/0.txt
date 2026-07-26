@@ -1,0 +1,294 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import os
+import pandas as pd
+
+# 文件路径
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+# 检查文件是否存在
+print(f'Train file exists: {os.path.exists(train_path)}')
+print(f'Test file exists: {os.path.exists(test_path)}')
+
+# 读取训练集和测试集
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Train file exists: True
+Test file exists: True
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import os
+import pandas as pd
+
+# 文件路径
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+# 检查文件是否存在
+print(f'Train file exists: {os.path.exists(train_path)}')
+print(f'Test file exists: {os.path.exists(test_path)}')
+
+# 读取训练集和测试集
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Train file exists: True
+Test file exists: True
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined

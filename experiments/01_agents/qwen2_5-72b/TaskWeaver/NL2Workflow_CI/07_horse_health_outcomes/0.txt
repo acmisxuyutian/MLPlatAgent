@@ -1,0 +1,156 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+# Assuming the target variable is 'outcome'
+y_train = train_df['outcome']
+X_train = train_df.drop(columns=['outcome'])
+
+y_test = test_df['outcome']
+X_test = test_df.drop(columns=['outcome'])
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert back to DataFrame
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+X_test_scaled_df = pd.DataFrame(X_test_scaled, columns=X_test.columns)
+
+# Result variables
+X_train_scaled_df, X_test_scaled_df, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 22
+    X_train_scaled = scaler.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:894 in fit
+    return self.partial_fit(X, y, sample_weight)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:930 in partial_fit
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_ord
+import pandas as pd
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Inspect the data
+train_df.info()
+test_df.info()
+
+# Result variables
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(    surgery  hospital_number  rectal_temp  pulse  respiratory_rate peripheral_pulse mucous_membrane capillary_refill_time outcome
+ 0       yes           527706         39.0   84.0              24.0           normal     bright_pink            less_3_sec    died
+ 1       yes           528641         38.5   66.0              21.0           normal     bright_pink            less_3_sec   lived
+ ..      ...              ...          ...    ...               ...              ...             ...                   ...     ...
+ 984     yes           528570         36.1   50.0              50.0          reduced      bright_red            less_3_sec    died
+ 985     yes           533886         38.0  104.0              70.0          reduced      bright_red            more_3_sec   lived
+ 
+ [986 rows x 9 columns],
+     surgery  hospital_number  rectal_temp  pulse  respiratory_rate peripheral_pulse mucous_membrane capillary_refill_time     outcome
+ 0        no           535381         39.4   86.0              21.0           normal       pale_pink            less_3_sec  euthanized
+ 1       yes           535029         37.5  112.0              12.0           normal     bright_pink            less_3_sec  euthanized
+ ..      ...              ...          ...    ...               ...              ...             ...                   ...         ...
+ 245     yes           529642         40.8  108.0              12.0          reduced   pale_cyanotic            less_3_sec        died
+ 246     yes           535163         37.8   78.0              20.0          reduced       pale_pink            less_3_sec  euthanized
+ 
+ [247 rows x 9 columns])import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+from sklearn.preprocessing import LabelEncoder
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+# Encode categorical variables
+label_encoders = {}
+for column in train_df.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_df[column] = le.fit_transform(train_df[column].astype(str))
+    test_df[column] = le.transform(test_df[column].astype(str))
+    label_encoders[column] = le
+
+# Separate features and target
+y_train = train_df['outcome']
+X_train = train_df.drop(columns=['outcome'])
+
+y_test = test_df['outcome']
+X_test = test_df.drop(columns=['outcome'])
+
+# Train the model
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Save predictions
+test_df['predicted_outcome'] = y_pred
+output_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\horse_health_outcomes\predictions.csv'
+test_df.to_csv(output_path, index=False)
+
+# Calculate and report F1 score
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+# Result variables
+model, y_pred, f1, output_path
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(),
+ array([2, 2, 0, 2, 2, 0, 0, 0, 1, 2, 2, 0, 2, 0, 1, 1, 2, 2, 0, 0, 1, 1,
+        0, 2, 2, 1, 1, 2, 1, 1, 1, 0, 0, 1, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0,
+        1, 2, 2, 0, 2, 1, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2,
+        1, 1, 0, 0, 0, 2, 1, 2, 0, 1, 0, 1, 0, 0, 2, 2, 2, 1, 2, 1, 0, 0,
+        2, 0, 2, 0, 1, 0, 1, 0, 2, 2, 1, 0, 0, 0, 1, 0, 2, 1, 0, 0, 2, 0,
+        0, 1, 1, 0, 1, 2, 2, 1, 0, 1, 2, 0, 0, 0, 2, 0, 2, 2, 2, 2, 1, 1,
+        2, 0, 2, 2, 0, 2, 2, 0, 2, 0, 0, 2, 2, 0, 1, 2, 1, 0, 2, 0, 2, 1,
+        2, 2, 2, 0, 1, 0, 0, 0, 2, 2, 2, 0, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2,
+        0, 0, 1, 2, 2, 0, 0, 2, 0, 2, 0, 0, 2, 0, 1, 1, 0, 2, 0, 0, 2, 2,
+        2, 0, 2, 2, 2, 0, 0, 1, 2, 2, 1, 2, 2, 0, 2, 2, 2, 0, 2, 1, 2, 0,
+        0, 1, 2, 2, 2, 2, 2, 2, 2, 0, 1, 2, 2, 2, 0, 2, 2, 0, 0, 2, 1, 2,
+        2, 0, 0, 0, 1]),
+ 0.6775549037228015,
+ 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\NL2Workflow\\datasets\\tabular\\horse_health_outcomes\\predictions.csv')

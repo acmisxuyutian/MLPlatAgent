@@ -1,0 +1,190 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Inspect the dataset
+    print(df.isnull().sum())
+    print(df.dtypes)
+    print(df.describe())
+
+    # Check if 'monster_type' column exists
+    if 'monster_type' not in df.columns:
+        raise ValueError("Column 'monster_type' not found in the dataset.")
+
+    # Handle missing values
+    numerical_cols = df.select_dtypes(include=[np.number]).columns
+    categorical_cols = df.select_dtypes(include=[object]).columns
+
+    df[numerical_cols] = df[numerical_cols].fillna(df[numerical_cols].mean())
+    df[categorical_cols] = df[categorical_cols].fillna(df[categorical_cols].mode().iloc[0])
+
+    # Normalize the features
+    scaler = MinMaxScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+    # Encode the target variable
+    df = pd.get_dummies(df, columns=['monster_type'])
+
+    # Split the dataset
+    X = df.drop('monster_type', axis=1)
+    y = df[['zombies', 'ghosts', 'fairies']]
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the neural network architecture
+class MonsterClassifier(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(MonsterClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, num_classes)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+def train_model(model, X_train, y_train, X_val, y_val, criterion, optimizer, patience=10):
+    best_val_loss = float('inf')
+    counter = 0
+
+    for epoch in range(100):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = criterion(outputs, y_train)
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val)
+            val_loss = criterion(val_outputs, y_val)
+        print(f'Epoch {epoch+1}, Loss: {loss.item()}, Val Loss: {val_loss.item()}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print(f'Early stopping at epoch {epoch+1}')
+                break
+
+    return model
+
+def evaluate_model(model, X_test, y_test, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test)
+        test_loss = criterion(test_outputs, y_test)
+        _, predicted = torch.max(test_outputs, 1)
+        accuracy = (predicted == y_test).sum().item() / len(y_test)
+
+    precision = precision_score(y_test, predicted, average='weighted')
+    recall = recall_score(y_test, predicted, average='weighted')
+    f1 = f1_score(y_test, predicted, average='weighted')
+
+    cm = confusion_matrix(y_test, predicted)
+
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1,
+        'Precision': precision,
+        'Recall': recall,
+        'Confusion Matrix': cm
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+
+    # Convert to PyTorch tensors
+    X_train = torch.tensor(X_train.values, dtype=torch.float32)
+    X_val = torch.tensor(X_val.values, dtype=torch.float32)
+    X_test = torch.tensor(X_test.values, dtype=torch.float32)
+    y_train = torch.tensor(y_train.values, dtype=torch.long)
+    y_val = torch.tensor(y_val.values, dtype=torch.long)
+    y_test = torch.tensor(y_test.values, dtype=torch.long)
+
+    # Step 4. Define required model
+    input_size = X_train.shape[1]
+    num_classes = y_train.shape[1]
+    model = MonsterClassifier(input_size, num_classes)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = train_model(model, X_train, y_train, X_val, y_val, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test, criterion)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/monster_classifier.pth'
+    torch.save(model.state_dict(), model_path)
+    print(f'Model saved to {model_path}')
+
+    return model_performance
+
+if __name__ == "__main__":
+    try:
+        model_performance = main()
+        print("Model Performance on Test Set:", model_performance)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+id               0
+bone_length      0
+rotting_flesh    0
+hair_length      0
+color            0
+type             0
+dtype: int64
+id                 int64
+bone_length      float64
+rotting_flesh    float64
+hair_length      float64
+color             object
+type              object
+dtype: object
+               id  bone_length  rotting_flesh  hair_length
+count  296.000000   296.000000     296.000000   296.000000
+mean   453.574324     0.433147       0.513055     0.525371
+std    260.512340     0.131557       0.151270     0.172703
+min      1.000000     0.061032       0.172182     0.134600
+25%    223.500000     0.341046       0.415538     0.393213
+50%    465.500000     0.430993       0.507979     0.537197
+75%    680.500000     0.516576       0.615999     0.645414
+max    897.000000     0.817001       0.932466     1.000000
+An error occurred: Column 'monster_type' not found in the dataset.

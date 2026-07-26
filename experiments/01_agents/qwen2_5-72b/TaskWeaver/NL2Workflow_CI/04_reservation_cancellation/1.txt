@@ -1,0 +1,88 @@
+import pandas as pd
+
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+ 0      15559             2               0                     0                  3                  0                           0                   1         65          2018             11             2                    0               0                             0                                     0                60.0                       2               0
+ 1      32783             2               0                     1                  4                  0                           0                   1         73          2018             12            26                    1               0                             0                                     0               111.6                       1               0
+ ...      ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+ 33672    860             2               0                     0                  2                  0                           0                   0         21          2017             12            10                    0               0                             0                                     0                70.0                       0               0
+ 33673  15795             2               0                     2                  1                  0                           0                   1        253          2018             10             5                    1               0                             0                                     0               115.2                       0               1
+ 
+ [33674 rows x 19 columns],
+          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+ 0      8768             2               0                     0                  3                  0                           0                   0         58          2018              1            26                    0               0                             0                                     0               80.67                       1               0
+ 1     38340             2               0                     0                  2                  0                           0                   0        224          2018              8             2                    1               0                             0                                     0               93.96                       0               1
+ ...     ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+ 8418  38678             3               0                     1                  4                  0                           0                   1        139          2018              6            27                    1               0                             0                                     0              116.45                       0               1
+ 8419  19300             2               0                     2                  2                  0                           0                   0        133          2018              8            11                    1               0                             0                                     0              113.60                       1               1
+ 
+ [8420 rows x 19 columns])import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Prepare the data
+X_train = train_df.drop(['id', 'booking_status'], axis=1)
+y_train = train_df['booking_status']
+X_test = test_df.drop(['id', 'booking_status'], axis=1)
+y_test = test_df['booking_status']
+
+# Train the LightGBM model
+train_data = lgb.Dataset(X_train, label=y_train)
+params = {
+    'objective': 'binary',
+    'metric': 'auc',
+    'boosting_type': 'gbdt',
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+    'feature_fraction': 0.9,
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'verbose': 0
+}
+model = lgb.train(params, train_data, num_boost_round=100)
+
+# Predict on the test set
+y_pred = model.predict(X_test, num_iteration=model.best_iteration)
+
+# Calculate AUC-ROC score
+roc_auc = roc_auc_score(y_test, y_pred)
+
+model, y_pred, roc_auc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(<lightgbm.basic.Booster at 0x2392b8151d0>,
+ array([0.02704412, 0.88032027, 0.46321216, ..., 0.75777655, 0.76682968,
+        0.25606186]),
+ 0.8935701434042931)import pandas as pd
+
+# Create a DataFrame with the predictions and the 'id' column from the test dataset
+predictions_df = pd.DataFrame({'id': test_df['id'], 'y_pred': y_pred})
+
+# Save the predictions to a CSV file
+predictions_df.to_csv('y_pred.csv', index=False)
+
+predictions_df, y_pred, roc_auc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(         id    y_pred
+ 0      8768  0.027044
+ 1     38340  0.880320
+ ...     ...       ...
+ 8418  38678  0.766830
+ 8419  19300  0.256062
+ 
+ [8420 rows x 2 columns],
+ array([0.02704412, 0.88032027, 0.46321216, ..., 0.75777655, 0.76682968,
+        0.25606186]),
+ 0.8935701434042931)

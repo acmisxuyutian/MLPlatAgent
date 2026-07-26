@@ -1,0 +1,186 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import log_loss
+from pytorch_tabnet.tab_model import TabNetClassifier
+from pytorch_tabnet.pretraining import TabNetPretrainer
+import torch
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    print("Training dataset shape:", train_df.shape)
+    print("Test dataset shape:", test_df.shape)
+    print("First few rows of training dataset:")
+    print(train_df.head())
+    print("First few rows of test dataset:")
+    print(test_df.head())
+
+    return train_df, test_df
+
+# Step 2. Preprocess the data
+def preprocess_data(train_df, test_df):
+    # Check structure
+    print("Training dataset info:")
+    print(train_df.info())
+    print("Training dataset description:")
+    print(train_df.describe())
+    if 'crime_category' not in train_df.columns:
+        raise KeyError("The 'crime_category' column is missing in the training dataset.")
+    print("Crime category value counts:")
+    print(train_df['crime_category'].value_counts())
+
+    # Handle missing values
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Feature engineering
+    if 'datetime' in train_df.columns:
+        train_df['datetime'] = pd.to_datetime(train_df['datetime'])
+        test_df['datetime'] = pd.to_datetime(test_df['datetime'])
+
+        train_df['day_of_week'] = train_df['datetime'].dt.dayofweek
+        train_df['month'] = train_df['datetime'].dt.month
+        train_df['hour'] = train_df['datetime'].dt.hour
+
+        test_df['day_of_week'] = test_df['datetime'].dt.dayofweek
+        test_df['month'] = test_df['datetime'].dt.month
+        test_df['hour'] = test_df['datetime'].dt.hour
+
+    # Categorical encoding
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+
+    # Numerical normalization
+    scaler = MinMaxScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    return train_df, test_df
+
+# Step 3. Train the model
+def train_model(X_train, y_train, X_val, y_val):
+    # Pretrain the model
+    unsupervised_model = TabNetPretrainer(
+        optimizer_fn=torch.optim.Adam,
+        optimizer_params=dict(lr=2e-2),
+        mask_type='entmax'  # "sparsemax"
+    )
+
+    unsupervised_model.fit(
+        X_train=X_train.values,
+        eval_set=[X_val.values],
+        max_epochs=1000,
+        patience=50,
+        batch_size=1024,
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False,
+        pretraining_ratio=0.8,
+    )
+
+    # Train the supervised model
+    model = TabNetClassifier(
+        optimizer_fn=torch.optim.Adam,
+        optimizer_params=dict(lr=2e-2),
+        scheduler_params={"step_size": 50, "gamma": 0.9},
+        scheduler_fn=torch.optim.lr_scheduler.StepLR,
+        mask_type='entmax'  # "sparsemax"
+    )
+
+    model.fit(
+        X_train=X_train.values, y_train=y_train.values,
+        eval_set=[(X_train.values, y_train.values), (X_val.values, y_val.values)],
+        eval_name=['train', 'valid'],
+        eval_metric=['logloss'],
+        max_epochs=1000,
+        patience=50,
+        batch_size=1024,
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False,
+        from_unsupervised=unsupervised_model
+    )
+
+    return model
+
+# Step 4. Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict_proba(X_test.values)
+    logloss = log_loss(y_test.values, y_pred)
+    print(f'Logloss on test set: {logloss}')
+    return logloss
+
+# The main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+    
+    # Step 2. Preprocess the data
+    train_df, test_df = load_datasets(train_path, test_path)
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3. Split the data into training, validation, and test sets
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop('crime_category', axis=1), train_df['crime_category'], test_size=0.2, random_state=42
+    )
+    X_test = test_df.drop('crime_category', axis=1)
+    y_test = test_df['crime_category']
+
+    # Step 4. Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. Evaluate the model
+    logloss = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Save predictions and model
+    predictions = pd.DataFrame(model.predict_proba(X_test.values), columns=model.classes_)
+    predictions.to_csv('predictions.csv', index=False)
+
+    model_save_path = './agent_workspace/trained_models/tabnet_model.pkl'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    model.save_model(model_save_path)
+
+    return logloss
+
+if __name__ == "__main__":
+    logloss = main()
+    print(f"Model Performance on Test Set: Logloss = {logloss}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 170, in <module>
+    logloss = main()
+              ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 144, in main
+    train_df, test_df = preprocess_data(train_df, test_df)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 42, in preprocess_data
+    raise KeyError("The 'crime_category' column is missing in the training dataset.")
+KeyError: "The 'crime_category' column is missing in the training dataset."

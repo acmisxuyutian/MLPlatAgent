@@ -1,0 +1,531 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['outcome'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 42, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 23, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/ensemble/_forest.py", line 360, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'yes'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+def preprocess_data(df):
+    # Convert categorical columns to numeric using one-hot encoding
+    df = pd.get_dummies(df)
+    return df
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df)
+    X_test = submission_df  # The test set should not have the 'outcome' column
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 44, in <module>
+    X = data_df.drop(['outcome'], axis=1)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['outcome'] not found in axis"
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+def preprocess_data(df, is_train=True):
+    # Convert categorical columns to numeric using one-hot encoding
+    if is_train:
+        df = pd.get_dummies(df)
+    else:
+        # Ensure the test set has the same columns as the training set
+        train_df = pd.read_csv('train.csv')
+        train_df = pd.get_dummies(train_df)
+        test_df = pd.get_dummies(df)
+        # Align columns
+        df = test_df.reindex(columns=train_df.columns, fill_value=0)
+    return df
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df, is_train=False)
+    X_test = submission_df.drop(['outcome'], axis=1, errors='ignore')  # The test set should not have the 'outcome' column
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 52, in <module>
+    X = data_df.drop(['outcome'], axis=1)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['outcome'] not found in axis"
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(n_estimators=100, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['outcome'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 40, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 23, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/ensemble/_forest.py", line 360, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'yes'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Apply label encoding to categorical columns
+    le = LabelEncoder()
+    for col in categorical_cols:
+        df[col] = le.fit_transform(df[col])
+    return df
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(n_estimators=100, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df)
+    X_test = submission_df.drop(['outcome'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 65, in <module>
+    submit_predictions_for_test_set(y_test_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/submission.py", line 12, in submit_predictions_for_test_set
+    score = compute_metrics(y_test, y_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/submission.py", line 6, in compute_metrics
+    score = f1_score(y_test, y_test_pred, average='micro')
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 216, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1324, in f1_score
+    return fbeta_score(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 189, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1517, in fbeta_score
+    _, _, f, _ = precision_recall_fscore_support(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 189, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1830, in precision_recall_fscore_support
+    labels = _check_set_wise_labels(y_true, y_pred, average, labels, pos_label)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1599, in _check_set_wise_labels
+    present_labels = _tolist(unique_labels(y_true, y_pred))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/multiclass.py", line 117, in unique_labels
+    raise ValueError("Mix of label input types (string and number)")
+ValueError: Mix of label input types (string and number)
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import f1_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = f1_score(y_test, y_test_pred, average='micro')
+    return score
+
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Apply label encoding to categorical columns
+    le = LabelEncoder()
+    for col in categorical_cols:
+        df[col] = le.fit_transform(df[col])
+    return df
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = RandomForestClassifier(n_estimators=100, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['outcome'], axis=1)
+    y = data_df['outcome'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final f1 on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df)
+    X_test = submission_df.drop(['outcome'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/train.py", line 65, in <module>
+    submit_predictions_for_test_set(y_test_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/submission.py", line 12, in submit_predictions_for_test_set
+    score = compute_metrics(y_test, y_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/07_horse_health_outcomes/submission.py", line 6, in compute_metrics
+    score = f1_score(y_test, y_test_pred, average='micro')
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 216, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1324, in f1_score
+    return fbeta_score(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 189, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1517, in fbeta_score
+    _, _, f, _ = precision_recall_fscore_support(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 189, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1830, in precision_recall_fscore_support
+    labels = _check_set_wise_labels(y_true, y_pred, average, labels, pos_label)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 1599, in _check_set_wise_labels
+    present_labels = _tolist(unique_labels(y_true, y_pred))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/multiclass.py", line 117, in unique_labels
+    raise ValueError("Mix of label input types (string and number)")
+ValueError: Mix of label input types (string and number)
+
+==================================================:
+===================任务执行结束========================:
+异常类型: IndexError
+异常消息: list index out of range
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 62, in run
+    log_content = self.revise_running_log(running_log, plans, execution_log, diff, log_file=os.path.join(self.log_dir, "tmp.txt"))
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 99, in revise_running_log
+    log = "[Experiment Summary]:" + complete_text_fast(prompt, log_file=log_file).split("[Experiment Summary]:")[1]
+IndexError: list index out of range
+==================================================

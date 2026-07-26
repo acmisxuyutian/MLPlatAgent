@@ -1,0 +1,106 @@
+import pandas as pd
+
+# 加载训练数据集
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 输出前几行以检查数据
+train_df.head(), train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+ 0  20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+ 1   2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+ 2  73847   M  1.5000    1.1625  0.3875  29.114936       13.125818        6.166016      8.079607   12
+ 3  46445   M  1.1250    0.8875  0.2375  12.998246        5.499803        2.891649      3.685435   10
+ 4  66755   I  0.8625    0.6375  0.1875   4.280774        1.644271        0.737087      1.275727    6,
+           id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+ 0      20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+ 1       2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+ ...      ...  ..     ...       ...     ...        ...             ...             ...           ...  ...
+ 59238    860   M  1.5000    1.1750  0.4375  37.747359       12.190285        8.221355     10.616888   15
+ 59239  15795   I  0.4375    0.3375  0.2375   0.864660        0.311845        0.212621      0.283495    6
+ 
+ [59240 rows x 10 columns])import pandas as pd
+import numpy as np
+
+# 检查空值
+missing_values = train_df.isnull().sum()
+
+# 检查异常值
+# 定义异常值的检查方法，这里使用3个标准差的方法
+z_scores = np.abs((train_df.select_dtypes(include=[np.number]) - train_df.select_dtypes(include=[np.number]).mean()) / train_df.select_dtypes(include=[np.number]).std())
+anomalies = (z_scores > 3).any(axis=1)
+
+# 存储结果
+missing_values, anomalies, train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(id              0
+ Sex             0
+                ..
+ Shell_Weight    0
+ Age             0
+ Length: 10, dtype: int64,
+ 0        False
+ 1        False
+          ...  
+ 59238    False
+ 59239     True
+ Length: 59240, dtype: bool,
+           id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+ 0      20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+ 1       2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+ ...      ...  ..     ...       ...     ...        ...             ...             ...           ...  ...
+ 59238    860   M  1.5000    1.1750  0.4375  37.747359       12.190285        8.221355     10.616888   15
+ 59239  15795   I  0.4375    0.3375  0.2375   0.864660        0.311845        0.212621      0.283495    6
+ 
+ [59240 rows x 10 columns])from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# 删除异常值行
+train_df_cleaned = train_df[~anomalies]
+
+# 分割特征和标签
+X = train_df_cleaned.drop(['id', 'Sex', 'Age'], axis=1)
+y = train_df_cleaned['Age']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 选择模型并训练
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 预测测试集
+y_pred = model.predict(X_test)
+
+# 计算MAE
+mae = mean_absolute_error(y_test, y_pred)
+
+# 存储结果
+model, mae, X_test, y_test, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+ 1.3852803908669609,
+        Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 9057   1.7750    1.4125  0.4375  57.634534       25.883094       11.609120     16.017467
+ 52900  1.5500    1.2000  0.4125  32.545226       16.244263        6.647958      8.646598
+ ...       ...       ...     ...        ...             ...             ...           ...
+ 8666   1.2250    0.9500  0.3125  20.255718        9.057665        5.230483      3.968930
+ 7224   1.4125    1.1375  0.3750  27.201345       12.629702        5.358055      7.016501
+ 
+ [11511 rows x 7 columns],
+ 9057     10
+ 52900     9
+          ..
+ 8666      8
+ 7224      9
+ Name: Age, Length: 11511, dtype: int64,
+ array([12.32421377,  9.81078204,  9.20697331, ...,  8.56680293,
+         8.01047424,  9.77930126]))

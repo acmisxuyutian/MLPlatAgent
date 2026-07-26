@@ -1,0 +1,146 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import lightgbm as lgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Inspect the dataset to identify numerical features
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    print("Numerical Features:", numerical_features)
+
+    # Min-Max Scaling
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # One-Hot Encoding
+    encoder = OneHotEncoder(sparse_output=False)
+    target_encoded = encoder.fit_transform(df[['monster_type']])
+    df_encoded = pd.concat([df.drop('monster_type', axis=1), pd.DataFrame(target_encoded, columns=encoder.get_feature_names_out(['monster_type']))], axis=1)
+
+    # Split the dataset
+    X = df_encoded.drop(encoder.get_feature_names_out(['monster_type']), axis=1)
+    y = df_encoded[encoder.get_feature_names_out(['monster_type'])]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, stratify=y, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.66, stratify=y_temp, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test, scaler, encoder
+
+def train_model(X_train, y_train, X_val, y_val):
+    # Define LightGBM parameters
+    params = {
+        'objective': 'multiclass',
+        'num_class': 3,
+        'learning_rate': 0.05,
+        'num_trees': 150,
+        'max_depth': 8,
+        'subsample': 0.9,
+        'random_state': SEED
+    }
+
+    # Create LightGBM datasets
+    train_data = lgb.Dataset(X_train, label=y_train)
+    val_data = lgb.Dataset(X_val, label=y_val)
+
+    # Train the model
+    model = lgb.train(params, train_data, valid_sets=[val_data], num_boost_round=150, early_stopping_rounds=10)
+
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    # Make predictions
+    y_pred = model.predict(X_test)
+    y_pred_classes = y_pred.argmax(axis=1)
+    y_true_classes = y_test.argmax(axis=1)
+
+    # Calculate performance metrics
+    accuracy = accuracy_score(y_true_classes, y_pred_classes)
+    precision = precision_score(y_true_classes, y_pred_classes, average='weighted')
+    recall = recall_score(y_true_classes, y_pred_classes, average='weighted')
+    f1 = f1_score(y_true_classes, y_pred_classes, average='weighted')
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1 Score': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_csv_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    df = pd.read_csv(train_csv_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, X_test, y_train, y_val, y_test, scaler, encoder = preprocess_data(df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the model and preprocessing pipeline for future use
+    model_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/lightgbm_monster_classifier.pkl'
+    joblib.dump(model, model_path)
+
+    pipeline = {
+        'scaler': scaler,
+        'encoder': encoder
+    }
+    pipeline_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/pipelines/lightgbm_preprocessing_pipeline.pkl'
+    joblib.dump(pipeline, pipeline_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 122, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 93, in main
+    X_train, X_val, X_test, y_train, y_val, y_test, scaler, encoder = preprocess_data(df)
+                                                                      ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 27, in preprocess_data
+    target_encoded = encoder.fit_transform(df[['monster_type']])
+                                           ~~^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index(['monster_type'], dtype='object')] are in the [columns]"

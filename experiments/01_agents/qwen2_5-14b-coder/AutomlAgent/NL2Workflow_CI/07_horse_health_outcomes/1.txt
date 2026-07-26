@@ -1,0 +1,205 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and initial exploration
+def load_data(train_path, test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+    return train_data, test_data
+
+# Data cleaning and preprocessing
+def preprocess_data(train_data, test_data):
+    # Identify categorical and numerical features
+    categorical_features = train_data.select_dtypes(include=['object']).columns
+    numerical_features = train_data.select_dtypes(include=['int64', 'float64']).columns
+
+    # Handle missing values
+    for feature in numerical_features:
+        train_data[feature] = train_data[feature].fillna(train_data[feature].median())
+        test_data[feature] = test_data[feature].fillna(train_data[feature].median())
+
+    # Encode categorical variables
+    train_data = pd.get_dummies(train_data, columns=categorical_features, drop_first=True)
+    test_data = pd.get_dummies(test_data, columns=categorical_features, drop_first=True)
+
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    train_data[numerical_features] = scaler.fit_transform(train_data[numerical_features])
+    test_data[numerical_features] = scaler.transform(test_data[numerical_features])
+
+    # Split the dataset into training and validation sets
+    X = train_data.drop('健康状况', axis=1)
+    y = train_data['健康状况']
+
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=SEED)
+
+    return X_train, X_val, y_train, y_val, test_data
+
+# Define the FNN model
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, 1)
+        self.dropout = nn.Dropout(0.2)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, num_epochs, patience):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    best_f1 = 0
+    early_stopping_counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(val_loader.dataset.tensors[0])
+            val_predictions = (val_outputs > 0.5).float()
+            val_f1 = f1_score(val_loader.dataset.tensors[1].numpy(), val_predictions.numpy())
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val F1 Score: {val_f1:.4f}')
+
+        # Early stopping
+        if val_f1 > best_f1:
+            best_f1 = val_f1
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/best_model.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print("Early stopping triggered")
+                break
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(test_loader.dataset.tensors[0])
+        test_predictions = (test_outputs > 0.5).float()
+        y_true = test_loader.dataset.tensors[1].numpy()
+        y_pred = test_predictions.numpy()
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+    train_data, test_data = load_data(train_path, test_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, y_train, y_val, test_data = preprocess_data(train_data, test_data)
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(test_data.drop('健康状况', axis=1).values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(test_data['健康状况'].values, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = FNN(X_train.shape[1])
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    model = train_model(model, train_loader, val_loader, num_epochs=100, patience=10)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 177, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 143, in main
+    X_train, X_val, y_train, y_val, test_data = preprocess_data(train_data, test_data)
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 48, in preprocess_data
+    X = train_data.drop('健康状况', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['健康状况'] not found in axis"

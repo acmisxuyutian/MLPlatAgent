@@ -1,0 +1,146 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Check for expected columns
+    expected_columns = ['feature1', 'feature2', 'gender', 'smoking_history', 'diabetes']
+    assert all(col in train_df.columns for col in expected_columns), "Missing columns in training dataset"
+    assert all(col in test_df.columns for col in expected_columns), "Missing columns in test dataset"
+
+    # Check for data types
+    assert train_df['gender'].dtype == 'object', "Gender column should be of type object"
+    assert train_df['smoking_history'].dtype == 'object', "Smoking history column should be of type object"
+    assert train_df['diabetes'].dtype == 'int', "Diabetes column should be of type int"
+
+    # Handle missing values (if any)
+    train_df = train_df.dropna()
+    test_df = test_df.dropna()
+
+    # Remove duplicates
+    train_df = train_df.drop_duplicates()
+
+    # One-Hot Encoding
+    train_encoded = pd.get_dummies(train_df, columns=['gender', 'smoking_history'])
+    test_encoded = pd.get_dummies(test_df, columns=['gender', 'smoking_history'])
+
+    # Align columns between train and test datasets
+    train_encoded, test_encoded = train_encoded.align(test_encoded, join='inner', axis=1)
+
+    # Split into features and target
+    X_train = train_encoded.drop('diabetes', axis=1)
+    y_train = train_encoded['diabetes']
+    X_test = test_encoded.drop('diabetes', axis=1)
+    y_test = test_encoded['diabetes']
+
+    return X_train, y_train, X_test, y_test
+
+def train_model(X_train, y_train, hyperparameters):
+    # Train the Random Forest Classifier
+    rf_classifier = RandomForestClassifier(**hyperparameters)
+    rf_classifier.fit(X_train, y_train)
+    return rf_classifier
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate with Accuracy and F1 metrics
+    y_pred = model.predict(X_test)
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred)
+    }
+
+    # Evaluate with AUC-ROC
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    performance_scores['AUC-ROC'] = auc_roc
+
+    # Generate Confusion Matrix
+    cm = confusion_matrix(y_test, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from user's local storage
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    # Step 2. Preprocess the data
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3. Define required model and hyperparameters
+    hyperparameters = {
+        'n_estimators': 100,
+        'max_depth': 10,
+        'min_samples_leaf': 2
+    }
+
+    # Step 4. Train the model
+    model = train_model(X_train, y_train, hyperparameters)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Save the trained model
+    model_path = './agent_workspace/trained_models/diabetes_rf_model.pkl'
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 114, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 88, in main
+    train_df = pd.read_csv(train_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2061, in pandas._libs.parsers.raise_parser_error
+pandas.errors.ParserError: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+

@@ -1,0 +1,134 @@
+import pandas as pd
+
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+
+df = pd.read_csv(data_path)
+top_5_rows = df.head()
+columns_info = df.columns.tolist()
+
+top_5_rows, columns_info
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+ 0  20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+ 1   2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+ 2  73847   M  1.5000    1.1625  0.3875  29.114936       13.125818        6.166016      8.079607   12
+ 3  46445   M  1.1250    0.8875  0.2375  12.998246        5.499803        2.891649      3.685435   10
+ 4  66755   I  0.8625    0.6375  0.1875   4.280774        1.644271        0.737087      1.275727    6,
+ ['id',
+  'Sex',
+  'Length',
+  'Diameter',
+  'Height',
+  'Weight',
+  'Shucked_Weight',
+  'Viscera_Weight',
+  'Shell_Weight',
+  'Age'])import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training data
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+df = pd.read_csv(train_data_path)
+
+top_5_rows = df.head()
+columns_info = df.columns.tolist()
+
+# Handle missing values by filling them with the median of each column
+for column in df.columns:
+    if df[column].isnull().any():
+        df[column].fillna(df[column].median(), inplace=True)
+
+# Encode the 'Sex' column as a categorical variable
+label_encoder = LabelEncoder()
+df['Sex'] = label_encoder.fit_transform(df['Sex'])
+
+# Split the data into features and target variable
+X = df.drop('Age', axis=1)
+y = df['Age']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Store the preprocessed data and encoders
+preprocessed_data = (X_train, X_test, y_train, y_test, label_encoder)
+
+preprocessed_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 5553   53476    1  1.0875    0.8750  0.2750  12.133586        5.499803        2.919999      3.543687
+ 28476  54470    2  1.2500    0.9625  0.3250  18.016107        8.972617        3.827183      4.535920
+ ...      ...  ...     ...       ...     ...        ...             ...             ...           ...
+ 15795  45193    1  0.5625    0.4125  0.0875   1.644271        0.396893        0.212621      0.425243
+ 56422  51151    1  1.1500    0.8250  0.2625  10.149121        5.499803        2.140387      3.118445
+ 
+ [47392 rows x 9 columns],
+           id  Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 26164  69306    1  0.8000    0.6125  0.1750   4.847765        1.587572        0.779611      1.630096
+ 32999  30110    2  1.8250    1.3750  0.5250  50.532984       19.461932       11.623295     15.252031
+ ...      ...  ...     ...       ...     ...        ...             ...             ...           ...
+ 39654  15627    2  1.5000    1.1750  0.3625  28.434548       13.196692        5.542327      6.775531
+ 51513  48002    2  1.3125    1.0000  0.3625  28.264451       11.949314        6.307764      7.512618
+ 
+ [11848 rows x 9 columns],
+ 5553     8
+ 28476    7
+         ..
+ 15795    5
+ 56422    7
+ Name: Age, Length: 47392, dtype: int64,
+ 26164     5
+ 32999    11
+          ..
+ 39654     9
+ 51513    24
+ Name: Age, Length: 11848, dtype: int64,
+ LabelEncoder())import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# Load the preprocessed data
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+df = pd.read_csv(train_data_path)
+
+top_5_rows = df.head()
+columns_info = df.columns.tolist()
+
+# Handle missing values by filling them with the median of each column
+for column in df.columns:
+    if df[column].isnull().any():
+        df[column].fillna(df[column].median(), inplace=True)
+
+# Encode the 'Sex' column as a categorical variable
+label_encoder = LabelEncoder()
+df['Sex'] = label_encoder.fit_transform(df['Sex'])
+
+# Split the data into features and target variable
+X = df.drop('Age', axis=1)
+y = df['Age']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Build a Random Forest Regressor model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict the ages on the test set
+y_pred = model.predict(X_test)
+
+# Calculate the Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_test, y_pred)
+
+# Store the model and MAE
+model_and_mae = (model, mae)
+
+model_and_mae
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestRegressor(random_state=42), 1.436139432815665)

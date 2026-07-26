@@ -1,0 +1,394 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Separate features and target variable
+X_train = train_df.drop(columns=['type'])
+y_train = train_df['type']
+X_test = test_df.drop(columns=['type'])
+y_test = test_df['type']
+
+# Perform necessary preprocessing (e.g., scaling)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Put all the result variables in the last line
+X_train_scaled, X_test_scaled, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 20
+    X_train_scaled = scaler.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:894 in fit
+    return self.partial_fit(X, y, sample_weight)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:930 in partial_fit
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_ord
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Separate features and target variable
+X_train = train_df.drop(columns=['type'])
+y_train = train_df['type']
+X_test = test_df.drop(columns=['type'])
+y_test = test_df['type']
+
+# Identify numeric columns
+numeric_columns = X_train.select_dtypes(include=[np.number]).columns
+
+# Perform necessary preprocessing (e.g., scaling) on numeric columns only
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train[numeric_columns])
+X_test_scaled = scaler.transform(X_test[numeric_columns])
+
+# Combine scaled numeric columns with non-numeric columns
+X_train_final = pd.concat([pd.DataFrame(X_train_scaled, columns=numeric_columns), X_train.drop(columns=numeric_columns)], axis=1)
+X_test_final = pd.concat([pd.DataFrame(X_test_scaled, columns=numeric_columns), X_test.drop(columns=numeric_columns)], axis=1)
+
+# Put all the result variables in the last line
+X_train_final, X_test_final, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           id  bone_length  rotting_flesh  hair_length  color
+ 0    0.070848     1.891869       0.107095     0.579263  white
+ 1   -1.090369     0.363108      -0.696121     0.079077  clear
+ ..        ...          ...            ...          ...    ...
+ 294  1.481997    -0.592645      -1.114931     0.176072  blood
+ 295 -0.871199    -0.874342       0.984657    -0.283636  green
+ 
+ [296 rows x 5 columns],
+           id  bone_length  rotting_flesh  hair_length  color
+ 0   1.251291     0.630880       0.095709    -0.988991  white
+ 1  -1.467188     0.689698      -1.288431    -1.132321  green
+ ..       ...          ...            ...          ...    ...
+ 73  0.951374     0.333075      -0.228204    -0.706104   blue
+ 74  1.470461    -0.661395      -2.346217     1.099789  white
+ 
+ [75 rows x 5 columns],
+ 0       Ghoul
+ 1      Goblin
+         ...  
+ 294    Goblin
+ 295     Ghost
+ Name: type, Length: 296, dtype: object,
+ 0      Ghoul
+ 1     Goblin
+        ...  
+ 73     Ghoul
+ 74    Goblin
+ Name: type, Length: 75, dtype: object)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# Select a suitable machine learning algorithm and train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_final, y_train)
+
+# Put all the result variables in the last line
+model, X_train_final, y_train
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 6
+    model.fit(X_train_final, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'white'
+
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+
+# Identify categorical columns
+categorical_columns = ['color']
+
+# Create a transformer to encode categorical columns
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), categorical_columns)
+    ],
+    remainder='passthrough'  # Keep the numeric columns as they are
+)
+
+# Apply the transformer to the training and test sets
+X_train_encoded = preprocessor.fit_transform(X_train_final)
+X_test_encoded = preprocessor.transform(X_test_final)
+
+# Train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_encoded, y_train)
+
+# Put all the result variables in the last line
+model, X_train_encoded, X_test_encoded, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ array([[ 0.        ,  0.        ,  0.        , ...,  1.89186913,
+          0.10709539,  0.57926315],
+        [ 0.        ,  0.        ,  0.        , ...,  0.36310774,
+         -0.69612135,  0.07907706],
+        [ 0.        ,  0.        ,  1.        , ..., -0.44124566,
+          1.52236281, -1.18673321],
+        ...,
+        [ 0.        ,  0.        ,  0.        , ..., -0.07000609,
+          0.67221615,  0.3412707 ],
+        [ 0.        ,  1.        ,  0.        , ..., -0.59264522,
+         -1.1149312 ,  0.17607214],
+        [ 0.        ,  0.        ,  0.        , ..., -0.87434224,
+          0.9846575 , -0.2836362 ]]),
+ array([[ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  1.25129112,  0.63087981,  0.09570858, -0.98899079],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -1.46718775,  0.68969809, -1.28843147, -1.13232109],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.63252663,  0.51052186, -0.4942334 ,  0.04152288],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.12055805, -0.12066402, -0.896998  ,  0.0954871 ],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.2864685 ,  0.62533129,  0.46070216,  0.25143565],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.5053436 , -0.97939925, -1.40202245,  0.11895666],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.08267871,  0.49635827, -0.91832371,  0.31642327],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.64818351,  1.17580133, -0.43038756,  1.04947173],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  1.06672679,  0.8142585 , -0.2087379 ,  1.1142459 ],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -0.59435224, -0.1659444 , -0.13530673, -0.50823455],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.48227305, -0.75071969, -0.0813513 ,  0.91226829],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        , -1.42104666, -1.10479282,  0.60077179, -0.29820885],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.35211155,  1.79900746,  1.05641172,  2.07478547],
+        [ 0.        ,  0.        ,  1.        ,  0.        ,  0.        ,
+          0.        , -1.30184886,  1.86829355, -0.23993413, -0.27967387],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.3328861 ,  0.96454231,  0.90079575,  1.35678084],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.86678209, -0.12616833, -0.36110451,  1.40920002],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.74403425, -0.5987406 , -1.07417217, -0.34574207],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.4630476 , -1.20399726,  1.17154644,  0.35462829],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.34741838, -0.43152804,  0.88281503,  0.48766061],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.87504384, -1.71526672,  0.21348399, -0.97083682],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -1.67097754, -1.15891688,  1.24758266, -2.00530441],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.07141996, -0.70587224,  0.12347677, -0.56187129],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -1.11728453, -0.64077649,  0.33889796, -0.25624971],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.49765342,  0.69015557,  0.95528768,  1.70295183],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.62838649, -0.2187062 , -0.32149429, -0.12153274],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.49822498, -1.03552119,  0.12243665, -1.23755791],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        ,  0.40152616,  0.64783761, -0.12292536,  0.11642183],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        ,  0.1054542 ,  0.24575334, -2.76376164, -0.6877748 ],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        ,  0.08622875, -1.40323431,  0.27690893, -0.11049834],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        ,  1.67425106, -0.77063836,  0.34288952,  0.08030053],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -1.56331501, -1.55433364,  0.35929536, -0.87945058],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.75200095,  0.05868409, -0.53202943,  0.68799408],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -1.4056663 ,  0.7699344 ,  0.37380519, -0.10880866],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.55505326,  0.05546362, -1.34792886, -1.86944548],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        ,  0.93214862,  0.22341536,  0.40916257,  0.42182041],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.72124022,  0.42627771, -0.21024835, -0.24754408],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        , -1.23263724,  0.44040481,  0.21249656, -0.19049637],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.60176591, -0.44694196, -0.85337137,  0.87289761],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.36364682, -1.07612227, -0.09703759,  0.36109672],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.10218068,  0.81973073, -1.25610077,  0.95837312],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.58993558,  2.45289852, -0.24581998,  2.55318117],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.00520534,  0.51300984, -0.81375513, -0.39363942],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.47872302,  1.82609841,  0.71134952, -0.52001361],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.35923016,  0.42866802, -0.64609419,  1.74339973],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.74046567,  0.48415731,  0.12867624,  1.06917218],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.61357769,  0.29627946, -0.1262705 ,  0.18166217],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.97886128, -1.7975238 , -0.37988546, -0.42851683],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.29031359, -0.98105202, -0.33135771, -0.81191774],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -1.71711862, -0.20914318, -1.72021331, -0.48692304],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -1.39413103, -1.11131747,  0.11785594, -0.34015048],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.44354564, -2.04021925,  1.34916741, -0.32837397],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.43670354, -0.98798865, -0.24393323,  0.41642249],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.92061335,  0.27177388,  0.02889198,  0.55439997],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        ,  0.35153998, -0.32742778,  0.27189324,  0.15427695],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.59378067,  1.17253848, -0.61337325,  0.20822445],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        ,  1.50506708,  0.47963224, -0.89770862,  0.70683671],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -0.95194564,  0.05747845, -0.68988324,  0.09625377],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        , -1.72865389,  2.61549831, -0.02868578,  0.64609844],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  1.48968672, -1.75181782, -2.30120781, -1.31002783],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        , -1.07498853, -1.49314754,  0.80514763, -1.36136803],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -0.56359152,  1.78197104, -0.65500179, -0.03863119],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  1.08979733, -0.3512877 ,  0.09265971,  1.39422751],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        , -1.07114344,  1.50897016, -0.67083174,  1.05699516],
+        [ 0.        ,  1.        ,  0.        ,  0.        ,  0.        ,
+          0.        , -1.38644085,  0.36981092,  0.09400628,  1.24643144],
+        [ 0.        ,  0.        ,  0.        ,  1.        ,  0.        ,
+          0.        ,  0.36692034, -2.01195468,  0.89933101, -1.28438887],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -1.10959435,  0.5870107 , -0.72635081,  0.95724313],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        ,  0.42844179,  1.48161377,  0.92052166,  0.75559374],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  1.24360094,  0.82258407, -0.94344294,  1.54198348],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.23234218, -0.28057828, -0.34862562, -0.05542205],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        , -1.03269254,  0.63704808, -0.32676972, -1.18033987],
+        [ 1.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          0.        , -0.94425546,  1.41867251, -0.31414741, -0.9132621 ],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  0.10929929, -0.50046332,  0.41171262, -0.29249233],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  1.        ,
+          0.        ,  1.09748751,  0.08267561, -0.58845719,  0.14060788],
+        [ 0.        ,  0.        ,  1.        ,  0.        ,  0.        ,
+          0.        ,  0.95137408,  0.33307467, -0.22820444, -0.70610414],
+        [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+          1.        ,  1.47046127, -0.66139542, -2.34621732,  1.09978891]]),
+ 0       Ghoul
+ 1      Goblin
+         ...  
+ 294    Goblin
+ 295     Ghost
+ Name: type, Length: 296, dtype: object,
+ 0      Ghoul
+ 1     Goblin
+        ...  
+ 73     Ghoul
+ 74    Goblin
+ Name: type, Length: 75, dtype: object)from sklearn.metrics import accuracy_score
+
+# Use the trained model to predict the test set
+y_pred = model.predict(X_test_encoded)
+
+# Calculate the accuracy of the model on the test set
+accuracy = accuracy_score(y_test, y_pred)
+
+# Save the predictions to a CSV file
+predictions_df = pd.DataFrame({'id': test_df['id'], 'type': y_pred})
+predictions_df.to_csv('predictions.csv', index=False)
+
+# Put all the result variables in the last line
+y_pred, accuracy, predictions_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array(['Ghost', 'Ghost', 'Goblin', 'Goblin', 'Ghoul', 'Goblin', 'Goblin',
+        'Ghoul', 'Ghoul', 'Goblin', 'Goblin', 'Ghost', 'Ghoul', 'Ghoul',
+        'Ghoul', 'Ghoul', 'Goblin', 'Ghost', 'Goblin', 'Ghost', 'Ghost',
+        'Ghost', 'Ghost', 'Ghoul', 'Goblin', 'Ghost', 'Ghoul', 'Goblin',
+        'Goblin', 'Goblin', 'Ghost', 'Goblin', 'Ghoul', 'Goblin', 'Goblin',
+        'Goblin', 'Goblin', 'Goblin', 'Goblin', 'Ghoul', 'Ghoul', 'Goblin',
+        'Ghoul', 'Ghoul', 'Ghoul', 'Goblin', 'Ghost', 'Ghost', 'Goblin',
+        'Ghost', 'Ghost', 'Goblin', 'Goblin', 'Goblin', 'Ghoul', 'Goblin',
+        'Goblin', 'Ghoul', 'Ghost', 'Ghost', 'Ghoul', 'Ghoul', 'Ghoul',
+        'Ghoul', 'Ghost', 'Ghoul', 'Ghoul', 'Ghoul', 'Goblin', 'Ghost',
+        'Ghost', 'Ghost', 'Goblin', 'Goblin', 'Goblin'], dtype=object),
+ 0.6,
+      id    type
+ 0   779   Ghost
+ 1    72   Ghost
+ ..  ...     ...
+ 73  701  Goblin
+ 74  836  Goblin
+ 
+ [75 rows x 2 columns])

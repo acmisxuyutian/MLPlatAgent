@@ -1,0 +1,207 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_regression
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    # Load training dataset
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv')
+    
+    # Load test dataset
+    test_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv')
+    
+    return train_data, test_data
+
+# Data preprocessing
+def preprocess_data(train_data, test_data):
+    # Impute missing values with mean for numerical features
+    train_data.fillna(train_data.mean(), inplace=True)
+    test_data.fillna(test_data.mean(), inplace=True)
+    
+    # One-hot encode categorical variables
+    train_data = pd.get_dummies(train_data, drop_first=True)
+    test_data = pd.get_dummies(test_data, drop_first=True)
+    
+    # Ensure both datasets have the same columns after one-hot encoding
+    test_data = test_data.reindex(columns=train_data.columns, fill_value=0)
+    
+    # Normalize numerical features using Standardization
+    scaler = StandardScaler()
+    numerical_features = train_data.select_dtypes(include=[np.number]).columns
+    train_data[numerical_features] = scaler.fit_transform(train_data[numerical_features])
+    test_data[numerical_features] = scaler.transform(test_data[numerical_features])
+    
+    # Create interaction terms based on domain knowledge
+    # Example: Assuming 'featureA' and 'featureB' are the columns to create interaction terms
+    if 'featureA' in train_data.columns and 'featureB' in train_data.columns:
+        train_data['interaction_feature'] = train_data['featureA'] * train_data['featureB']
+        test_data['interaction_feature'] = test_data['featureA'] * test_data['featureB']
+    else:
+        # If 'featureA' and 'featureB' do not exist, choose other relevant columns
+        relevant_columns = train_data.corr()['media_cost'].abs().sort_values(ascending=False).index[1:3]
+        if len(relevant_columns) < 2:
+            raise ValueError("Not enough relevant columns to create interaction terms.")
+        train_data['interaction_feature'] = train_data[relevant_columns[0]] * train_data[relevant_columns[1]]
+        test_data['interaction_feature'] = test_data[relevant_columns[0]] * test_data[relevant_columns[1]]
+    
+    # Perform feature selection to reduce dimensionality and improve model performance
+    X_train = train_data.drop('media_cost', axis=1)
+    y_train = train_data['media_cost']
+    selector = SelectKBest(score_func=f_regression, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    
+    X_test = test_data.drop('media_cost', axis=1)
+    y_test = test_data['media_cost']
+    X_test_selected = selector.transform(X_test)
+    
+    return X_train_selected, y_train, X_test_selected, y_test
+
+# Model definition
+class MediaCampaignCostModel(nn.Module):
+    def __init__(self, input_size):
+        super(MediaCampaignCostModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Model training
+def train_model(model, X_train, y_train, X_val, y_val, learning_rate, batch_size, epochs):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(epochs):
+        model.train()
+        for i in range(0, len(X_train), batch_size):
+            inputs = torch.tensor(X_train[i:i+batch_size], dtype=torch.float32)
+            targets = torch.tensor(y_train[i:i+batch_size], dtype=torch.float32).view(-1, 1)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_inputs = torch.tensor(X_val, dtype=torch.float32)
+            val_targets = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+            val_outputs = model(val_inputs)
+            val_loss = criterion(val_outputs, val_targets)
+            val_rmse = np.sqrt(val_loss.item())
+
+        print(f'Epoch {epoch+1}, Validation RMSE: {val_rmse}')
+
+    return val_rmse
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_inputs = torch.tensor(X_test, dtype=torch.float32)
+        test_targets = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+        test_outputs = model(test_inputs)
+        test_rmse = np.sqrt(mean_squared_error(test_targets.numpy(), test_outputs.numpy()))
+    
+    performance_scores = {
+        'RMSE': test_rmse
+    }
+    
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1: Retrieve or load datasets
+    train_data, test_data = load_data()
+    
+    # Step 2: Preprocess data
+    X_train_selected, y_train, X_test_selected, y_test = preprocess_data(train_data, test_data)
+    
+    # Step 3: Split training data into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train_selected, y_train, test_size=0.2, random_state=SEED)
+    
+    # Step 4: Define the model
+    input_size = X_train.shape[1]
+    model = MediaCampaignCostModel(input_size)
+    
+    # Step 5: Hyperparameter optimization and model training
+    best_rmse = float('inf')
+    best_model = None
+    hyperparameters = [
+        {'learning_rate': 0.001, 'batch_size': 32, 'epochs': 100},
+        {'learning_rate': 0.0001, 'batch_size': 64, 'epochs': 150},
+        {'learning_rate': 0.01, 'batch_size': 128, 'epochs': 50}
+    ]
+    
+    for params in hyperparameters:
+        model = MediaCampaignCostModel(input_size)
+        val_rmse = train_model(model, X_train, y_train, X_val, y_val, **params)
+        if val_rmse < best_rmse:
+            best_rmse = val_rmse
+            best_model = model
+    
+    # Step 6: Evaluate the best model on the test set
+    model_performance = evaluate_model(best_model, X_test_selected, y_test)
+    
+    # Step 7: Save the best model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(best_model.state_dict(), './agent_workspace/trained_models/media_campaign_cost_model.pth')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'media_cost'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 173, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    X_train_selected, y_train, X_test_selected, y_test = preprocess_data(train_data, test_data)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 56, in preprocess_data
+    relevant_columns = train_data.corr()['media_cost'].abs().sort_values(ascending=False).index[1:3]
+                       ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'media_cost'

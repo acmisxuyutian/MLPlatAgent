@@ -1,0 +1,108 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first few rows of the dataset
+train_df.head(), train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        Category  DayOfWeek PdDistrict           X          Y
+ 0  LARCENY/THEFT  Wednesday   SOUTHERN -122.388380  37.783310
+ 1   NON-CRIMINAL   Saturday   SOUTHERN -122.403405  37.775421
+ 2  LARCENY/THEFT  Wednesday   NORTHERN -122.419581  37.789214
+ 3  VEHICLE THEFT     Friday    BAYVIEW -122.389744  37.757909
+ 4        ASSAULT     Friday    TARAVAL -122.478377  37.742877,
+             Category  DayOfWeek PdDistrict           X          Y
+ 0      LARCENY/THEFT  Wednesday   SOUTHERN -122.388380  37.783310
+ 1       NON-CRIMINAL   Saturday   SOUTHERN -122.403405  37.775421
+ ...              ...        ...        ...         ...        ...
+ 70242        ASSAULT    Tuesday    BAYVIEW -122.389775  37.735227
+ 70243  LARCENY/THEFT    Tuesday  INGLESIDE -122.417108  37.712256
+ 
+ [70244 rows x 5 columns])from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+
+# Feature selection
+features = ['DayOfWeek', 'PdDistrict', 'X', 'Y']
+X = train_df[features]
+y = train_df['Category']
+
+# Encoding categorical features
+label_encoder = LabelEncoder()
+X['DayOfWeek'] = label_encoder.fit_transform(X['DayOfWeek'])
+X['PdDistrict'] = label_encoder.fit_transform(X['PdDistrict'])
+y = label_encoder.fit_transform(y)
+
+# Splitting the dataset into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       DayOfWeek  PdDistrict           X          Y
+ 1169           6           7 -122.411979  37.780904
+ 2778           0           4 -122.429930  37.798697
+ ...          ...         ...         ...        ...
+ 860            2           0 -122.403544  37.759642
+ 15795          3           3 -122.421734  37.763300
+ 
+ [56195 rows x 4 columns],
+        DayOfWeek  PdDistrict           X          Y
+ 61896          1           1 -122.406959  37.789435
+ 62732          6           1 -122.423849  37.806221
+ ...          ...         ...         ...        ...
+ 1666           2           9 -122.409849  37.783276
+ 63494          6           4 -122.431314  37.801443
+ 
+ [14049 rows x 4 columns],
+ array([20,  4, 23, ..., 33, 16, 33]),
+ array([16, 16, 20, ..., 29,  1, 33]))from sklearn.model_selection import train_test_split
+
+# Splitting the dataset into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       DayOfWeek  PdDistrict           X          Y
+ 1169           6           7 -122.411979  37.780904
+ 2778           0           4 -122.429930  37.798697
+ ...          ...         ...         ...        ...
+ 860            2           0 -122.403544  37.759642
+ 15795          3           3 -122.421734  37.763300
+ 
+ [56195 rows x 4 columns],
+        DayOfWeek  PdDistrict           X          Y
+ 61896          1           1 -122.406959  37.789435
+ 62732          6           1 -122.423849  37.806221
+ ...          ...         ...         ...        ...
+ 1666           2           9 -122.409849  37.783276
+ 63494          6           4 -122.431314  37.801443
+ 
+ [14049 rows x 4 columns],
+ array([20,  4, 23, ..., 33, 16, 33]),
+ array([16, 16, 20, ..., 29,  1, 33]))from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
+
+# Initialize the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Predict probabilities on the validation set
+y_val_pred_proba = model.predict_proba(X_val)
+
+# Calculate log loss
+val_log_loss = log_loss(y_val, y_val_pred_proba)
+
+model, val_log_loss
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42), 10.48325701645335)

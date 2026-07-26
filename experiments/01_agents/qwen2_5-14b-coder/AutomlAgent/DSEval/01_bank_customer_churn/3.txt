@@ -1,0 +1,174 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Drop unnecessary columns
+    train_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+    test_df.drop(columns=['CustomerId', 'Complain', 'Surname'], errors='ignore', inplace=True)
+    
+    # Perform one-hot encoding
+    train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type'], drop_first=True)
+    
+    # Ensure both train and test have the same columns
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    
+    # Feature engineering: create tenure buckets
+    train_df['tenure_bucket'] = pd.cut(train_df['Tenure'], bins=[0, 12, 24, 36, 48, 60], labels=[1, 2, 3, 4, 5])
+    test_df['tenure_bucket'] = pd.cut(test_df['Tenure'], bins=[0, 12, 24, 36, 48, 60], labels=[1, 2, 3, 4, 5])
+    
+    # Feature scaling
+    scaler = StandardScaler()
+    train_df[['Age', 'Balance', 'CreditScore', 'tenure_bucket']] = scaler.fit_transform(train_df[['Age', 'Balance', 'CreditScore', 'tenure_bucket']])
+    test_df[['Age', 'Balance', 'CreditScore', 'tenure_bucket']] = scaler.transform(test_df[['Age', 'Balance', 'CreditScore', 'tenure_bucket']])
+    
+    return train_df, test_df
+
+# Define the neural network model
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.sigmoid(self.fc3(x))
+        return x
+
+# Train the neural network
+def train_neural_network(X_train, y_train, num_epochs=100, learning_rate=0.001):
+    model = NeuralNetwork(input_size=X_train.shape[1])
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs.squeeze(), torch.tensor(y_train.values, dtype=torch.float32))
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Integrate with XGBoost
+def train_xgboost(X_train, y_train, X_val, y_val):
+    xgb_train = xgb.DMatrix(X_train, label=y_train, enable_categorical=True)
+    xgb_val = xgb.DMatrix(X_val, label=y_val, enable_categorical=True)
+    
+    params = {
+        'objective': 'binary:logistic',
+        'learning_rate': 0.1,
+        'max_depth': 6,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'gamma': 0,
+        'reg_alpha': 0,
+        'reg_lambda': 1,
+        'num_boost_round': 100
+    }
+    
+    bst = xgb.train(params, xgb_train, evals=[(xgb_val, 'eval')], early_stopping_rounds=5)
+    return bst
+
+# Evaluate the model
+def evaluate_model(model, test_df):
+    X_test = test_df.drop(columns=['Exited'])
+    y_test = test_df['Exited']
+    
+    test_predictions = model.predict(xgb.DMatrix(X_test, enable_categorical=True))
+    auc_roc = roc_auc_score(y_test, test_predictions)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_df, test_df = preprocess_data(train_df, test_df)
+    X_train, X_val, y_train, y_val = train_test_split(train_df.drop(columns=['Exited']), train_df['Exited'], test_size=0.3, random_state=42)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_xgboost(X_train, y_train, X_val, y_val)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_df)
+    
+    # Save the model
+    joblib.dump(model, './agent_workspace/trained_models/neural_network_xgboost_model.pkl')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 141, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 127, in main
+    model = train_xgboost(X_train, y_train, X_val, y_val)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 83, in train_xgboost
+    xgb_train = xgb.DMatrix(X_train, label=y_train, enable_categorical=True)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 730, in inner_f
+    return func(**kwargs)
+           ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 857, in __init__
+    handle, feature_names, feature_types = dispatch_data_backend(
+                                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 1089, in dispatch_data_backend
+    return _from_pandas_df(
+           ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 522, in _from_pandas_df
+    data, feature_names, feature_types = _transform_pandas_df(
+                                         ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 490, in _transform_pandas_df
+    _invalid_dataframe_dtype(data)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 308, in _invalid_dataframe_dtype
+    raise ValueError(msg)
+ValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, The experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:Gender: object

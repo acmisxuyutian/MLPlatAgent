@@ -1,0 +1,171 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.metrics import classification_report
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the paths for the datasets and model
+train_dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+model_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/random_forest_churn_model.pkl'
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Check if the target variable 'churn' exists in both datasets
+    if 'churn' not in train_data.columns or 'churn' not in test_data.columns:
+        raise ValueError("Target variable 'churn' not found in one or both datasets.")
+    
+    # Separate features and target variable
+    X_train = train_data.drop(columns=['churn'])
+    y_train = train_data['churn']
+    X_test = test_data.drop(columns=['churn'])
+    y_test = test_data['churn']
+    
+    # Identify numerical and categorical columns
+    numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
+    
+    # Define preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+    
+    # Define preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+    
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+    
+    # Create a preprocessing and modeling pipeline
+    model = Pipeline(steps=[('preprocessor', preprocessor),
+                           ('classifier', RandomForestClassifier(random_state=SEED))])
+    
+    return model, X_train, y_train, X_test, y_test
+
+def train_model(model, X_train, y_train):
+    # Define the parameter grid for Grid Search
+    param_grid = {
+        'classifier__n_estimators': [50, 100, 200],
+        'classifier__max_depth': [None, 10, 20, 30],
+        'classifier__min_samples_split': [2, 5, 10],
+        'classifier__min_samples_leaf': [1, 2, 4],
+        'classifier__max_features': ['auto', 'sqrt', 'log2']
+    }
+    
+    # Initialize Grid Search
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=3, scoring='roc_auc', n_jobs=-1)
+    
+    # Fit Grid Search
+    grid_search.fit(X_train, y_train)
+    
+    # Get the best model
+    best_model = grid_search.best_estimator_
+    
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    # Predict probabilities
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Calculate AUC-ROC score
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    
+    # Predict classes
+    y_pred = model.predict(X_test)
+    
+    # Calculate confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    
+    # Generate classification report
+    report = classification_report(y_test, y_pred)
+    
+    # Print confusion matrix and classification report
+    print("Confusion Matrix:")
+    print(cm)
+    print("\nClassification Report:")
+    print(report)
+    
+    # Return performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv(train_dataset_path)
+    test_data = pd.read_csv(test_dataset_path)
+    
+    # Step 2. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    model, X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+    
+    # Step 3. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    
+    # Step 4. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    best_model = train_model(model, X_train, y_train)
+    
+    # Step 5. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(best_model, X_test, y_test)
+    
+    # Save the trained model
+    joblib.dump(best_model, model_save_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 155, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 137, in main
+    model, X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 39, in preprocess_data
+    raise ValueError("Target variable 'churn' not found in one or both datasets.")
+ValueError: Target variable 'churn' not found in one or both datasets.

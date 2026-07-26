@@ -1,0 +1,149 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.feature_selection import SelectKBest, f_classif
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split, cross_val_score
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initial exploration
+def load_data(data_path):
+    df = pd.read_csv(data_path)
+    print("Basic statistical analysis:")
+    print(df.describe())
+    print("Missing values:")
+    print(df.isnull().sum())
+    if 'churn' not in df.columns:
+        raise KeyError("The dataset does not contain a 'churn' column.")
+    print("Target variable distribution:")
+    print(df['churn'].value_counts())
+    return df
+
+# Data preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    imputer_num = SimpleImputer(strategy='mean')
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+
+    # Identify numerical and categorical columns
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    # Apply imputation
+    df[numerical_features] = imputer_num.fit_transform(df[numerical_features])
+    df[categorical_features] = imputer_cat.fit_transform(df[categorical_features])
+
+    # Categorical encoding
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    # Standardization
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Feature selection
+    X = df.drop(columns=['churn'])
+    y = df['churn']
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_selected = selector.fit_transform(X, y)
+
+    # Get the selected feature names
+    selected_features = X.columns[selector.get_support()]
+    print("Selected features:", selected_features)
+    return X_selected, y
+
+# Handle class imbalance
+def handle_class_imbalance(X, y):
+    print("Class balance before handling imbalance:")
+    print(y.value_counts())
+
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    print("Class balance after handling imbalance:")
+    print(pd.Series(y_resampled).value_counts())
+    return X_resampled, y_resampled
+
+# Train the model
+def train_model(X_train, y_train):
+    model = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.1, random_state=42)
+
+    # Perform 5-fold cross-validation
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='roc_auc')
+    print(f'Cross-validation AUC-ROC scores: {cv_scores}')
+    print(f'Mean AUC-ROC score: {cv_scores.mean()}')
+
+    # Train the model
+    model.fit(X_train, y_train)
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    test_auc_roc = roc_auc_score(y_test, y_pred_proba)
+    print(f'Test AUC-ROC score: {test_auc_roc}')
+    return test_auc_roc
+
+# Save the model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+# Main function to orchestrate the entire pipeline
+def main():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    model_path = r'./agent_workspace/trained_models/bank_customer_churn/xgboost_model.pkl'
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df = load_data(data_path)
+
+    # Step 2. Preprocess the data
+    X, y = preprocess_data(df)
+    X_resampled, y_resampled = handle_class_imbalance(X, y)
+
+    # Step 3. Create a train-valid-test split of the data
+    X_train, X_temp, y_train, y_temp = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    # Step 4. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Save the model
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 111, in main
+    df = load_data(data_path)
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 30, in load_data
+    raise KeyError("The dataset does not contain a 'churn' column.")
+KeyError: "The dataset does not contain a 'churn' column."

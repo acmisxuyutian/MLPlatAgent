@@ -1,0 +1,123 @@
+import pandas as pd
+
+# Load the train and eval data
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Check basic information for the train data
+train_shape = train_df.shape
+train_dtypes = train_df.dtypes
+train_missing_values = train_df.isnull().sum()
+
+# Check basic information for the eval data
+eval_shape = eval_df.shape
+eval_dtypes = eval_df.dtypes
+eval_missing_values = eval_df.isnull().sum()
+
+(train_shape, train_dtypes, train_missing_values, eval_shape, eval_dtypes, eval_missing_values)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+((493, 58),
+ Id        object
+ AB       float64
+           ...   
+ GL       float64
+ Class      int64
+ Length: 58, dtype: object,
+ Id       0
+ AB       0
+         ..
+ GL       1
+ Class    0
+ Length: 58, dtype: int64,
+ (124, 58),
+ Id        object
+ AB       float64
+           ...   
+ GL       float64
+ Class      int64
+ Length: 58, dtype: object,
+ Id       0
+ AB       0
+         ..
+ GL       0
+ Class    0
+ Length: 58, dtype: int64)import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score, classification_report
+
+# Load the train and eval data
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Exploratory Data Analysis (EDA)
+# Distribution of features
+train_df.hist(bins=30, figsize=(20, 15))
+plt.show()
+
+# Relationship between features and target variable
+sns.pairplot(train_df, hue='Class')
+plt.show()
+
+# Handling missing values
+imputer = SimpleImputer(strategy='mean')
+train_df_imputed = pd.DataFrame(imputer.fit_transform(train_df), columns=train_df.columns)
+eval_df_imputed = pd.DataFrame(imputer.transform(eval_df), columns=eval_df.columns)
+
+# Encoding categorical variables
+# Assuming 'Id' is the only categorical variable
+categorical_features = ['Id']
+numerical_features = [col for col in train_df.columns if col not in categorical_features]
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(), categorical_features)
+    ]
+)
+
+# Preprocess the data
+X_train = train_df_imputed.drop('Class', axis=1)
+y_train = train_df_imputed['Class']
+X_eval = eval_df_imputed.drop('Class', axis=1)
+y_eval = eval_df_imputed['Class']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Feature Engineering
+# Create new features if necessary
+# For simplicity, let's assume no new features are created
+
+# Select important features
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train_preprocessed, y_train)
+important_features = [feature for feature, importance in zip(numerical_features, rf.feature_importances_) if importance > 0.01]
+
+# Select only important features
+X_train_selected = X_train_preprocessed[:, preprocessor.named_transformers_['num'].get_feature_names_out().tolist().index(important_features)]
+X_eval_selected = X_eval_preprocessed[:, preprocessor.named_transformers_['num'].get_feature_names_out().tolist().index(important_features)]
+
+# Final preprocessed and selected data
+X_train_final = X_train_selected
+y_train_final = y_train
+X_eval_final = X_eval_selected
+y_eval_final = y_eval
+
+# Store the final preprocessed and selected data
+final_train_data, final_eval_data, final_important_features

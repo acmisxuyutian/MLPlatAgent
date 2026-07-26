@@ -1,0 +1,161 @@
+import pandas as pd
+
+# Load the train and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Convert the values in the 'Diet' column
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     Patient ID  Age     Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day         Country      Continent           Hemisphere  Heart Attack Risk
+ 0       RCA7696   84    Male          217          75         1               1        1        1                    1                17.107142     2                        0               1            10                 1.737428  153618  35.185856            544                                3                    6        Colombia  South America  Northern Hemisphere                  0
+ 1       RRP0438   88    Male          209         104         1               0        1        0                    1                 2.851698     3                        1               0             1                11.876890  124693  30.991599            649                                2                    4           Japan           Asia  Northern Hemisphere                  1
+ ...         ...  ...     ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...             ...            ...                  ...                ...
+ 7008    CKR7663   85  Female          285          54         1               1        1        1                    1                11.070968     3                        0               0             2                 8.001822  138980  25.499506            552                                1                   10         Nigeria         Africa  Northern Hemisphere                  0
+ 7009    ONB1019   89    Male          240          53         1               1        1        0                    0                 6.651998     1                        0               0             4                 6.183405  120005  35.195328            619                                0                    7  United Kingdom         Europe  Northern Hemisphere                  0
+ 
+ [7010 rows x 25 columns],
+      Patient ID  Age   Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day    Country      Continent           Hemisphere  Heart Attack Risk
+ 0       BPY8954   65  Male          340          75         0               0        1        1                    1                 9.870784     1                        1               1             7                 5.567363  216664  35.561283            315                                0                    4  Argentina  South America  Southern Hemisphere                  0
+ 1       TBS9300   77  Male          361          46         1               0        1        0                    0                 2.763339     1                        0               0             5                 9.964626  221778  26.638707            471                                3                    6   Thailand           Asia  Northern Hemisphere                  1
+ ...         ...  ...   ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...        ...            ...                  ...                ...
+ 1751    DJW0544   56  Male          196          85         1               1        1        1                    1                 7.220243     3                        1               0             2                 0.735033   75945  24.850645            173                                2                    9  Australia      Australia  Southern Hemisphere                  0
+ 1752    YCD6797   34  Male          337          77         1               0        1        0                    0                 2.798784     3                        1               0             3                 4.616085   44594  33.214358            716                                1                    4      Italy         Europe  Southern Hemisphere                  0
+ 
+ [1753 rows x 25 columns])from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Features and target variable
+X_train = train_df.drop(columns=['Patient ID', 'Heart Attack Risk'])
+y_train = train_df['Heart Attack Risk']
+
+# Initialize and fit the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+rf_model, X_train, y_train
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 10
+    rf_model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Male'
+
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    label_encoders[column] = le
+
+# Initialize and fit the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+rf_model, X_train, y_train, label_encoders
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+       Age  Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day  Country  Continent  Hemisphere
+ 0      84    1          217          75         1               1        1        1                    1                17.107142     2                        0               1            10                 1.737428  153618  35.185856            544                                3                    6        5          5           0
+ 1      88    1          209         104         1               0        1        0                    1                 2.851698     3                        1               0             1                11.876890  124693  30.991599            649                                2                    4       10          1           0
+ ...   ...  ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...      ...        ...         ...
+ 7008   85    0          285          54         1               1        1        1                    1                11.070968     3                        0               0             2                 8.001822  138980  25.499506            552                                1                   10       12          0           0
+ 7009   89    1          240          53         1               1        1        0                    0                 6.651998     1                        0               0             4                 6.183405  120005  35.195328            619                                0                    7       17          3           0
+ 
+ [7010 rows x 23 columns],
+ 0       0
+ 1       1
+        ..
+ 7008    0
+ 7009    0
+ Name: Heart Attack Risk, Length: 7010, dtype: int64,
+ {'Sex': LabelEncoder(),
+  'Country': LabelEncoder(),
+  'Continent': LabelEncoder(),
+  'Hemisphere': LabelEncoder()})from sklearn.metrics import roc_auc_score
+
+# Encode categorical variables in the test set
+for column in test_df.select_dtypes(include=['object']).columns:
+    test_df[column] = label_encoders[column].transform(test_df[column])
+
+# Make predictions on the test set
+y_test = test_df['Heart Attack Risk']
+X_test = test_df.drop(columns=['Patient ID', 'Heart Attack Risk'])
+predictions = rf_model.predict_proba(X_test)[:, 1]
+
+# Evaluate the performance of the RandomForest model on the test set
+roc_auc = roc_auc_score(y_test, predictions)
+
+roc_auc, predictions, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 5
+    test_df[column] = label_encoders[column].transform(test_df[column])
+
+KeyError: 'Patient ID'
+
+from sklearn.metrics import roc_auc_score
+
+# Encode categorical variables in the test set
+for column in ['Sex', 'Country', 'Continent', 'Hemisphere']:
+    test_df[column] = label_encoders[column].transform(test_df[column])
+
+# Make predictions on the test set
+y_test = test_df['Heart Attack Risk']
+X_test = test_df.drop(columns=['Patient ID', 'Heart Attack Risk'])
+predictions = rf_model.predict_proba(X_test)[:, 1]
+
+# Evaluate the performance of the RandomForest model on the test set
+roc_auc = roc_auc_score(y_test, predictions)
+
+roc_auc, predictions, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.4915152158527955,
+ array([0.38, 0.41, 0.34, ..., 0.41, 0.27, 0.32]),
+ 0       0
+ 1       1
+        ..
+ 1751    0
+ 1752    0
+ Name: Heart Attack Risk, Length: 1753, dtype: int64)

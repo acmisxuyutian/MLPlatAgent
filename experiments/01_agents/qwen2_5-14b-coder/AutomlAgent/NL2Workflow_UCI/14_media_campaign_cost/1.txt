@@ -1,0 +1,184 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+from pytorch_tabnet.tab_model import TabNetRegressor
+import torch.optim as optim
+
+# Environment Setup
+os.system("pip install pytorch_tabnet torch pandas scikit-learn matplotlib")
+
+# Data Retrieval and Preparation
+DATASET_PATH = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+os.makedirs(os.path.dirname(DATASET_PATH), exist_ok=True)
+
+# Load the Dataset
+df = pd.read_csv(DATASET_PATH)
+
+# Data Exploration and Cleaning
+if 'media_cost' not in df.columns:
+    raise ValueError("The target variable 'media_cost' is not found in the dataset.")
+
+def analyze_and_handle_outliers(df, target_col):
+    print("Initial distribution of target variable:")
+    print(df[target_col].describe())
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(df[target_col], bins=30, alpha=0.7, color='blue')
+    plt.title('Distribution of Target Variable')
+    plt.xlabel(target_col)
+    plt.ylabel('Frequency')
+    plt.show()
+    
+    Q1 = df[target_col].quantile(0.25)
+    Q3 = df[target_col].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    df[target_col] = np.where(df[target_col] < lower_bound, lower_bound, df[target_col])
+    df[target_col] = np.where(df[target_col] > upper_bound, upper_bound, df[target_col])
+    
+    print("Distribution of target variable after handling outliers:")
+    print(df[target_col].describe())
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(df[target_col], bins=30, alpha=0.7, color='green')
+    plt.title('Distribution of Target Variable After Handling Outliers')
+    plt.xlabel(target_col)
+    plt.ylabel('Frequency')
+    plt.show()
+    
+    return df
+
+df = analyze_and_handle_outliers(df, 'media_cost')
+
+def clean_data(df):
+    print("Missing values before imputation:")
+    print(df.isnull().sum())
+    
+    numerical_cols = df.select_dtypes(include=[np.number]).columns
+    categorical_cols = df.select_dtypes(include=[object]).columns
+    
+    imputer_num = SimpleImputer(strategy='mean')
+    df[numerical_cols] = imputer_num.fit_transform(df[numerical_cols])
+    
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+    df[categorical_cols] = imputer_cat.fit_transform(df[categorical_cols])
+    
+    print("Missing values after imputation:")
+    print(df.isnull().sum())
+    
+    return df
+
+df = clean_data(df)
+
+# Feature Engineering
+def normalize_features(df, numerical_cols):
+    scaler = MinMaxScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+    return df
+
+numerical_cols = df.select_dtypes(include=[np.number]).columns
+df = normalize_features(df, numerical_cols)
+
+def encode_categorical_features(df, categorical_cols):
+    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    return df
+
+categorical_cols = df.select_dtypes(include=[object]).columns
+df = encode_categorical_features(df, categorical_cols)
+
+# Feature Selection
+def select_relevant_features(df, target_col):
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    importances = rf.feature_importances_
+    
+    median_importance = np.median(importances)
+    selected_features = X.columns[importances > median_importance]
+    
+    return df[selected_features], y
+
+df, target_col = select_relevant_features(df, 'media_cost')
+
+# Data Splitting
+def split_data(df, target_col):
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+X_train, X_val, X_test, y_train, y_val, y_test = split_data(df, 'media_cost')
+
+# Model Training and Evaluation
+hyperparams = {
+    'learning_rate': 0.001,
+    'batch_size': 64,
+    'n_d': 128,
+    'n_a': 128,
+    'n_steps': 3,
+    'gamma': 1.5,
+    'lambda_sparse': 1e-3,
+    'mask_type': "entmax",
+    'optimizer_fn': optim.Adam,
+    'optimizer_params': dict(lr=2e-2),
+    'scheduler_fn': None,
+    'scheduler_params': {},
+    'seed': 42,
+    'verbose': 1,
+    'epochs': 100,
+    'early_stopping_patience': 10
+}
+
+def train_model(X_train, y_train, X_val, y_val, hyperparams):
+    model = TabNetRegressor(**hyperparams)
+    model.fit(X_train.values, y_train.values,
+              eval_set=[(X_val.values, y_val.values)],
+              patience=hyperparams['early_stopping_patience'],
+              max_epochs=hyperparams['epochs'])
+    return model
+
+model = train_model(X_train, y_train, X_val, y_val, hyperparams)
+
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test.values)
+    rmsle = np.sqrt(mean_squared_log_error(y_test, y_pred))
+    performance_scores = {
+        "RMSLE": rmsle
+    }
+    return performance_scores
+
+model_performance = evaluate_model(model, X_test, y_test)
+print("Model Performance on Test Set:", model_performance)
+
+# Model Saving
+MODEL_PATH = r'/remote-home/cs_acmis_xyt/AutomlAgent/models/tabular/media_campaign_cost/tabnet_model.pth'
+os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+torch.save(model.state_dict(), MODEL_PATH)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/_distutils_hack/__init__.py:26: UserWarning:
+
+Setuptools is replacing distutils.
+
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 27, in <module>
+    raise ValueError("The target variable 'media_cost' is not found in the dataset.")
+ValueError: The target variable 'media_cost' is not found in the dataset.

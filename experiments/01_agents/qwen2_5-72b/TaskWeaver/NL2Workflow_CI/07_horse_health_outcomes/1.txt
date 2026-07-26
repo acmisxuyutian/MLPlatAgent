@@ -1,0 +1,1714 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train = train_df.drop('outcome', axis=1)
+y_train = train_df['outcome']
+X_test = test_df.drop('outcome', axis=1)
+y_test = test_df['outcome']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 44
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train = train_df.drop('outcome', axis=1, errors='ignore')
+y_train = train_df['outcome'] if 'outcome' in train_df.columns else None
+X_test = test_df.drop('outcome', axis=1, errors='ignore')
+y_test = test_df['outcome'] if 'outcome' in test_df.columns else None
+
+X_train_preprocessed = preprocessor.fit_transform(X_train) if y_train is not None else None
+X_test_preprocessed = preprocessor.transform(X_test) if y_test is not None else None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[2], line 48
+    X_train_preprocessed = preprocessor.fit_transform(X_train) if y_train is not None else None
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\T
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+X_train_preprocessed = preprocessor.fit_transform(X_train) if y_train is not None else None
+X_test_preprocessed = preprocessor.transform(X_test) if y_test is not None else None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[3], line 57
+    X_train_preprocessed = preprocessor.fit_transform(X_train) if y_train is not None else None
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\T
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[4], line 59
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+
+import pandas as pd
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Verify the presence of the 'outcome' column
+has_outcome_train = 'outcome' in train_df.columns
+has_outcome_test = 'outcome' in test_df.columns
+
+# Output the results
+train_df, test_df, has_outcome_train, has_outcome_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(    surgery  hospital_number  rectal_temp  pulse  respiratory_rate peripheral_pulse mucous_membrane capillary_refill_time outcome
+ 0       yes           527706         39.0   84.0              24.0           normal     bright_pink            less_3_sec    died
+ 1       yes           528641         38.5   66.0              21.0           normal     bright_pink            less_3_sec   lived
+ ..      ...              ...          ...    ...               ...              ...             ...                   ...     ...
+ 984     yes           528570         36.1   50.0              50.0          reduced      bright_red            less_3_sec    died
+ 985     yes           533886         38.0  104.0              70.0          reduced      bright_red            more_3_sec   lived
+ 
+ [986 rows x 9 columns],
+     surgery  hospital_number  rectal_temp  pulse  respiratory_rate peripheral_pulse mucous_membrane capillary_refill_time     outcome
+ 0        no           535381         39.4   86.0              21.0           normal       pale_pink            less_3_sec  euthanized
+ 1       yes           535029         37.5  112.0              12.0           normal     bright_pink            less_3_sec  euthanized
+ ..      ...              ...          ...    ...               ...              ...             ...                   ...         ...
+ 245     yes           529642         40.8  108.0              12.0          reduced   pale_cyanotic            less_3_sec        died
+ 246     yes           535163         37.8   78.0              20.0          reduced       pale_pink            less_3_sec  euthanized
+ 
+ [247 rows x 9 columns],
+ True,
+ True)import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train = train_df.drop('outcome', axis=1)
+y_train = train_df['outcome']
+X_test = test_df.drop('outcome', axis=1)
+y_test = test_df['outcome']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[6], line 48
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[7], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[8], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[9], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[10], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[11], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[12], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[13], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[14], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Train dataset columns:', train_df.columns)
+print('Test dataset columns:', test_df.columns)
+
+# Print unique values in the 'outcome' column
+print('Unique values in train_df outcome:', train_df['outcome'].unique())
+print('Unique values in test_df outcome:', test_df['outcome'].unique())
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+if 'outcome' in train_df.columns:
+    X_train = train_df.drop('outcome', axis=1)
+    y_train = train_df['outcome']
+else:
+    X_train = train_df
+    y_train = None
+
+if 'outcome' in test_df.columns:
+    X_test = test_df.drop('outcome', axis=1)
+    y_test = test_df['outcome']
+else:
+    X_test = test_df
+    y_test = None
+
+# Ensure the preprocessor is only applied if the target column exists
+if y_train is not None:
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+else:
+    X_train_preprocessed = None
+
+if y_test is not None:
+    X_test_preprocessed = preprocessor.transform(X_test)
+else:
+    X_test_preprocessed = None
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[15], line 63
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages
+Train dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Test dataset columns: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Unique values in train_df outcome: ['died' 'lived' 'euthanized']
+Unique values in test_df outcome: ['euthanized' 'died' 'lived']
+

@@ -1,0 +1,149 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Display the first few rows of the training and test datasets
+print("Training Data:")
+print(train_df.head())
+print("\nTest Data:")
+print(test_df.head())
+
+
+执行结果：
+Training Data:
+                     Disease Fever  ... Cholesterol Level Outcome Variable
+0                Ebola Virus   Yes  ...            Normal         Positive
+1  Conjunctivitis (Pink Eye)    No  ...              High         Positive
+2               Pancreatitis    No  ...              High         Positive
+3               Pancreatitis   Yes  ...            Normal         Negative
+4            Hyperthyroidism   Yes  ...            Normal         Negative
+
+[5 rows x 10 columns]
+
+Test Data:
+                                        Disease  ... Outcome Variable
+0                                Hypothyroidism  ...         Positive
+1                                   Tonsillitis  ...         Positive
+2  Chronic Obstructive Pulmonary Disease (COPD)  ...         Positive
+3                                  Lyme Disease  ...         Positive
+4                                      Diabetes  ...         Positive
+
+[5 rows x 10 columns]
+
+生成的代码：
+# Identify categorical columns (excluding "Disease" and "Outcome Variable")
+categorical_columns = train_df.select_dtypes(include=['object']).columns.difference(['Disease', 'Outcome Variable'])
+
+# Perform one-hot encoding on the training and test datasets
+train_df_encoded = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+
+# Ensure that both datasets have the same columns
+missing_cols = set(train_df_encoded.columns) - set(test_df_encoded.columns)
+for c in missing_cols:
+    test_df_encoded[c] = 0
+
+# Reorder the columns in the test dataset to match the training dataset
+test_df_encoded = test_df_encoded[train_df_encoded.columns]
+
+# Display the first few rows of the encoded datasets
+print("Encoded Training Data:")
+print(train_df_encoded.head())
+print("\nEncoded Test Data:")
+print(test_df_encoded.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_a6e3da96d977ca6b5094668e4526bdcd7ef0004a1110035f6e3818cfeefc1c85.py", line 2, in <module>
+    categorical_columns = train_df.select_dtypes(include=['object']).columns.difference(['Disease', 'Outcome Variable'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+# Identify categorical columns (excluding "Disease" and "Outcome Variable")
+categorical_columns = train_df.select_dtypes(include=['object']).columns.difference(['Disease', 'Outcome Variable'])
+
+# Perform one-hot encoding on the training and test datasets
+train_df_encoded = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+
+# Ensure that both datasets have the same columns
+missing_cols = set(train_df_encoded.columns) - set(test_df_encoded.columns)
+for c in missing_cols:
+    test_df_encoded[c] = 0
+
+# Reorder the columns in the test dataset to match the training dataset
+test_df_encoded = test_df_encoded[train_df_encoded.columns]
+
+# Display the first few rows of the encoded datasets
+print("Encoded Training Data:")
+print(train_df_encoded.head())
+print("\nEncoded Test Data:")
+print(test_df_encoded.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_a6e3da96d977ca6b5094668e4526bdcd7ef0004a1110035f6e3818cfeefc1c85.py", line 2, in <module>
+    categorical_columns = train_df.select_dtypes(include=['object']).columns.difference(['Disease', 'Outcome Variable'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Identify categorical columns (excluding "Disease" and "Outcome Variable")
+categorical_columns = train_df.select_dtypes(include=['object']).columns.difference(['Disease', 'Outcome Variable'])
+
+# Perform one-hot encoding on the training and test datasets
+train_df_encoded = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+
+# Ensure that both datasets have the same columns
+missing_cols = set(train_df_encoded.columns) - set(test_df_encoded.columns)
+for c in missing_cols:
+    test_df_encoded[c] = 0
+
+# Reorder the columns in the test dataset to match the training dataset
+test_df_encoded = test_df_encoded[train_df_encoded.columns]
+
+# Display the first few rows of the encoded datasets
+print("Encoded Training Data:")
+print(train_df_encoded.head())
+print("\nEncoded Test Data:")
+print(test_df_encoded.head())
+
+
+执行结果：
+Encoded Training Data:
+                     Disease  Age  ... Fever_Yes  Gender_Male
+0                Ebola Virus   50  ...      True         True
+1  Conjunctivitis (Pink Eye)   35  ...     False        False
+2               Pancreatitis   35  ...     False         True
+3               Pancreatitis   29  ...      True        False
+4            Hyperthyroidism   35  ...      True        False
+
+[5 rows x 12 columns]
+
+Encoded Test Data:
+                                        Disease  Age  ... Fever_Yes  Gender_Male
+0                                Hypothyroidism   42  ...      True        False
+1                                   Tonsillitis   70  ...      True        False
+2  Chronic Obstructive Pulmonary Disease (COPD)   65  ...      True        False
+3                                  Lyme Disease   50  ...      True         True
+4                                      Diabetes   42  ...      True         True
+
+[5 rows x 12 columns]

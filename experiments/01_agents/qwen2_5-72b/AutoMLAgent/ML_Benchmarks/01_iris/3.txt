@@ -1,0 +1,107 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+from joblib import dump, load
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+
+# Data preprocessing and feature engineering
+def preprocess_data(data, feature_names):
+    # Check for missing values
+    print(data.isnull().sum())
+
+    # Normalize the features
+    scaler = StandardScaler()
+    data[feature_names] = scaler.fit_transform(data[feature_names])
+
+    return data
+
+def train_model(X_train, y_train):
+    # Train the Logistic Regression model
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    # Make predictions
+    y_pred = model.predict(X_test)
+
+    # Evaluate the model
+    performance_scores = {
+        'classification_report': classification_report(y_test, y_pred, output_dict=True),
+        'confusion_matrix': confusion_matrix(y_test, y_pred).tolist(),
+        'accuracy': accuracy_score(y_test, y_pred),
+        'roc_auc': roc_auc_score(y_test, model.predict_proba(X_test), multi_class="ovr")
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    iris = load_iris()
+    feature_names = iris['feature_names']
+    data = pd.DataFrame(data=np.c_[iris['data'], iris['target']], columns=feature_names + ['target'])
+
+    # Step 2. Create a train-valid-test split of the data
+    X = data[feature_names]
+    y = data['target']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable)
+    data = preprocess_data(data, feature_names)
+
+    # Step 4. Define required model
+    model = train_model(X_train, y_train)
+
+    # Step 5. Evaluate the trained model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Save the trained model
+    model_path = os.path.join("agent_workspace", "trained_models", "logistic_regression_iris.pkl")
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+    # Optional: Load the model and make predictions
+    model_path = os.path.join("agent_workspace", "trained_models", "logistic_regression_iris.pkl")
+    loaded_model = load(model_path)
+    print("Model loaded successfully from:", model_path)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+target               0
+dtype: int64
+Model Performance on Test Set: {'classification_report': {'0.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, '1.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, '2.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, 'accuracy': 1.0, 'macro avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 15.0}, 'weighted avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 15.0}}, 'confusion_matrix': [[5, 0, 0], [0, 5, 0], [0, 0, 5]], 'accuracy': 1.0, 'roc_auc': 1.0}
+Model loaded successfully from: agent_workspace/trained_models/logistic_regression_iris.pkl

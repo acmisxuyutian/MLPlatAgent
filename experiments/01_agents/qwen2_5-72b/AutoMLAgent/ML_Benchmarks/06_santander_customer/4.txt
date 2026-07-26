@@ -1,0 +1,220 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import roc_auc_score
+import optuna
+import torch
+from tab_transformer_pytorch import TabTransformer
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_train.csv'
+eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Data Preprocessing
+def preprocess_data(train_df, eval_df):
+    # Handle Missing Values
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+
+    eval_df[numerical_features] = numerical_imputer.transform(eval_df[numerical_features])
+    eval_df[categorical_features] = categorical_imputer.transform(eval_df[categorical_features])
+
+    # Handle Outliers
+    def handle_outliers(df, features):
+        for feature in features:
+            Q1 = df[feature].quantile(0.25)
+            Q3 = df[feature].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            df[feature] = df[feature].clip(lower_bound, upper_bound)
+
+    handle_outliers(train_df, numerical_features)
+    handle_outliers(eval_df, numerical_features)
+
+    # Normalization and Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    eval_df[numerical_features] = scaler.transform(eval_df[numerical_features])
+
+    # Feature Selection
+    X_train = train_df.drop(columns=['target'])
+    y_train = train_df['target']
+
+    mutual_info = mutual_info_classif(X_train, y_train)
+    selected_features = [feature for feature, mi in zip(X_train.columns, mutual_info) if mi > 0.05]
+
+    X_train_selected = X_train[selected_features]
+    X_eval_selected = eval_df[selected_features]
+
+    # Data Splitting
+    X_train, X_val, y_train, y_val = train_test_split(X_train_selected, y_train, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_val, y_val, test_size=0.5, random_state=42)
+
+    return X_train, y_train, X_val, y_val, X_test, y_test, X_eval_selected, eval_df['target']
+
+X_train, y_train, X_val, y_val, X_test, y_test, X_eval, y_eval = preprocess_data(train_df, eval_df)
+
+# Data Augmentation
+smote = SMOTE(random_state=42)
+X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+# Model Training and Optimization
+def objective(trial, X_train, y_train, X_val, y_val):
+    learning_rate = trial.suggest_float('learning_rate', 0.001, 0.1)
+    batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
+    num_heads = trial.suggest_categorical('num_heads', [4, 8, 12])
+    num_layers = trial.suggest_categorical('num_layers', [3, 4, 5])
+    dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.3)
+
+    model = TabTransformer(
+        categories=tuple([len(X_train[col].unique()) for col in X_train.columns]),
+        num_continuous=X_train.shape[1],
+        dim=32,
+        depth=num_layers,
+        heads=num_heads,
+        attn_dropout=dropout_rate,
+        ff_dropout=dropout_rate,
+        mlp_hidden_mults=(4, 2),
+        mlp_act=None,
+        num_classes=2,
+        lr=learning_rate,
+        wd=0.01,
+        batch_size=batch_size,
+        num_epochs=100,
+        patience=10,
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    )
+
+    model.fit(X_train, y_train, X_val, y_val)
+
+    y_pred = model.predict(X_val)
+    auc = roc_auc_score(y_val, y_pred)
+    return auc
+
+study = optuna.create_study(direction='maximize')
+study.optimize(lambda trial: objective(trial, X_train_resampled, y_train_resampled, X_val, y_val), n_trials=50)
+
+best_params = study.best_params
+best_auc = study.best_value
+
+# Final Model Training
+final_model = TabTransformer(
+    categories=tuple([len(X_train[col].unique()) for col in X_train.columns]),
+    num_continuous=X_train.shape[1],
+    dim=32,
+    depth=best_params['num_layers'],
+    heads=best_params['num_heads'],
+    attn_dropout=best_params['dropout_rate'],
+    ff_dropout=best_params['dropout_rate'],
+    mlp_hidden_mults=(4, 2),
+    mlp_act=None,
+    num_classes=2,
+    lr=best_params['learning_rate'],
+    wd=0.01,
+    batch_size=best_params['batch_size'],
+    num_epochs=100,
+    patience=10,
+    device='cuda' if torch.cuda.is_available() else 'cpu'
+)
+
+final_model.fit(X_train_resampled, y_train_resampled, X_val, y_val)
+
+# Model Evaluation
+y_test_pred = final_model.predict(X_test)
+test_auc = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC: {test_auc}')
+
+# Save the Model
+model_save_path = './agent_workspace/trained_models/tabtransformer_model.pth'
+os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+torch.save(final_model.state_dict(), model_save_path)
+
+# Main Function
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Data Retrieval
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+
+    # Data Preprocessing
+    X_train, y_train, X_val, y_val, X_test, y_test, X_eval, y_eval = preprocess_data(train_df, eval_df)
+
+    # Data Augmentation
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    # Model Training and Optimization
+    study = optuna.create_study(direction='maximize')
+    study.optimize(lambda trial: objective(trial, X_train_resampled, y_train_resampled, X_val, y_val), n_trials=50)
+    best_params = study.best_params
+
+    # Final Model Training
+    final_model = TabTransformer(
+        categories=tuple([len(X_train[col].unique()) for col in X_train.columns]),
+        num_continuous=X_train.shape[1],
+        dim=32,
+        depth=best_params['num_layers'],
+        heads=best_params['num_heads'],
+        attn_dropout=best_params['dropout_rate'],
+        ff_dropout=best_params['dropout_rate'],
+        mlp_hidden_mults=(4, 2),
+        mlp_act=None,
+        num_classes=2,
+        lr=best_params['learning_rate'],
+        wd=0.01,
+        batch_size=best_params['batch_size'],
+        num_epochs=100,
+        patience=10,
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    )
+    final_model.fit(X_train_resampled, y_train_resampled, X_val, y_val)
+
+    # Model Evaluation
+    y_test_pred = final_model.predict(X_test)
+    test_auc = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC: {test_auc}')
+
+    # Save the Model
+    model_save_path = './agent_workspace/trained_models/tabtransformer_model.pth'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    torch.save(final_model.state_dict(), model_save_path)
+
+    return test_auc
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 16, in <module>
+    from tab_transformer_pytorch import TabTransformer
+ModuleNotFoundError: No module named 'tab_transformer_pytorch'

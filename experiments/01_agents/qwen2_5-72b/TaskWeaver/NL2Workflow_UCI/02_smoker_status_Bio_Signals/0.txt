@@ -1,0 +1,113 @@
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Check if there is a separate test set or if we need to split the data
+# For now, let's just load the train data and inspect it
+train_data, test_data
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 9
+    train_data, test_data
+
+NameError: name 'test_data' is not defined
+
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Inspect the first few rows of the training dataset
+train_data.head()
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+       id  age  height  weight  waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride  HDL  LDL  hemoglobin  Urine_protein  serum_creatinine  AST  ALT  Gtp  dental_caries  smoking
+0   60700   40     150      50   80.0            0.5             0.5             1              1       120          78                  102          179            48   60  109        11.8              1               0.6   14   11    9              0        0
+1   44065   65     150      50   69.0            0.7             1.0             1              1       139          89                  243          210            98   67  122        16.3              1               0.6   17   24   25              0        0
+2   39538   55     155      55   80.0            1.2             1.2             1              1       109          71                   89          154            45   48   96        13.4              1               0.6   19   15   16              0        0
+3  105427   55     160      60   83.0            0.7             0.8             1              1       130          80                   89          230            83   54  159        14.6              1               0.7   14   13   26              0        0
+4  148669   30     180      90   95.0            1.0             1.2             1              1       120          82                   87          163           117   54   86        13.8              1               0.9   25   30   21              0        0import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Preprocess the data
+# Drop the 'id' column as it is not a feature
+train_data = train_data.drop(columns=['id'])
+
+# Check for missing values
+missing_values = train_data.isnull().sum()
+
+# If there are missing values, fill them with the median of the respective column
+if missing_values.any():
+    train_data.fillna(train_data.median(), inplace=True)
+
+# Separate features and target variable
+X = train_data.drop(columns=['smoking'])
+y = train_data['smoking']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train a machine learning model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# Output the AUC-ROC score
+auc_roc, X_train, X_test, y_train, y_test, model
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8524672089504408,
+         age  height  weight  waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride  HDL  LDL  hemoglobin  Urine_protein  serum_creatinine  AST  ALT  Gtp  dental_caries
+ 83549    40     160      55   71.0            1.2             1.2             1              1        90          60                   90          170            50   76   83        13.2              1               1.1   14   11   17              1
+ 29166    40     175     100  108.0            1.0             0.9             1              1       122          86                  117          233           195   50  145        15.5              1               0.8   24   35   42              1
+ ...     ...     ...     ...    ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...  ...  ...         ...            ...               ...  ...  ...  ...            ...
+ 15795    35     170      70   86.8            1.2             1.2             1              1       121          85                  104          182           160   40  110        15.0              1               0.8   16   35   35              0
+ 121958   40     160      50   76.0            0.9             0.7             1              1       112          72                   97          198            39   69  120        13.9              1               0.7   16    7    9              0
+ 
+ [101923 rows x 22 columns],
+        age  height  weight  waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride  HDL  LDL  hemoglobin  Urine_protein  serum_creatinine  AST  ALT  Gtp  dental_caries
+ 85446   40     170      75   83.5            1.5             0.4             1              1       118          76                   94          182           149   42  110        16.4              1               1.0   32   38   22              0
+ 96697   60     160      65   89.0            0.7             0.6             1              1       120          80                  110          176           164   41  102        15.8              1               0.9   18   12   30              0
+ ...    ...     ...     ...    ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...  ...  ...         ...            ...               ...  ...  ...  ...            ...
+ 26938   40     170      65   83.0            0.9             1.0             1              1       130          80                  105          202           270   49   98        15.6              1               0.8   21   26   26              1
+ 14194   60     150      55   84.5            1.0             0.4             1              1       130          80                   95          159           146   36   94        14.4              2               0.5   24   20   13              0
+ 
+ [25481 rows x 22 columns],
+ 83549     0
+ 29166     1
+          ..
+ 15795     1
+ 121958    0
+ Name: smoking, Length: 101923, dtype: int64,
+ 85446    1
+ 96697    1
+         ..
+ 26938    1
+ 14194    0
+ Name: smoking, Length: 25481, dtype: int64,
+ RandomForestClassifier(random_state=42))

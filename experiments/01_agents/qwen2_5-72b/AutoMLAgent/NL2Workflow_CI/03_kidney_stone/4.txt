@@ -1,0 +1,157 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+import xgboost as xgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handle Missing Values
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns.tolist()
+
+    if numerical_features:
+        numerical_imputer = SimpleImputer(strategy='mean')
+        train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    if categorical_features:
+        categorical_imputer = SimpleImputer(strategy='most_frequent')
+        train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+        test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Feature Encoding
+    if categorical_features:
+        encoder = OneHotEncoder(handle_unknown='ignore')
+        encoded_train = encoder.fit_transform(train_df[categorical_features])
+        encoded_test = encoder.transform(test_df[categorical_features])
+
+        encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+        encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+
+        train_df = pd.concat([train_df.drop(categorical_features, axis=1), encoded_train_df], axis=1)
+        test_df = pd.concat([test_df.drop(categorical_features, axis=1), encoded_test_df], axis=1)
+
+    # Feature Scaling
+    if numerical_features:
+        scaler = StandardScaler()
+        train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    return train_df, test_df
+
+# Data Exploration
+def explore_data(train_df):
+    # Descriptive Statistics
+    summary_stats = train_df.describe()
+    print("Summary Statistics:\n", summary_stats)
+
+    # Correlation Analysis
+    correlation_matrix = train_df.corr()
+    print("Correlation Matrix:\n", correlation_matrix)
+
+    # Class Distribution
+    class_distribution = train_df['label'].value_counts(normalize=True)
+    print("Class Distribution:\n", class_distribution)
+
+    # Feature Importance
+    from sklearn.feature_selection import mutual_info_classif
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop('label', axis=1), train_df['label'], test_size=0.2, random_state=42, stratify=train_df['label']
+    )
+    mutual_info = mutual_info_classif(X_train, y_train)
+    mutual_info_df = pd.DataFrame({'Feature': X_train.columns, 'Mutual Info': mutual_info})
+    mutual_info_df = mutual_info_df.sort_values(by='Mutual Info', ascending=False)
+    print("Feature Importance:\n", mutual_info_df)
+
+# Model Training
+def train_model(X_train, y_train):
+    model = xgb.XGBClassifier(
+        n_estimators=200, max_depth=5, learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42
+    )
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+    auc_roc_val = roc_auc_score(y_val, y_val_pred_proba)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+
+    y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc_test = roc_auc_score(y_test, y_test_pred_proba)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+
+    return auc_roc_val, auc_roc_test
+
+# Main Function to Orchestrate the Entire Pipeline
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+    # Data Retrieval and Collection
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Data Preprocessing
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Ensure 'label' column exists in both datasets
+    if 'label' not in train_df.columns:
+        raise ValueError("The 'label' column is missing in the training dataset.")
+    if 'label' not in test_df.columns:
+        raise ValueError("The 'label' column is missing in the test dataset.")
+
+    # Data Splitting
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop('label', axis=1), train_df['label'], test_size=0.2, random_state=42, stratify=train_df['label']
+    )
+
+    # Data Exploration
+    explore_data(train_df)
+
+    # Model Training
+    model = train_model(X_train, y_train)
+
+    # Model Evaluation
+    auc_roc_val, auc_roc_test = evaluate_model(model, X_val, y_val, test_df.drop('label', axis=1), test_df['label'])
+
+    # Model Saving
+    model_path = r'./agent_workspace/trained_models/kidney_stone_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return auc_roc_test
+
+if __name__ == "__main__":
+    auc_roc_test = main()
+    print(f"Model Performance on Test Set (AUC-ROC): {auc_roc_test}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 144, in <module>
+    auc_roc_test = main()
+                   ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 118, in main
+    raise ValueError("The 'label' column is missing in the training dataset.")
+ValueError: The 'label' column is missing in the training dataset.

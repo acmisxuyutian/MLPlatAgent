@@ -1,0 +1,188 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Inspection
+def load_dataset(url):
+    try:
+        df = pd.read_csv(url)
+        return df
+    except FileNotFoundError:
+        print("Error: Dataset file not found.")
+        return None
+
+def initial_inspection(df):
+    if df is not None:
+        print("Dataset Overview:")
+        print(df.info())
+        print("First few rows of the dataset:")
+        print(df.head())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    if df is None:
+        return None
+
+    # Handling Missing Values
+    numeric_features = df.select_dtypes(include=['number']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    numeric_imputer = SimpleImputer(strategy='median')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    if not numeric_features.empty:
+        df[numeric_features] = numeric_imputer.fit_transform(df[numeric_features])
+
+    if not categorical_features.empty:
+        df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    if not numeric_features.empty:
+        df[numeric_features] = scaler.fit_transform(df[numeric_features])
+
+    # Encoding Categorical Variables
+    encoder = OneHotEncoder(handle_unknown='ignore')
+    if not categorical_features.empty:
+        df_encoded = encoder.fit_transform(df[categorical_features])
+        df_encoded = pd.DataFrame(df_encoded.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+        df = pd.concat([df.drop(columns=categorical_features), df_encoded], axis=1)
+
+    # Feature Selection
+    if 'smoker_status' in df.columns:
+        mutual_info = mutual_info_classif(df.drop(columns=['smoker_status']), df['smoker_status'])
+        important_features = [feature for feature, info in zip(df.drop(columns=['smoker_status']).columns, mutual_info) if info > 0.1]
+        df = df[important_features + ['smoker_status']]
+    else:
+        raise KeyError("Target variable 'smoker_status' not found in the dataset")
+
+    return df
+
+# Data Splitting
+def split_data(df):
+    if df is None:
+        return None, None, None, None, None, None
+
+    X = df.drop(columns=['smoker_status'])
+    y = df['smoker_status']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    if X_train is None or y_train is None:
+        return None
+
+    # Cross-Validation
+    model = XGBClassifier()
+    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='roc_auc')
+    print(f'Cross-Validation AUC-ROC: {scores.mean()}')
+
+    # Hyperparameter Tuning
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.8, 0.9, 1.0],
+        'colsample_bytree': [0.8, 0.9, 1.0]
+    }
+
+    grid_search = GridSearchCV(estimator=XGBClassifier(), param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_params = grid_search.best_params_
+    print(f'Best Hyperparameters: {best_params}')
+
+    # Model Training
+    best_model = XGBClassifier(**best_params)
+    best_model.fit(X_train, y_train)
+
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    if model is None or X_val is None or y_val is None or X_test is None or y_test is None:
+        return None
+
+    # Validation Set Evaluation
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    val_auc_roc = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {val_auc_roc}')
+
+    # Test Set Evaluation
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    test_auc_roc = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {test_auc_roc}')
+
+    performance_scores = {
+        'Validation AUC-ROC': val_auc_roc,
+        'Test AUC-ROC': test_auc_roc
+    }
+
+    return performance_scores
+
+# Model Saving
+def save_model(model, model_path):
+    if model is None:
+        return
+
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f'Model saved to {model_path}')
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    url = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    df = load_dataset(url)
+    if df is None:
+        return
+
+    df = initial_inspection(df)
+
+    df = preprocess_data(df)
+
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    model = train_model(X_train, y_train)
+
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    model_path = './agent_workspace/trained_models/xgboost_model.pkl'
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 172, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in main
+    df = preprocess_data(df)
+         ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 71, in preprocess_data
+    raise KeyError("Target variable 'smoker_status' not found in the dataset")
+KeyError: "Target variable 'smoker_status' not found in the dataset"

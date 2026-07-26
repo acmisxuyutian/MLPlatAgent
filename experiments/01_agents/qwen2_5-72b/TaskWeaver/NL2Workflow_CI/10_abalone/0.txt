@@ -1,0 +1,98 @@
+import pandas as pd
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/abalone/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Display the first few rows of the datasets
+train_df.head(), test_df.head()
+
+# Result variables
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id Sex  Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Rings
+ 0      43718   M   0.650     0.505   0.175        1.3850          0.7105          0.3020         0.360     10
+ 1      45247   F   0.670     0.520   0.195        1.5405          0.6370          0.3455         0.385     11
+ ...      ...  ..     ...       ...     ...           ...             ...             ...           ...    ...
+ 72490    860   M   0.695     0.525   0.185        1.8275          0.8850          0.4095         0.499     11
+ 72491  15795   I   0.370     0.275   0.095        0.2225          0.0960          0.0455         0.080      7
+ 
+ [72492 rows x 10 columns],
+           id Sex  Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Rings
+ 0       3502   I    0.49     0.380   0.125        0.5290          0.2165          0.1375        0.1550      7
+ 1      76031   I    0.42     0.345   0.100        0.3705          0.1625          0.0795        0.1025      7
+ ...      ...  ..     ...       ...     ...           ...             ...             ...           ...    ...
+ 18121  36518   M    0.67     0.505   0.175        1.3080          0.5425          0.3230        0.3745     10
+ 18122  79416   M    0.60     0.470   0.175        1.0350          0.4375          0.2680        0.2850     13
+ 
+ [18123 rows x 10 columns])import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
+# Perform one-hot encoding on the 'Sex' column
+train_df_encoded = pd.get_dummies(train_df, columns=['Sex'])
+test_df_encoded = pd.get_dummies(test_df, columns=['Sex'])
+
+# Split the data into features and target
+X_train = train_df_encoded.drop(['id', 'Rings'], axis=1)
+y_train = train_df_encoded['Rings']
+X_test = test_df_encoded.drop(['id', 'Rings'], axis=1)
+y_test = test_df_encoded['Rings']
+
+# Result variables
+X_train, y_train, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Sex_F  Sex_I  Sex_M
+ 0       0.650     0.505   0.175        1.3850          0.7105          0.3020         0.360  False  False   True
+ 1       0.670     0.520   0.195        1.5405          0.6370          0.3455         0.385   True  False  False
+ ...       ...       ...     ...           ...             ...             ...           ...    ...    ...    ...
+ 72490   0.695     0.525   0.185        1.8275          0.8850          0.4095         0.499  False  False   True
+ 72491   0.370     0.275   0.095        0.2225          0.0960          0.0455         0.080  False   True  False
+ 
+ [72492 rows x 10 columns],
+ 0        10
+ 1        11
+          ..
+ 72490    11
+ 72491     7
+ Name: Rings, Length: 72492, dtype: int64,
+        Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Sex_F  Sex_I  Sex_M
+ 0        0.49     0.380   0.125        0.5290          0.2165          0.1375        0.1550  False   True  False
+ 1        0.42     0.345   0.100        0.3705          0.1625          0.0795        0.1025  False   True  False
+ ...       ...       ...     ...           ...             ...             ...           ...    ...    ...    ...
+ 18121    0.67     0.505   0.175        1.3080          0.5425          0.3230        0.3745  False  False   True
+ 18122    0.60     0.470   0.175        1.0350          0.4375          0.2680        0.2850  False  False   True
+ 
+ [18123 rows x 10 columns],
+ 0         7
+ 1         7
+          ..
+ 18121    10
+ 18122    13
+ Name: Rings, Length: 18123, dtype: int64)import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+
+# Train the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Calculate RMSLE
+rmsle = np.sqrt(mean_squared_log_error(y_test, y_pred))
+
+# Result variables
+model, rmsle
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestRegressor(random_state=42), 0.15590127740787132)

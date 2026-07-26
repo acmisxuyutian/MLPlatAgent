@@ -1,0 +1,193 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from scipy import stats
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, f1_score
+
+# Ensure the required libraries are installed
+try:
+    import imblearn
+except ImportError:
+    os.system('pip install imbalanced-learn')
+    import imblearn
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+MODEL_SAVE_PATH = "./agent_workspace/trained_models"
+
+# Step 1. Data Retrieval and Loading
+def load_dataset():
+    # Load the Wine recognition dataset
+    wine_data = load_wine()
+    # Convert to DataFrame
+    df = pd.DataFrame(data=wine_data.data, columns=wine_data.feature_names)
+    df['wine_class'] = wine_data.target
+    return df
+
+# Step 2. Data Preprocessing
+def preprocess_data(df):
+    # Normalize the features
+    scaler = StandardScaler()
+    df_normalized = pd.DataFrame(scaler.fit_transform(df.drop('wine_class', axis=1)), columns=df.columns[:-1])
+    df_normalized['wine_class'] = df['wine_class']
+
+    # Check for class imbalance
+    class_distribution = df_normalized['wine_class'].value_counts(normalize=True)
+
+    # Apply SMOTE if necessary
+    if class_distribution.min() / class_distribution.max() < 0.5:
+        smote = imblearn.over_sampling.SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(df_normalized.drop('wine_class', axis=1), df_normalized['wine_class'])
+        df_normalized = pd.DataFrame(X_resampled, columns=df_normalized.columns[:-1])
+        df_normalized['wine_class'] = y_resampled
+
+    # Identify and handle outliers using Z-score
+    z_scores = np.abs(stats.zscore(df_normalized.drop('wine_class', axis=1)))
+    df_cleaned = df_normalized[(z_scores < 3).all(axis=1)]
+
+    # Split the dataset into training and testing sets
+    X = df_cleaned.drop('wine_class', axis=1)
+    y = df_cleaned['wine_class']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return X_train, X_test, y_train, y_test
+
+# Step 3. Data Augmentation
+def augment_data(X_train, y_train):
+    # Apply SMOTE for data augmentation
+    smote = imblearn.over_sampling.SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
+    X_train_augmented = pd.DataFrame(X_resampled, columns=X_train.columns)
+    y_train_augmented = y_resampled
+
+    # Apply feature perturbation
+    np.random.seed(42)
+    perturbation = np.random.normal(0, 0.1, X_train_augmented.shape)
+    X_train_augmented += perturbation
+    return X_train_augmented, y_train_augmented
+
+# Step 4. Extracting and Understanding the Underlying Characteristics of the Dataset
+def analyze_data(X_train, y_train):
+    # Generate summary statistics
+    summary_stats = X_train.describe()
+
+    # Analyze class distribution
+    class_distribution = y_train.value_counts(normalize=True)
+
+    # Generate correlation matrix
+    correlation_matrix = X_train.corr()
+
+    # Identify outliers
+    z_scores = np.abs(stats.zscore(X_train))
+    outliers = (z_scores > 3).any(axis=1).sum()
+
+    return summary_stats, class_distribution, correlation_matrix, outliers
+
+# Step 5. Model Training
+def train_model(X_train, y_train):
+    # Initialize and train the XGBoost model
+    xgb_model = XGBClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42)
+    xgb_model.fit(X_train, y_train)
+    return xgb_model
+
+# Step 6. Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    # Make predictions on the test set
+    y_pred = model.predict(X_test)
+
+    # Evaluate the model's performance
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+    return performance_scores
+
+# Step 7. Saving the Trained Model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save_model(model_path)
+
+# The main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset
+    df = load_dataset()
+
+    # Step 2. Preprocess the data
+    X_train, X_test, y_train, y_test = preprocess_data(df)
+
+    # Step 3. Augment the data
+    X_train_augmented, y_train_augmented = augment_data(X_train, y_train)
+
+    # Step 4. Analyze the data
+    summary_stats, class_distribution, correlation_matrix, outliers = analyze_data(X_train_augmented, y_train_augmented)
+    print("Summary Statistics:\n", summary_stats)
+    print("Class Distribution:\n", class_distribution)
+    print("Correlation Matrix:\n", correlation_matrix)
+    print("Number of Outliers:", outliers)
+
+    # Step 5. Train the model
+    model = train_model(X_train_augmented, y_train_augmented)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 7. Save the trained model
+    model_path = os.path.join(MODEL_SAVE_PATH, "wine_xgboost_model.pkl")
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/_distutils_hack/__init__.py:26: UserWarning:
+
+Setuptools is replacing distutils.
+
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 17, in <module>
+    import imblearn
+ModuleNotFoundError: No module named 'imblearn'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 20, in <module>
+    import imblearn
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/__init__.py", line 54, in <module>
+    from . import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/combine/__init__.py", line 5, in <module>
+    from ._smote_enn import SMOTEENN
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/combine/_smote_enn.py", line 12, in <module>
+    from ..base import BaseSampler
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/base.py", line 15, in <module>
+    from .utils import check_sampling_strategy, check_target_type
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/utils/__init__.py", line 6, in <module>
+    from ._validation import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/utils/_validation.py", line 15, in <module>
+    from sklearn.neighbors import NearestNeighbors
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/neighbors/__init__.py", line 7, in <module>
+    from ._base import VALID_METRICS, VALID_METRICS_SPARSE, sort_graph_by_row_values
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/neighbors/_base.py", line 25, in <module>
+    from ..utils import (
+ImportError: cannot import name 'get_tags' from 'sklearn.utils' (/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/__init__.py)

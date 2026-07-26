@@ -1,0 +1,203 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 查看数据前几行
+print(train_df.head())
+
+# 检查缺失值
+print(train_df.isnull().sum())
+
+# 填充缺失值（如果有的话）
+train_df.fillna(train_df.mean(), inplace=True)
+
+# 分离特征和标签
+X = train_df.drop(columns=['smoker'])
+y = train_df['smoker']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 特征缩放
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 训练模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 预测
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_682329d0132345ee266c16f2078e8480d9921953d0c739332212eb960a3dc65f.py", line 22, in <module>
+    X = train_df.drop(columns=['smoker'])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 5581, in drop
+    return super().drop(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['smoker'] not found in axis"
+       id  age  height  weight  waist  ...  AST  ALT  Gtp  dental_caries  smoking
+0   60700   40     150      50   80.0  ...   14   11    9              0        0
+1   44065   65     150      50   69.0  ...   17   24   25              0        0
+2   39538   55     155      55   80.0  ...   19   15   16              0        0
+3  105427   55     160      60   83.0  ...   14   13   26              0        0
+4  148669   30     180      90   95.0  ...   25   30   21              0        0
+
+[5 rows x 24 columns]
+id                     0
+age                    0
+height                 0
+weight                 0
+waist                  0
+eyesight_left          0
+eyesight_right         0
+hearing_left           0
+hearing_right          0
+systolic               0
+relaxation             0
+fasting_blood_sugar    0
+Cholesterol            0
+triglyceride           0
+HDL                    0
+LDL                    0
+hemoglobin             0
+Urine_protein          0
+serum_creatinine       0
+AST                    0
+ALT                    0
+Gtp                    0
+dental_caries          0
+smoking                0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+
+# 加载数据
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 查看数据前几行
+print(train_df.head())
+
+# 查看数据集的列名
+print(train_df.columns)
+
+
+执行结果：
+       id  age  height  weight  waist  ...  AST  ALT  Gtp  dental_caries  smoking
+0   60700   40     150      50   80.0  ...   14   11    9              0        0
+1   44065   65     150      50   69.0  ...   17   24   25              0        0
+2   39538   55     155      55   80.0  ...   19   15   16              0        0
+3  105427   55     160      60   83.0  ...   14   13   26              0        0
+4  148669   30     180      90   95.0  ...   25   30   21              0        0
+
+[5 rows x 24 columns]
+Index(['id', 'age', 'height', 'weight', 'waist', 'eyesight_left',
+       'eyesight_right', 'hearing_left', 'hearing_right', 'systolic',
+       'relaxation', 'fasting_blood_sugar', 'Cholesterol', 'triglyceride',
+       'HDL', 'LDL', 'hemoglobin', 'Urine_protein', 'serum_creatinine', 'AST',
+       'ALT', 'Gtp', 'dental_caries', 'smoking'],
+      dtype='object')
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 查看数据前几行
+print(train_df.head())
+
+# 检查缺失值
+print(train_df.isnull().sum())
+
+# 填充缺失值（如果有的话）
+train_df.fillna(train_df.mean(), inplace=True)
+
+# 分离特征和标签
+X = train_df.drop(columns=['smoking'])
+y = train_df['smoking']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 特征缩放
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 训练模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 预测
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+       id  age  height  weight  waist  ...  AST  ALT  Gtp  dental_caries  smoking
+0   60700   40     150      50   80.0  ...   14   11    9              0        0
+1   44065   65     150      50   69.0  ...   17   24   25              0        0
+2   39538   55     155      55   80.0  ...   19   15   16              0        0
+3  105427   55     160      60   83.0  ...   14   13   26              0        0
+4  148669   30     180      90   95.0  ...   25   30   21              0        0
+
+[5 rows x 24 columns]
+id                     0
+age                    0
+height                 0
+weight                 0
+waist                  0
+eyesight_left          0
+eyesight_right         0
+hearing_left           0
+hearing_right          0
+systolic               0
+relaxation             0
+fasting_blood_sugar    0
+Cholesterol            0
+triglyceride           0
+HDL                    0
+LDL                    0
+hemoglobin             0
+Urine_protein          0
+serum_creatinine       0
+AST                    0
+ALT                    0
+Gtp                    0
+dental_caries          0
+smoking                0
+dtype: int64
+AUC-ROC: 0.8520139105868711

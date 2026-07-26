@@ -1,0 +1,160 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import mean_squared_log_error, mean_absolute_error, mean_squared_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(dataset_path):
+    # Load the dataset
+    df = pd.read_csv(dataset_path)
+
+    # Check for missing values
+    print("Missing values:\n", df.isnull().sum())
+
+    # Check data types
+    print("Data types:\n", df.info())
+
+    # Ensure 'age' column exists
+    if 'age' not in df.columns:
+        raise ValueError("The dataset does not contain the 'age' column.")
+
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Normalize the physical measurements using Min-Max scaling
+    scaler = MinMaxScaler()
+    df_normalized = pd.DataFrame(scaler.fit_transform(df.drop(columns=['age'])), columns=df.columns[:-1])
+    df_normalized['age'] = df['age']
+
+    # Use Recursive Feature Elimination (RFE) with a Random Forest model to identify and retain the most relevant features
+    model = RandomForestRegressor()
+    rfe = RFE(model, n_features_to_select=5)
+    df_selected = pd.DataFrame(rfe.fit_transform(df_normalized.drop(columns=['age']), df_normalized['age']), columns=df_normalized.columns[:-1][rfe.support_])
+    df_selected['age'] = df_normalized['age']
+
+    # Impute missing values using mean imputation
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df_selected), columns=df_selected.columns)
+
+    # Split the dataset into training, validation, and test sets
+    X = df_imputed.drop(columns=['age'])
+    y = df_imputed['age']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    # Initialize the model with optimized hyperparameters
+    model = RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42)
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Hyperparameter Tuning
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 15],
+        'max_features': ['auto', 'sqrt']
+    }
+
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_mean_squared_log_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = grid_search.best_estimator_
+
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    # Evaluate the model on the validation set
+    y_val_pred = model.predict(X_val)
+    rmlse_val = mean_squared_log_error(y_val, y_val_pred, squared=False)
+    mae_val = mean_absolute_error(y_val, y_val_pred)
+    mse_val = mean_squared_error(y_val, y_val_pred)
+
+    print(f'Validation RMLSE: {rmlse_val}')
+    print(f'Validation MAE: {mae_val}')
+    print(f'Validation MSE: {mse_val}')
+
+    # Evaluate the model on the test set
+    y_test_pred = model.predict(X_test)
+    rmlse_test = mean_squared_log_error(y_test, y_test_pred, squared=False)
+    mae_test = mean_absolute_error(y_test, y_test_pred)
+    mse_test = mean_squared_error(y_test, y_test_pred)
+
+    print(f'Test RMLSE: {rmlse_test}')
+    print(f'Test MAE: {mae_test}')
+    print(f'Test MSE: {mse_test}')
+
+    performance_scores = {
+        'Validation RMLSE': rmlse_val,
+        'Validation MAE': mae_val,
+        'Validation MSE': mse_val,
+        'Test RMLSE': rmlse_test,
+        'Test MAE': mae_test,
+        'Test MSE': mse_test
+    }
+
+    return performance_scores
+
+# Save the Model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from the given path
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    df = load_data(dataset_path)
+
+    # Step 2. Preprocess the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4. Evaluate the model
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 5. Save the model
+    model_path = r'./agent_workspace/trained_models/abalone_random_forest.pkl'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 144, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in main
+    df = load_data(dataset_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 31, in load_data
+    raise ValueError("The dataset does not contain the 'age' column.")
+ValueError: The dataset does not contain the 'age' column.

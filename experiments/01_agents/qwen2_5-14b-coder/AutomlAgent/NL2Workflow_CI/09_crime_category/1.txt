@@ -1,0 +1,183 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from geopy.distance import geodesic
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and initial setup
+def retrieve_data():
+    # Step 1: Identify the user-provided dataset names and their respective links
+    train_url = "https://example.com/crime_category_train.csv"
+    test_url = "https://example.com/crime_category_test.csv"
+    
+    # Step 2: Use a command-line tool to download the datasets from the provided links
+    os.system(f"wget {train_url} -O ./datasets/crime_category_train.csv")
+    os.system(f"wget {test_url} -O ./datasets/crime_category_test.csv")
+    
+    # Step 3: Store the downloaded datasets in a designated directory
+    train_data = pd.read_csv('./datasets/crime_category_train.csv')
+    test_data = pd.read_csv('./datasets/crime_category_test.csv')
+    
+    return train_data, test_data
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Step 1: Load the datasets into a suitable data processing framework
+    # Step 2: Handle missing values
+    train_data.fillna(train_data.mean(), inplace=True)
+    test_data.fillna(test_data.mean(), inplace=True)
+    
+    train_data.fillna(train_data.mode().iloc[0], inplace=True)
+    test_data.fillna(test_data.mode().iloc[0], inplace=True)
+    
+    # Step 3: Remove duplicate rows
+    train_data.drop_duplicates(inplace=True)
+    test_data.drop_duplicates(inplace=True)
+    
+    # Step 4: Normalize or scale numerical features
+    scaler = MinMaxScaler()
+    numerical_features = ['numerical_feature1', 'numerical_feature2']  # Replace with actual numerical feature names
+    train_data[numerical_features] = scaler.fit_transform(train_data[numerical_features])
+    test_data[numerical_features] = scaler.transform(test_data[numerical_features])
+    
+    # Step 5: Split the data into training and testing sets
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop('crime_category', axis=1), train_data['crime_category'], test_size=0.2, stratify=train_data['crime_category'], random_state=42)
+    
+    return X_train, X_val, y_train, y_val, test_data
+
+# Feature engineering
+def feature_engineering(train_data, test_data):
+    # Step 1: Extract temporal features
+    train_data['date'] = pd.to_datetime(train_data['date'])
+    train_data['day_of_week'] = train_data['date'].dt.dayofweek
+    train_data['hour_of_day'] = train_data['date'].dt.hour
+    train_data['month'] = train_data['date'].dt.month
+
+    test_data['date'] = pd.to_datetime(test_data['date'])
+    test_data['day_of_week'] = test_data['date'].dt.dayofweek
+    test_data['hour_of_day'] = test_data['date'].dt.hour
+    test_data['month'] = test_data['date'].dt.month
+    
+    # Step 2: Calculate distance from known crime hotspots
+    hotspot = (37.7749, -122.4194)
+    train_data['distance_to_hotspot'] = train_data.apply(lambda row: geodesic((row['latitude'], row['longitude']), hotspot).miles, axis=1)
+    test_data['distance_to_hotspot'] = test_data.apply(lambda row: geodesic((row['latitude'], row['longitude']), hotspot).miles, axis=1)
+    
+    # Step 3: Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    train_encoded = encoder.fit_transform(train_data[['day_of_week', 'month']])
+    test_encoded = encoder.transform(test_data[['day_of_week', 'month']])
+    
+    train_data_encoded = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(['day_of_week', 'month']))
+    test_data_encoded = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(['day_of_week', 'month']))
+    
+    train_data = pd.concat([train_data, train_data_encoded], axis=1)
+    test_data = pd.concat([test_data, test_data_encoded], axis=1)
+    
+    return train_data, test_data
+
+# Model training and evaluation
+class CrimePredictionModel(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(CrimePredictionModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=50, learning_rate=0.001):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        loss = criterion(outputs, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 5 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+        _, predicted = torch.max(outputs.data, 1)
+        total = y_val.size(0)
+        correct = (predicted == torch.tensor(y_val.values, dtype=torch.long)).sum().item()
+        accuracy = 100 * correct / total
+        f1 = f1_score(y_val, predicted, average='weighted')
+    
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data, test_data = retrieve_data()
+    
+    # Step 2: Create a train-valid-test split of the data
+    X_train, X_val, y_train, y_val, test_data = preprocess_data(train_data, test_data)
+    
+    # Step 3: With the split dataset, run data preprocessing and feature engineering
+    train_data, test_data = feature_engineering(train_data, test_data)
+    
+    # Step 4: Define required model
+    input_size = train_data.shape[1]
+    num_classes = len(train_data['crime_category'].unique())
+    model = CrimePredictionModel(input_size, num_classes)
+    
+    # Step 5: train the retrieved/loaded model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+    
+    # Step 6: evaluate the trained model
+    model_performance = evaluate_model(model, X_val, y_val)
+    
+    # Step 7: Save the trained model
+    torch.save(model.state_dict(), './agent_workspace/trained_models/crime_prediction_model.pth')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 10, in <module>
+    from geopy.distance import geodesic
+ModuleNotFoundError: No module named 'geopy'

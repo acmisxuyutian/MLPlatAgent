@@ -1,0 +1,122 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Set the paths to the datasets
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/09_housing_price/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/09_housing_price/test.csv'
+
+# Load the datasets
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Preprocess the data
+def preprocess_data(train_df, test_df):
+    # Handling Missing Values
+    numerical_features = train_df.select_dtypes(include=['number']).columns
+    for feature in numerical_features:
+        median_value = train_df[feature].median()
+        train_df.loc[:, feature] = train_df[feature].fillna(median_value)
+        test_df.loc[:, feature] = test_df[feature].fillna(median_value)
+
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    for feature in categorical_features:
+        mode_value = train_df[feature].mode()[0]
+        train_df.loc[:, feature] = train_df[feature].fillna(mode_value)
+        test_df.loc[:, feature] = test_df[feature].fillna(mode_value)
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Categorical Encoding
+    train_df = pd.get_dummies(train_df, drop_first=True)
+    test_df = pd.get_dummies(test_df, drop_first=True)
+
+    # Align Columns
+    train_columns = train_df.columns
+    test_columns = test_df.columns
+    missing_columns = set(train_columns) - set(test_columns)
+    for column in missing_columns:
+        test_df[column] = 0
+    test_df = test_df[train_columns]
+
+    return train_df, test_df, scaler
+
+# Train the model
+def train_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    return rmse
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Load the datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess the data
+    train_df, test_df, scaler = preprocess_data(train_df, test_df)
+
+    # Split the data into features (X) and the target variable (y)
+    X_train = train_df.drop(columns=['price'])
+    y_train = train_df['price']
+    X_test = test_df.drop(columns=['price'])
+    y_test = test_df['price']
+
+    # Train the model
+    model = train_model(X_train, y_train)
+
+    # Evaluate the model
+    rmse = evaluate_model(model, X_test, y_test)
+    print(f'RMSE: {rmse}')
+
+    # Save the model and scaler
+    model_path = './agent_workspace/trained_models/linear_regression_model.pkl'
+    scaler_path = './agent_workspace/trained_models/scaler.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+    return rmse
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 97, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 84, in main
+    rmse = evaluate_model(model, X_test, y_test)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 63, in evaluate_model
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_param_validation.py", line 196, in wrapper
+    params = func_sig.bind(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/inspect.py", line 3195, in bind
+    return self._bind(args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/inspect.py", line 3184, in _bind
+    raise TypeError(
+TypeError: got an unexpected keyword argument 'squared'

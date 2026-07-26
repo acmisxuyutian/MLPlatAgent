@@ -1,0 +1,132 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicated rows
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+
+    # Remove irrelevant columns
+    columns_to_drop = [
+        "ID", "ICO Number", "Owner", "Region", "Certification Contact", "Certification Address", "Farm Name", "Lot Number", "Mill", "Producer", "Company", "Expiration", "Harvest Year", "Unnamed: 0", "Number of Bags", "Bag Weight", "In-Country Partner", "Country of Origin", "Processing Method", "Grading Date", "Variety", "Status", "Defects", "Uniformity", "Clean Cup", "Sweetness", "Certification Body"
+    ]
+    # Filter out columns that are not in the DataFrame
+    train_df = train_df.drop(columns=[col for col in columns_to_drop if col in train_df.columns])
+    test_df = test_df.drop(columns=[col for col in columns_to_drop if col in test_df.columns])
+
+    # One-hot encode the 'Color' column
+    train_df = pd.get_dummies(train_df, columns=['Color'])
+    test_df = pd.get_dummies(test_df, columns=['Color'])
+
+    return train_df, test_df
+
+# Data Splitting
+def split_data(train_df):
+    X_train = train_df.drop(columns=['Total Cup Points'])
+    y_train = train_df['Total Cup Points']
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.3, random_state=SEED)
+    return X_train, X_val, y_train, y_val
+
+# Model Initialization and Training
+def train_model(X_train, y_train):
+    model = RandomForestRegressor(n_estimators=100, max_depth=None, min_samples_leaf=1, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+# Hyperparameter Tuning
+def tune_hyperparameters(model, X_train, y_train):
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    mse_val = mean_squared_error(y_val, y_val_pred)
+    print(f'Validation MSE: {mse_val}')
+
+    y_test_pred = model.predict(X_test)
+    mse_test = mean_squared_error(y_test, y_test_pred)
+    print(f'Test MSE: {mse_test}')
+
+    performance_scores = {
+        'Validation MSE': mse_val,
+        'Test MSE': mse_test
+    }
+    return performance_scores
+
+# Model Saving and Deployment
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+    model_path = './agent_workspace/trained_models/random_forest_regressor.pkl'
+
+    # Step 1: Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2: Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Split data
+    X_train, X_val, y_train, y_val = split_data(train_df)
+
+    # Step 4: Train model
+    model = train_model(X_train, y_train)
+
+    # Step 5: Tune hyperparameters
+    best_model = tune_hyperparameters(model, X_train, y_train)
+
+    # Step 6: Evaluate model
+    X_test = test_df.drop(columns=['Total Cup Points'])
+    y_test = test_df['Total Cup Points']
+    performance_scores = evaluate_model(best_model, X_val, y_val, X_test, y_test)
+
+    # Step 7: Save model
+    save_model(best_model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Validation MSE: 0.17819286361507125
+Test MSE: 0.14608823498562284
+Model Performance on Test Set: {'Validation MSE': 0.17819286361507125, 'Test MSE': 0.14608823498562284}

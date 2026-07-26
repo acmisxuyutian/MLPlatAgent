@@ -1,0 +1,127 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import confusion_matrix, roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handling Missing Values
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    numerical_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    categorical_features = train_df.select_dtypes(include=['object']).columns.tolist()
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Encoding Categorical Variables
+    one_hot_encoder = OneHotEncoder(handle_unknown='ignore')
+    train_encoded = one_hot_encoder.fit_transform(train_df[categorical_features])
+    test_encoded = one_hot_encoder.transform(test_df[categorical_features])
+    train_encoded_df = pd.DataFrame(train_encoded.toarray(), columns=one_hot_encoder.get_feature_names_out(categorical_features))
+    test_encoded_df = pd.DataFrame(test_encoded.toarray(), columns=one_hot_encoder.get_feature_names_out(categorical_features))
+    train_df = pd.concat([train_df.drop(columns=categorical_features), train_encoded_df], axis=1)
+    test_df = pd.concat([test_df.drop(columns=categorical_features), test_encoded_df], axis=1)
+
+    # Scaling Numerical Features
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    return train_df, test_df
+
+# Model Training and Hyperparameter Optimization
+def train_model(train_df):
+    rf_model = RandomForestClassifier(random_state=42)
+    param_grid = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'max_depth': [10, 20, 30, 40, 50],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    random_search = RandomizedSearchCV(rf_model, param_grid, n_iter=50, cv=5, scoring='roc_auc', random_state=42)
+    random_search.fit(train_df.drop(columns=['churn']), train_df['churn'])
+    best_rf_model = random_search.best_estimator_
+    return best_rf_model
+
+# Model Evaluation
+def evaluate_model(best_rf_model, test_df):
+    test_predictions = best_rf_model.predict(test_df.drop(columns=['churn']))
+    test_probabilities = best_rf_model.predict_proba(test_df.drop(columns=['churn']))[:, 1]
+    cm = confusion_matrix(test_df['churn'], test_predictions)
+    auc_roc = roc_auc_score(test_df['churn'], test_probabilities)
+    return cm, auc_roc
+
+# Saving the Model and Predictions
+def save_model_and_predictions(best_rf_model, test_df, model_path, predictions_path):
+    joblib.dump(best_rf_model, model_path)
+    predictions_df = test_df.copy()
+    predictions_df['predicted_churn'] = test_predictions
+    predictions_df['predicted_probability'] = test_probabilities
+    predictions_df.to_csv(predictions_path, index=False)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Data Retrieval
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Ensure the 'churn' column is present in both datasets
+    if 'churn' not in train_df.columns or 'churn' not in test_df.columns:
+        raise ValueError("The 'churn' column is missing in the datasets.")
+
+    # Data Preprocessing
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Model Training
+    best_rf_model = train_model(train_df)
+
+    # Model Evaluation
+    cm, auc_roc = evaluate_model(best_rf_model, test_df)
+
+    # Saving the Model and Predictions
+    model_path = './agent_workspace/trained_models/bank_customer_churn_random_forest.pkl'
+    predictions_path = './agent_workspace/predictions/bank_customer_churn_predictions.csv'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(predictions_path), exist_ok=True)
+    save_model_and_predictions(best_rf_model, test_df, model_path, predictions_path)
+
+    return cm, auc_roc
+
+if __name__ == "__main__":
+    cm, auc_roc = main()
+    print("Model Performance on Test Set:")
+    print(f"Confusion Matrix:\n{cm}")
+    print(f"AUC-ROC Score: {auc_roc}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 112, in <module>
+    cm, auc_roc = main()
+                  ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 91, in main
+    raise ValueError("The 'churn' column is missing in the datasets.")
+ValueError: The 'churn' column is missing in the datasets.

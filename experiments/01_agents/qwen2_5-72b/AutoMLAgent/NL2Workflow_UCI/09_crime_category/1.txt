@@ -1,0 +1,218 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.metrics import log_loss
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.model_selection import GridSearchCV
+import shap
+from math import radians, sin, cos, sqrt, atan2
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(dataset_path):
+    """
+    Load the dataset from the specified path.
+    """
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    """
+    Preprocess the data: handle missing values, feature scaling, categorical encoding, and feature engineering.
+    """
+    # Data Inspection
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+
+    data_types = df.dtypes
+    print("Data Types:\n", data_types)
+
+    summary_stats = df.describe()
+    print("Summary Statistics:\n", summary_stats)
+
+    # Check if 'crime_category' column exists
+    if 'crime_category' not in df.columns:
+        raise KeyError("The dataset does not contain a 'crime_category' column.")
+
+    target_distribution = df['crime_category'].value_counts()
+    print("Target Distribution:\n", target_distribution)
+
+    # Identify numerical and categorical columns
+    numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
+    categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
+
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[numerical_columns] = numerical_imputer.fit_transform(df[numerical_columns])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[categorical_columns] = categorical_imputer.fit_transform(df[categorical_columns])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    # Categorical Encoding
+    encoder = OneHotEncoder(sparse=False)
+    encoded_categorical = encoder.fit_transform(df[categorical_columns])
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_columns))
+    df = pd.concat([df, encoded_df], axis=1).drop(columns=categorical_columns)
+
+    # Temporal and Spatial Feature Engineering
+    if 'date' in df.columns:
+        df['hour'] = pd.to_datetime(df['date']).dt.hour
+        df['day_of_week'] = pd.to_datetime(df['date']).dt.dayofweek
+        df['month'] = pd.to_datetime(df['date']).dt.month
+
+    # Example key location coordinates
+    key_location_latitude = 37.7749
+    key_location_longitude = -122.4194
+
+    def calculate_distance(lat1, lon1, lat2, lon2):
+        R = 6371.0  # Radius of the Earth in kilometers
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        distance = R * c
+        return distance
+
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        df['distance_to_key_location'] = df.apply(lambda row: calculate_distance(row['latitude'], row['longitude'], key_location_latitude, key_location_longitude), axis=1)
+
+    # Create interaction features
+    if 'hour' in df.columns and 'day_of_week' in df.columns:
+        df['hour_day_of_week'] = df['hour'] * df['day_of_week']
+
+    # Handling Imbalanced Data
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop(columns=['crime_category']), df['crime_category'])
+    df = pd.concat([X_resampled, y_resampled], axis=1)
+
+    return df
+
+# Train-Validation-Test Split
+def train_test_split_data(df):
+    """
+    Split the data into training, validation, and test sets.
+    """
+    X = df.drop(columns=['crime_category'])
+    y = df['crime_category']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Optimization
+def train_model(X_train, y_train):
+    """
+    Train and optimize the XGBoost model.
+    """
+    model = XGBClassifier()
+
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2]
+    }
+
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_log_loss')
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    """
+    Evaluate the model on the validation and test sets.
+    """
+    y_pred_val = model.predict_proba(X_val)
+    logloss_val = log_loss(y_val, y_pred_val)
+    print(f'Logloss on validation set: {logloss_val}')
+
+    y_pred_test = model.predict_proba(X_test)
+    logloss_test = log_loss(y_test, y_pred_test)
+    print(f'Logloss on test set: {logloss_test}')
+
+    feature_importances = model.feature_importances_
+    print(f'Feature importances: {feature_importances}')
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_val)
+    shap.summary_plot(shap_values, X_val, plot_type="bar")
+
+    performance_scores = {
+        'logloss_val': logloss_val,
+        'logloss_test': logloss_test
+    }
+
+    return performance_scores
+
+# Save the Trained Model
+def save_model(model, model_path):
+    """
+    Save the trained model to the specified directory.
+    """
+    model.save_model(model_path)
+    print(f"Model saved to {model_path}")
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Load the dataset
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = load_data(dataset_path)
+
+    # Preprocess the data
+    df = preprocess_data(df)
+
+    # Train-Validation-Test Split
+    X_train, X_val, X_test, y_train, y_val, y_test = train_test_split_data(df)
+
+    # Train the model
+    best_model = train_model(X_train, y_train)
+
+    # Evaluate the model
+    model_performance = evaluate_model(best_model, X_val, y_val, X_test, y_test)
+
+    # Save the model
+    model_dir = "./agent_workspace/trained_models"
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, "xgboost_model.pkl")
+    save_model(best_model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 202, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 182, in main
+    df = preprocess_data(df)
+         ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 47, in preprocess_data
+    raise KeyError("The dataset does not contain a 'crime_category' column.")
+KeyError: "The dataset does not contain a 'crime_category' column."

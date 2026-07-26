@@ -1,0 +1,180 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFE
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    dataset_url = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = pd.read_csv(dataset_url)
+    return df
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Identify missing values
+    missing_values = df.isnull().sum()
+    print(missing_values)
+
+    # Handle missing values
+    numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+
+    # Fill missing values with mean for numerical columns
+    df[numerical_cols] = df[numerical_cols].fillna(df[numerical_cols].mean())
+
+    # Drop rows with missing values in categorical columns
+    df.dropna(subset=categorical_cols, inplace=True)
+
+    # Encode categorical variables
+    df = pd.get_dummies(df, columns=categorical_cols)
+
+    # Feature scaling
+    scaler = StandardScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+    return df
+
+# Define model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = self.relu(out)
+        out = self.fc3(out)
+        out = self.softmax(out)
+        return out
+
+# Train model
+def train_model(model, train_loader, criterion, optimizer, num_epochs):
+    for epoch in range(num_epochs):
+        for i, (inputs, labels) in enumerate(train_loader):
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Evaluate model
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        all_preds = []
+        all_labels = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            all_preds.extend(outputs.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+        logloss = log_loss(all_labels, all_preds, labels=np.unique(all_labels))
+        print(f'Logloss of the model on the test set: {logloss:.4f}')
+        return {'Logloss': logloss}
+
+# Main function
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df = load_data()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X = df.drop('犯罪类别', axis=1).values
+    y = df['犯罪类别'].values
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    df_train = pd.DataFrame(X_train, columns=df.columns[:-1])
+    df_train['犯罪类别'] = y_train
+    df_train = preprocess_data(df_train)
+
+    df_test = pd.DataFrame(X_test, columns=df.columns[:-1])
+    df_test['犯罪类别'] = y_test
+    df_test = preprocess_data(df_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = df_train.shape[1] - 1  # Exclude the target column
+    hidden_size = 128
+    num_classes = df['犯罪类别'].nunique()
+    model = FNN(input_size, hidden_size, num_classes)
+
+    # Step 5. Train the retrieved/loaded model using the defined "train_model" function
+    # Compile model
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Create DataLoader
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(df_train.drop('犯罪类别', axis=1).values, dtype=torch.float32), torch.tensor(df_train['犯罪类别'].values, dtype=torch.long))
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
+
+    model = train_model(model, train_loader, criterion, optimizer, num_epochs=50)
+
+    # Step 6. Evaluate the trained model using the defined "evaluate_model" function
+    test_dataset = torch.utils.data.TensorDataset(torch.tensor(df_test.drop('犯罪类别', axis=1).values, dtype=torch.float32), torch.tensor(df_test['犯罪类别'].values, dtype=torch.long))
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=64, shuffle=False)
+
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 155, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 113, in main
+    X = df.drop('犯罪类别', axis=1).values
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['犯罪类别'] not found in axis"

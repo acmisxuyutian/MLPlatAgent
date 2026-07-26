@@ -1,0 +1,566 @@
+import pandas as pd
+
+# Load the train and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Convert the values in the 'Diet' column
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     Patient ID  Age     Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day         Country      Continent           Hemisphere  Heart Attack Risk
+ 0       RCA7696   84    Male          217          75         1               1        1        1                    1                17.107142     2                        0               1            10                 1.737428  153618  35.185856            544                                3                    6        Colombia  South America  Northern Hemisphere                  0
+ 1       RRP0438   88    Male          209         104         1               0        1        0                    1                 2.851698     3                        1               0             1                11.876890  124693  30.991599            649                                2                    4           Japan           Asia  Northern Hemisphere                  1
+ ...         ...  ...     ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...             ...            ...                  ...                ...
+ 7008    CKR7663   85  Female          285          54         1               1        1        1                    1                11.070968     3                        0               0             2                 8.001822  138980  25.499506            552                                1                   10         Nigeria         Africa  Northern Hemisphere                  0
+ 7009    ONB1019   89    Male          240          53         1               1        1        0                    0                 6.651998     1                        0               0             4                 6.183405  120005  35.195328            619                                0                    7  United Kingdom         Europe  Northern Hemisphere                  0
+ 
+ [7010 rows x 25 columns],
+      Patient ID  Age   Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day    Country      Continent           Hemisphere  Heart Attack Risk
+ 0       BPY8954   65  Male          340          75         0               0        1        1                    1                 9.870784     1                        1               1             7                 5.567363  216664  35.561283            315                                0                    4  Argentina  South America  Southern Hemisphere                  0
+ 1       TBS9300   77  Male          361          46         1               0        1        0                    0                 2.763339     1                        0               0             5                 9.964626  221778  26.638707            471                                3                    6   Thailand           Asia  Northern Hemisphere                  1
+ ...         ...  ...   ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...        ...            ...                  ...                ...
+ 1751    DJW0544   56  Male          196          85         1               1        1        1                    1                 7.220243     3                        1               0             2                 0.735033   75945  24.850645            173                                2                    9  Australia      Australia  Southern Hemisphere                  0
+ 1752    YCD6797   34  Male          337          77         1               0        1        0                    0                 2.798784     3                        1               0             3                 4.616085   44594  33.214358            716                                1                    4      Italy         Europe  Southern Hemisphere                  0
+ 
+ [1753 rows x 25 columns])from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 12
+    rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'RCA7696'
+
+from sklearn.ensemble import RandomForestClassifier
+
+# Drop the 'Patient ID' column as it contains non-numeric values
+feature_columns = [col for col in train_df.columns if col not in ['Heart Attack Risk', 'Patient ID']]
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 11
+    rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Male'
+
+from sklearn.ensemble import RandomForestClassifier
+
+# Convert the 'Sex' column to numeric values
+train_df['Sex'] = train_df['Sex'].map({'Male': 1, 'Female': 0})
+
+# Drop the 'Patient ID' column as it contains non-numeric values
+feature_columns = [col for col in train_df.columns if col not in ['Heart Attack Risk', 'Patient ID']]
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 14
+    rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Colombia'
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# Convert the 'Sex' column to numeric values
+train_df['Sex'] = train_df['Sex'].map({'Male': 1, 'Female': 0})
+
+# One-hot encode the 'Country' column
+encoder = OneHotEncoder()
+country_encoded = encoder.fit_transform(train_df[['Country']]).toarray()
+country_encoded_df = pd.DataFrame(country_encoded, columns=encoder.get_feature_names_out(['Country']))
+
+# Concatenate the original DataFrame with the one-hot encoded DataFrame
+train_df = pd.concat([train_df, country_encoded_df], axis=1)
+
+# Drop the 'Patient ID' and 'Country' columns as they contain non-numeric values
+feature_columns = [col for col in train_df.columns if col not in ['Heart Attack Risk', 'Patient ID', 'Country']]
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 24
+    rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'South America'
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# Convert the 'Diet' column to numeric values
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+# One-hot encode the non-numeric columns
+non_numeric_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+# Create DataFrames for the one-hot encoded columns
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(non_numeric_columns))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(non_numeric_columns))
+
+# Concatenate the original DataFrames with the one-hot encoded DataFrames
+train_df = pd.concat([train_df.drop(columns=non_numeric_columns), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=non_numeric_columns), encoded_test_df], axis=1)
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 13
+    encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_encoders.py:1043 in transform
+    X_int, X_mask = self._transform(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_encoders.py:218 in _transform
+    raise ValueError(msg)
+
+ValueError: Found unknown categories ['Male', 'Female'] in column 0 during transform
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# Convert the 'Diet' column to numeric values
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+# One-hot encode the non-numeric columns
+non_numeric_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+encoder = OneHotEncoder(handle_unknown='ignore')
+encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+# Create DataFrames for the one-hot encoded columns
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(non_numeric_columns))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(non_numeric_columns))
+
+# Concatenate the original DataFrames with the one-hot encoded DataFrames
+train_df = pd.concat([train_df.drop(columns=non_numeric_columns), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=non_numeric_columns), encoded_test_df], axis=1)
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 31
+    rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'RCA7696'
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# Convert the 'Diet' column to numeric values
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+# One-hot encode the non-numeric columns
+non_numeric_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+encoder = OneHotEncoder(handle_unknown='ignore')
+encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+# Create DataFrames for the one-hot encoded columns
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(non_numeric_columns))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(non_numeric_columns))
+
+# Concatenate the original DataFrames with the one-hot encoded DataFrames
+train_df = pd.concat([train_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_test_df], axis=1)
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 12
+    encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4108 in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6249 in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+KeyError: "None of [Index(['Sex', 'Country', 'Continent', 'Hemisphere'], dtype='object')] are in the [columns]"
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# Ensure the non-numeric columns are present
+non_numeric_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+
+# Convert the 'Diet' column to numeric values
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+# One-hot encode the non-numeric columns
+encoder = OneHotEncoder(handle_unknown='ignore')
+encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+# Create DataFrames for the one-hot encoded columns
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(non_numeric_columns))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(non_numeric_columns))
+
+# Concatenate the original DataFrames with the one-hot encoded DataFrames
+train_df = pd.concat([train_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_test_df], axis=1)
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 14
+    encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4108 in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6249 in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+KeyError: "None of [Index(['Sex', 'Country', 'Continent', 'Hemisphere'], dtype='object')] are in the [columns]"
+
+import pandas as pd
+
+# Load the train and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Convert the values in the 'Diet' column
+train_df['Diet'] = train_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+test_df['Diet'] = test_df['Diet'].map({'Healthy': 1, 'Average': 2, 'Unhealthy': 3})
+
+# Check the column names in the train_df DataFrame
+train_columns = train_df.columns.tolist()
+
+# Ensure that the required columns are present
+required_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+missing_columns = [col for col in required_columns if col not in train_columns]
+
+train_columns, missing_columns
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(['Patient ID', 'Age', 'Sex', 'Cholesterol', 'Heart Rate', 'Diabetes', 'Family History', 'Smoking', 'Obesity', 'Alcohol Consumption', 'Exercise Hours Per Week', 'Diet', 'Previous Heart Problems', 'Medication Use', 'Stress Level', 'Sedentary Hours Per Day', 'Income', 'BMI', 'Triglycerides', 'Physical Activity Days Per Week', 'Sleep Hours Per Day', 'Country', 'Continent', 'Hemisphere', 'Heart Attack Risk'], [])from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+
+# One-hot encode the non-numeric columns
+non_numeric_columns = ['Sex', 'Country', 'Continent', 'Hemisphere']
+encoder = OneHotEncoder(handle_unknown='ignore')
+encoded_train = encoder.fit_transform(train_df[non_numeric_columns]).toarray()
+encoded_test = encoder.transform(test_df[non_numeric_columns]).toarray()
+
+# Create DataFrames for the one-hot encoded columns
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(non_numeric_columns))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(non_numeric_columns))
+
+# Concatenate the original DataFrames with the one-hot encoded DataFrames
+train_df = pd.concat([train_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=non_numeric_columns + ['Patient ID']), encoded_test_df], axis=1)
+
+# Define the feature columns and target column
+feature_columns = [col for col in train_df.columns if col != 'Heart Attack Risk']
+target_column = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[feature_columns], train_df[target_column])
+
+rf_model, feature_columns, target_column
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ ['Age',
+  'Cholesterol',
+  'Heart Rate',
+  'Diabetes',
+  'Family History',
+  'Smoking',
+  'Obesity',
+  'Alcohol Consumption',
+  'Exercise Hours Per Week',
+  'Diet',
+  'Previous Heart Problems',
+  'Medication Use',
+  'Stress Level',
+  'Sedentary Hours Per Day',
+  'Income',
+  'BMI',
+  'Triglycerides',
+  'Physical Activity Days Per Week',
+  'Sleep Hours Per Day',
+  'Sex_Female',
+  'Sex_Male',
+  'Country_Argentina',
+  'Country_Australia',
+  'Country_Brazil',
+  'Country_Canada',
+  'Country_China',
+  'Country_Colombia',
+  'Country_France',
+  'Country_Germany',
+  'Country_India',
+  'Country_Italy',
+  'Country_Japan',
+  'Country_New Zealand',
+  'Country_Nigeria',
+  'Country_South Africa',
+  'Country_South Korea',
+  'Country_Spain',
+  'Country_Thailand',
+  'Country_United Kingdom',
+  'Country_United States',
+  'Country_Vietnam',
+  'Continent_Africa',
+  'Continent_Asia',
+  'Continent_Australia',
+  'Continent_Europe',
+  'Continent_North America',
+  'Continent_South America',
+  'Hemisphere_Northern Hemisphere',
+  'Hemisphere_Southern Hemisphere'],
+ 'Heart Attack Risk')from sklearn.metrics import roc_auc_score
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df[feature_columns])[:, 1]
+
+# Evaluate the performance of the model on the test set
+roc_auc = roc_auc_score(test_df[target_column], y_pred_proba)
+
+(roc_auc,)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.506063694267516,)

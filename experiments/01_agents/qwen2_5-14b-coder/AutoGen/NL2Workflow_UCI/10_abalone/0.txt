@@ -1,0 +1,56 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import os
+
+# 1. 导入必要的库
+# 已在上面导入
+
+# 2. 加载数据
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 3. 数据预处理
+# 检查缺失值
+print(train_df.isnull().sum())
+
+# 将分类变量 'Sex' 转换为数值变量
+train_df['Sex'] = train_df['Sex'].map({'M': 0, 'F': 1, 'I': 2})
+
+# 分离特征和目标变量
+X = train_df.drop('Rings', axis=1)
+y = train_df['Rings']
+
+# 4. 数据分割
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 5. 模型训练
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 6. 模型评估
+y_pred = model.predict(X_test)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+print(f'RMSE on test set: {rmse}')
+
+# 7. 输出结果
+# 已在上面输出
+
+
+执行结果：
+id                0
+Sex               0
+Length            0
+Diameter          0
+Height            0
+Whole weight      0
+Whole weight.1    0
+Whole weight.2    0
+Shell weight      0
+Rings             0
+dtype: int64
+RMSE on test set: 1.8859564998808216

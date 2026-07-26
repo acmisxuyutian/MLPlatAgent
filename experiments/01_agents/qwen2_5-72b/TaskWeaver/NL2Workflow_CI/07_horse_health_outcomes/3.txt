@@ -1,0 +1,152 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv')
+
+# Separate features and target
+X_train = train_data.drop(columns=['outcome'])
+y_train = train_data['outcome']
+X_test = test_data.drop(columns=['outcome'])
+y_test = test_data['outcome']
+
+# Define preprocessing for numeric and categorical data
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object']).columns
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.32283607,  1.0515338 ,  0.15511922, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32216068,  0.40546431, -0.46229631, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31753625, -1.14510249, -0.25649114, ...,  0.        ,
+          0.        ,  1.        ],
+        ...,
+        [-0.32155825,  0.27625041, -0.94250839, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32221196, -2.69566928, -1.01111012, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.318372  , -0.24060519,  0.84113647, ...,  0.        ,
+          0.        ,  1.        ]]),
+ 0       died
+ 1      lived
+        ...  
+ 984     died
+ 985    lived
+ Name: outcome, Length: 986, dtype: object,
+ array([[-0.3172921 ,  1.5683894 ,  0.22372094, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31754636, -0.88667469,  1.11554338, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32156836,  0.40546431, -0.25649114, ...,  0.        ,
+          0.        ,  1.        ],
+        ...,
+        [-0.32143762,  0.40546431, -1.28551702, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32143762,  3.37738399,  0.97833992, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31744957, -0.49903299, -0.05068596, ...,  1.        ,
+          0.        ,  0.        ]]),
+ 0      euthanized
+ 1      euthanized
+           ...    
+ 245          died
+ 246    euthanized
+ Name: outcome, Length: 247, dtype: object)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+
+# Train the model
+model = RandomForestClassifier()
+model.fit(X_train_preprocessed, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test_preprocessed)
+
+# Calculate the F1 score
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+# Save the prediction results
+predictions = pd.DataFrame({'actual': y_test, 'predicted': y_pred})
+predictions.to_csv('predictions.csv', index=False)
+
+model, y_pred, predictions, f1
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(),
+ array(['euthanized', 'lived', 'died', 'lived', 'lived', 'died', 'died',
+        'lived', 'euthanized', 'lived', 'lived', 'died', 'lived', 'died',
+        'euthanized', 'euthanized', 'lived', 'lived', 'died', 'died',
+        'euthanized', 'euthanized', 'died', 'lived', 'died', 'euthanized',
+        'died', 'lived', 'euthanized', 'euthanized', 'euthanized', 'died',
+        'died', 'euthanized', 'died', 'died', 'lived', 'died', 'died',
+        'lived', 'lived', 'died', 'lived', 'died', 'euthanized', 'lived',
+        'lived', 'died', 'lived', 'euthanized', 'lived', 'lived', 'lived',
+        'died', 'lived', 'lived', 'lived', 'lived', 'died', 'lived',
+        'lived', 'lived', 'died', 'lived', 'lived', 'lived', 'lived',
+        'euthanized', 'died', 'died', 'died', 'lived', 'euthanized',
+        'lived', 'died', 'euthanized', 'lived', 'lived', 'lived', 'died',
+        'lived', 'lived', 'lived', 'euthanized', 'died', 'euthanized',
+        'died', 'died', 'lived', 'died', 'lived', 'died', 'lived', 'died',
+        'euthanized', 'died', 'lived', 'lived', 'euthanized', 'euthanized',
+        'died', 'died', 'euthanized', 'died', 'lived', 'euthanized',
+        'died', 'died', 'lived', 'died', 'died', 'euthanized',
+        'euthanized', 'died', 'euthanized', 'lived', 'lived', 'euthanized',
+        'died', 'euthanized', 'lived', 'died', 'died', 'euthanized',
+        'lived', 'died', 'lived', 'lived', 'lived', 'lived', 'euthanized',
+        'euthanized', 'lived', 'died', 'lived', 'lived', 'lived', 'lived',
+        'lived', 'died', 'lived', 'lived', 'died', 'lived', 'lived',
+        'died', 'euthanized', 'lived', 'euthanized', 'died', 'lived',
+        'died', 'lived', 'euthanized', 'lived', 'lived', 'lived', 'died',
+        'euthanized', 'died', 'died', 'died', 'lived', 'lived', 'lived',
+        'died', 'euthanized', 'lived', 'euthanized', 'lived', 'lived',
+        'lived', 'euthanized', 'lived', 'euthanized', 'lived', 'died',
+        'died', 'lived', 'died', 'lived', 'died', 'lived', 'lived', 'died',
+        'lived', 'died', 'euthanized', 'lived', 'died', 'euthanized',
+        'euthanized', 'died', 'lived', 'died', 'died', 'lived', 'lived',
+        'lived', 'died', 'lived', 'lived', 'lived', 'lived', 'lived',
+        'euthanized', 'lived', 'lived', 'euthanized', 'died', 'died',
+        'lived', 'lived', 'lived', 'lived', 'died', 'lived', 'euthanized',
+        'lived', 'died', 'died', 'euthanized', 'euthanized', 'lived',
+        'lived', 'lived', 'lived', 'lived', 'lived', 'died', 'euthanized',
+        'died', 'lived', 'lived', 'died', 'lived', 'lived', 'lived',
+        'died', 'lived', 'lived', 'lived', 'died', 'died', 'lived', 'died',
+        'euthanized'], dtype=object),
+          actual   predicted
+ 0    euthanized  euthanized
+ 1    euthanized       lived
+ ..          ...         ...
+ 245        died        died
+ 246  euthanized  euthanized
+ 
+ [247 rows x 2 columns],
+ 0.652117454099554)

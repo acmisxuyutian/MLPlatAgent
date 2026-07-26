@@ -1,0 +1,194 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_selection import SelectFromModel
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_log_error, mean_absolute_error, r2_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Loading and Initial Analysis
+def load_and_analyze_data(dataset_path):
+    df = pd.read_csv(dataset_path)
+
+    # Generate summary statistics
+    summary_stats = df.describe()
+    print("Summary Statistics:\n", summary_stats)
+
+    # Identify missing values
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+
+    # Determine feature types
+    feature_types = df.dtypes
+    print("Feature Types:\n", feature_types)
+
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    df.fillna(df.mean(), inplace=True)
+    df.fillna(df.mode().iloc[0], inplace=True)
+
+    # Remove features with high missing values
+    df.dropna(thresh=len(df) * 0.5, axis=1, inplace=True)
+
+    # Encode categorical variables
+    categorical_features = df.select_dtypes(include=['object']).columns
+    for feature in categorical_features:
+        label_encoder = LabelEncoder()
+        df[feature] = label_encoder.fit_transform(df[feature])
+
+    # One-hot encoding for categorical variables
+    df = pd.get_dummies(df, drop_first=True)
+
+    # Scale numerical features
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    return df, scaler
+
+# Data Augmentation
+def augment_data(X, y):
+    # Generate synthetic data using SMOTE
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    # Perturb numerical features
+    noise = np.random.normal(0, 0.1, X_resampled.shape)
+    X_resampled += noise
+
+    return X_resampled, y_resampled
+
+# Feature Importance Analysis
+def feature_importance_analysis(X, y):
+    # Train a simple Random Forest model
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    feature_importances = pd.Series(rf.feature_importances_, index=X.columns)
+    print("Feature Importances:\n", feature_importances)
+
+    # Select top features
+    selector = SelectFromModel(rf, prefit=True)
+    X_selected = selector.transform(X)
+
+    return X_selected, selector
+
+# Model Training and Optimization
+def train_model(X, y):
+    # Define hyperparameters for XGBoost
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 6, 9],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 0.9, 1.0]
+    }
+
+    xgb = XGBRegressor(random_state=42)
+    grid_search = GridSearchCV(xgb, param_grid, cv=5, scoring='neg_mean_squared_log_error', n_jobs=-1)
+    grid_search.fit(X, y)
+
+    # Evaluate the best model
+    best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+    print(f"Best Parameters: {best_params}")
+
+    return best_model, best_params
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    rmlse = np.sqrt(mean_squared_log_error(y_test, y_pred))
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    performance_scores = {
+        'RMLSE': rmlse,
+        'MAE': mae,
+        'R2': r2
+    }
+
+    print("Model Performance on Test Set:")
+    print(f"RMLSE: {rmlse}")
+    print(f"MAE: {mae}")
+    print(f"R2: {r2}")
+
+    return performance_scores
+
+# Model Saving and Deployment
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    df = load_and_analyze_data(dataset_path)
+
+    # Ensure the target variable is present
+    target_variable = 'media_campaign_cost'
+    if target_variable not in df.columns:
+        raise ValueError(f"The target variable '{target_variable}' is not found in the dataset.")
+
+    # Split the data into features and target
+    X = df.drop(columns=[target_variable])
+    y = df[target_variable]
+
+    # Preprocess the data
+    X, scaler = preprocess_data(X)
+
+    # Split the data into train, validation, and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42)
+
+    # Augment the training data
+    X_train_resampled, y_train_resampled = augment_data(X_train, y_train)
+
+    # Feature importance analysis
+    X_train_selected, selector = feature_importance_analysis(X_train_resampled, y_train_resampled)
+
+    # Train the model
+    best_model, best_params = train_model(X_train_selected, y_train_resampled)
+
+    # Evaluate the model
+    X_test_selected = selector.transform(X_test)
+    model_performance = evaluate_model(best_model, X_test_selected, y_test)
+
+    # Save the best model
+    model_path = r'./agent_workspace/trained_models/xgboost_media_campaign_cost_model.pkl'
+    save_model(best_model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 181, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in main
+    raise ValueError(f"The target variable '{target_variable}' is not found in the dataset.")
+ValueError: The target variable 'media_campaign_cost' is not found in the dataset.

@@ -1,0 +1,581 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_train.csv')
+
+# 读取评估数据
+eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_eval.csv')
+
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(eval_data.isnull().sum())
+
+# 处理缺失值（这里假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+eval_data.fillna(eval_data.mean(), inplace=True)
+
+# 检查数据类型
+print(train_data.dtypes)
+print(eval_data.dtypes)
+
+# 如果有需要，可以进行数据类型转换
+# 例如，将某些列转换为类别类型
+# train_data['column_name'] = train_data['column_name'].astype('category')
+# eval_data['column_name'] = eval_data['column_name'].astype('category')
+
+# 创建新的特征或转换现有特征
+# 例如，创建一个新特征表示某些列的和
+# train_data['new_feature'] = train_data['feature1'] + train_data['feature2']
+# eval_data['new_feature'] = eval_data['feature1'] + eval_data['feature2']
+
+# 标准化或归一化特征
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+train_features = scaler.fit_transform(train_data.drop('Class', axis=1))
+eval_features = scaler.transform(eval_data.drop('Class', axis=1))
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# 分割训练数据为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(train_features, train_data['Class'], test_size=0.2, random_state=42)
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import f1_score
+
+# 预测评估数据
+y_pred = model.predict(eval_features)
+
+# 计算 F1 Score
+f1 = f1_score(eval_data['Class'], y_pred)
+
+print(f"F1 Score: {f1}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b8929d5db3f6bbac58885cbd09c221079389246918eb04ee1db116ed3800ed42.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_train.csv')
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径。")
+    exit(1)
+
+# 读取评估数据
+try:
+    eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_eval.csv')
+except FileNotFoundError:
+    print("评估数据文件未找到，请检查文件路径。")
+    exit(1)
+
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+
+执行结果：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 493 entries, 0 to 492
+Data columns (total 58 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   Id      493 non-null    object 
+ 1   AB      493 non-null    float64
+ 2   AF      493 non-null    float64
+ 3   AH      493 non-null    float64
+ 4   AM      493 non-null    float64
+ 5   AR      493 non-null    float64
+ 6   AX      493 non-null    float64
+ 7   AY      493 non-null    float64
+ 8   AZ      493 non-null    float64
+ 9   BC      493 non-null    float64
+ 10  BD      493 non-null    float64
+ 11  BN      493 non-null    float64
+ 12  BP      493 non-null    float64
+ 13  BQ      451 non-null    float64
+ 14  BR      493 non-null    float64
+ 15  BZ      493 non-null    float64
+ 16  CB      492 non-null    float64
+ 17  CC      492 non-null    float64
+ 18  CD      493 non-null    float64
+ 19  CF      493 non-null    float64
+ 20  CH      493 non-null    float64
+ 21  CL      493 non-null    float64
+ 22  CR      493 non-null    float64
+ 23  CS      493 non-null    float64
+ 24  CU      493 non-null    float64
+ 25  CW      493 non-null    float64
+ 26  DA      493 non-null    float64
+ 27  DE      493 non-null    float64
+ 28  DF      493 non-null    float64
+ 29  DH      493 non-null    float64
+ 30  DI      493 non-null    float64
+ 31  DL      493 non-null    float64
+ 32  DN      493 non-null    float64
+ 33  DU      492 non-null    float64
+ 34  DV      493 non-null    float64
+ 35  DY      493 non-null    float64
+ 36  EB      493 non-null    float64
+ 37  EE      493 non-null    float64
+ 38  EG      493 non-null    float64
+ 39  EH      493 non-null    float64
+ 40  EJ      493 non-null    object 
+ 41  EL      452 non-null    float64
+ 42  EP      493 non-null    float64
+ 43  EU      493 non-null    float64
+ 44  FC      493 non-null    float64
+ 45  FD      493 non-null    float64
+ 46  FE      493 non-null    float64
+ 47  FI      493 non-null    float64
+ 48  FL      492 non-null    float64
+ 49  FR      493 non-null    float64
+ 50  FS      492 non-null    float64
+ 51  GB      493 non-null    float64
+ 52  GE      493 non-null    float64
+ 53  GF      493 non-null    float64
+ 54  GH      493 non-null    float64
+ 55  GI      493 non-null    float64
+ 56  GL      492 non-null    float64
+ 57  Class   493 non-null    int64  
+dtypes: float64(55), int64(1), object(2)
+memory usage: 223.5+ KB
+None
+               AB            AF  ...          GL       Class
+count  493.000000    493.000000  ...  492.000000  493.000000
+mean     0.463907   3435.691598  ...    8.462133    0.168357
+std      0.392068   2221.571963  ...   10.300585    0.374563
+min      0.085460    192.593280  ...    0.001129    0.000000
+25%      0.252107   2174.834640  ...    0.121985    0.000000
+50%      0.354659   3045.933000  ...    0.334433    0.000000
+75%      0.542671   4268.308880  ...   21.978000    0.000000
+max      4.277273  28688.187660  ...   21.978000    1.000000
+
+[8 rows x 56 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 124 entries, 0 to 123
+Data columns (total 58 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   Id      124 non-null    object 
+ 1   AB      124 non-null    float64
+ 2   AF      124 non-null    float64
+ 3   AH      124 non-null    float64
+ 4   AM      124 non-null    float64
+ 5   AR      124 non-null    float64
+ 6   AX      124 non-null    float64
+ 7   AY      124 non-null    float64
+ 8   AZ      124 non-null    float64
+ 9   BC      124 non-null    float64
+ 10  BD      124 non-null    float64
+ 11  BN      124 non-null    float64
+ 12  BP      124 non-null    float64
+ 13  BQ      106 non-null    float64
+ 14  BR      124 non-null    float64
+ 15  BZ      124 non-null    float64
+ 16  CB      123 non-null    float64
+ 17  CC      122 non-null    float64
+ 18  CD      124 non-null    float64
+ 19  CF      124 non-null    float64
+ 20  CH      124 non-null    float64
+ 21  CL      124 non-null    float64
+ 22  CR      124 non-null    float64
+ 23  CS      124 non-null    float64
+ 24  CU      124 non-null    float64
+ 25  CW      124 non-null    float64
+ 26  DA      124 non-null    float64
+ 27  DE      124 non-null    float64
+ 28  DF      124 non-null    float64
+ 29  DH      124 non-null    float64
+ 30  DI      124 non-null    float64
+ 31  DL      124 non-null    float64
+ 32  DN      124 non-null    float64
+ 33  DU      124 non-null    float64
+ 34  DV      124 non-null    float64
+ 35  DY      124 non-null    float64
+ 36  EB      124 non-null    float64
+ 37  EE      124 non-null    float64
+ 38  EG      124 non-null    float64
+ 39  EH      124 non-null    float64
+ 40  EJ      124 non-null    object 
+ 41  EL      105 non-null    float64
+ 42  EP      124 non-null    float64
+ 43  EU      124 non-null    float64
+ 44  FC      123 non-null    float64
+ 45  FD      124 non-null    float64
+ 46  FE      124 non-null    float64
+ 47  FI      124 non-null    float64
+ 48  FL      124 non-null    float64
+ 49  FR      124 non-null    float64
+ 50  FS      123 non-null    float64
+ 51  GB      124 non-null    float64
+ 52  GE      124 non-null    float64
+ 53  GF      124 non-null    float64
+ 54  GH      124 non-null    float64
+ 55  GI      124 non-null    float64
+ 56  GL      124 non-null    float64
+ 57  Class   124 non-null    int64  
+dtypes: float64(55), int64(1), object(2)
+memory usage: 56.3+ KB
+None
+               AB            AF  ...          GL       Class
+count  124.000000    124.000000  ...  124.000000  124.000000
+mean     0.529800   3765.695157  ...    8.804053    0.201613
+std      0.693076   2582.865047  ...   10.468809    0.402832
+min      0.081187    192.593280  ...    0.015231    0.000000
+25%      0.252107   2432.459067  ...    0.133465    0.000000
+50%      0.350386   3462.545075  ...    0.366920    0.000000
+75%      0.591811   4545.875620  ...   21.978000    0.000000
+max      6.161666  18964.472780  ...   21.978000    1.000000
+
+[8 rows x 56 columns]
+
+生成的代码：
+# 处理缺失值（这里假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+eval_data.fillna(eval_data.mean(), inplace=True)
+
+# 检查数据类型
+print(train_data.dtypes)
+print(eval_data.dtypes)
+
+# 如果有需要，可以进行数据类型转换
+# 例如，将某些列转换为类别类型
+# train_data['column_name'] = train_data['column_name'].astype('category')
+# eval_data['column_name'] = eval_data['column_name'].astype('category')
+
+# 创建新的特征或转换现有特征
+# 例如，创建一个新特征表示某些列的和
+# train_data['new_feature'] = train_data['feature1'] + train_data['feature2']
+# eval_data['new_feature'] = eval_data['feature1'] + eval_data['feature2']
+
+# 标准化或归一化特征
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+train_features = scaler.fit_transform(train_data.drop('Class', axis=1))
+eval_features = scaler.transform(eval_data.drop('Class', axis=1))
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# 分割训练数据为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(train_features, train_data['Class'], test_size=0.2, random_state=42)
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import f1_score
+
+# 预测评估数据
+y_pred = model.predict(eval_features)
+
+# 计算 F1 Score
+f1 = f1_score(eval_data['Class'], y_pred)
+
+print(f"F1 Score: {f1}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_72d20458c24547f5855278f59c2b9229be4fc9246b79aca52f59f2faa24122d2.py", line 2, in <module>
+    train_data.fillna(train_data.mean(), inplace=True)
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_train.csv')
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径。")
+    exit(1)
+
+# 读取评估数据
+try:
+    eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/07_icr_identify/split_eval.csv')
+except FileNotFoundError:
+    print("评估数据文件未找到，请检查文件路径。")
+    exit(1)
+
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+# 处理缺失值（这里假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+eval_data.fillna(eval_data.mean(), inplace=True)
+
+# 检查数据类型
+print(train_data.dtypes)
+print(eval_data.dtypes)
+
+# 如果有需要，可以进行数据类型转换
+# 例如，将某些列转换为类别类型
+# train_data['column_name'] = train_data['column_name'].astype('category')
+# eval_data['column_name'] = eval_data['column_name'].astype('category')
+
+# 创建新的特征或转换现有特征
+# 例如，创建一个新特征表示某些列的和
+# train_data['new_feature'] = train_data['feature1'] + train_data['feature2']
+# eval_data['new_feature'] = eval_data['feature1'] + eval_data['feature2']
+
+# 标准化或归一化特征
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+train_features = scaler.fit_transform(train_data.drop('Class', axis=1))
+eval_features = scaler.transform(eval_data.drop('Class', axis=1))
+
+# 分割训练数据为训练集和验证集
+from sklearn.model_selection import train_test_split
+
+X_train, X_val, y_train, y_val = train_test_split(train_features, train_data['Class'], test_size=0.2, random_state=42)
+
+# 初始化模型
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测评估数据
+y_pred = model.predict(eval_features)
+
+# 计算 F1 Score
+from sklearn.metrics import f1_score
+
+f1 = f1_score(eval_data['Class'], y_pred)
+
+print(f"F1 Score: {f1}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_fb41fdd4faca86443fdec2d6da5a5aee7bed6e13d023e157f289aa3109ef0ec2.py", line 30, in <module>
+    train_data.fillna(train_data.mean(), inplace=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12420, in mean
+    return self._stat_function(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12377, in _stat_function
+    return self._reduce(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\blocks.py", line 404, in reduce
+    result = func(self.values)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 720, in nanmean
+    the_sum = _ensure_numeric(the_sum)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 1686, in _ensure_numeric
+    raise TypeError(f"Could not convert {x} to numeric")
+TypeError: Could not convert ['434b3925094e80ee5615ebdf65de682cc48c043ac50845d589a5ed9b71a88b7131974251e52a2f7ad6a5dc9b175cbf1e9e725e00b34847e4c756d4a6efcba7fac3538093b3b92b287feabcc65b6bfe1942975e40deaf77f02382a46b439e1eace18129dade8f8ead0a51d11cd061b54c66504ff6c37484ee97b6c7088bc60c3a256bcec7f8eb43047d6967ba3c5d8bafba0c42e12f1f0e1f6a8eebab319f7e21002146a2c24d262448c64ab517c980841417ca533f367f9652ffe2ef2a51ed650db07bc343e3f955c0ed889504517a3c90bd4d4e63393080128cc82dc5d62cddd2d70d7282c5014b0d57f26ee0cee8417dd96a41647c152979207440fbd12c4ae88b9c8d738c027298944bb311a43f4bfe72745d94f28a9c879b8bb44f5c60a44401d248558020731b639de91073082e7823049232ca8356431c73b16f33157861ebc9818b77f91fde3edf956c3797768f411ab61450273efaff6f8a7c2df9f2fbe28408bf4d3d2fc38cbd7f61dd13c79963c34c815cc64eb1cc5c03d177da66aee064d35f72658e0b2992bb29cba3a7b8dc619aac34f42358e74efe7aa530202b353d8ada1a5aec1818c6c3a77ec885cc42ed28ac3f2449608e49a9caff00fb82e2d5463b93905d4d54e3a957e659eb23495fa717d49f84524b13ac854b5fe74c92a971cf91b1080294e1f2948043d082102d7ba928287dd44d3320d240e70889ea60138e22648bf9963bbe922b2cdb1136a2966ed2245a3f44cfc0007255e4769872ee3bca17f655122c3c02a08e35c594376091004fe0a0fd124eefa2ae00c257045122311337ba12ff02da68b4918818d75aafac1e8692b3778f624fe253dc2f97c00cf6c827b8bb670b295eaa0f407436e7ec520cdf781c81b926c79809c5ea7a705feced42b002a6adb6bee0bf5a4a77d2ab39fd701211fb786fb02a6568c35486588c52acfa7cc2fc333bff49443748485c8c1ef76002d5f39711284efb30deccd10976c44b2b057287f2da6dac38de805effad8e95777bf2da6c7e4e124d1900828cbfc45ee622a3e3be5ce5f23fff0d0b2cc0b0e6c559bf633c10185e27b0147126b301f38c110cc214d487e2dbfd3dafe738fd47d8bacb43bb7c02caf1b94fbbb1066a9afd2c495dfbaacfd2960230a353aa6c6160804fc5f4346394b914a3f3cc04bd6c6db7987cd53a288ec2811f174ba5dc00b1e70b5934b571c5f4dc4ae7fb913a3374da32860833bfe7135d694ba9aa164572189340c498102929d2449c0f8307a7ece6aa6fa49abddd8bcfab8df984c5b2d3eace6ab2d09883de10187958312d0e17c8abe9b6355bdddccdbdd2dd462f90b5f9a7ea889307cf5439add02c6468478fce4c0f9257f237b4b231b1b0962cc49cbf1cac11ea50b3c5bd630ce8b2aeeead228524bde6a3cc9f47d899795c63c7b71282f7a862a414deffcca4ded3bb93205d43a401324d6f4b6b3736f2fbc0a81012d002d522301899e6e0d7d9c809ac237df867c8bfe99f1c571a56646e4784efa38972baaa8185fbee3351111505c6f2cf84868cd1ce3026974712cd1e3c4189f04bd7f01114e6db785a0d3c4c4141698cf1a1bdb5b51b3db693d00b37ba63e7f3eb9ac222f9c7f5064f42652d5d2874b0583f004b7190f39b25a5047a23e00086407736657d27cacf2bd8dae19a0df0e9417cc82b938266debd5234a904c19b5e22d02c11462079ce42176962b94ec197e84cafdd65e067165cc9f71bcf8be0dd3515028d716955c8adcd36eb9c2a59037315d85eea0e118b4dfe76ff4496fbcce4f0c006055f3f6785b9856a5d8f136204fd873dcdf1a68746ca6eccd8b4b583df0594b00fb30a1591cd66c34e5dc5360a3fc83bf81aff9bd68803ec4462c1b10f6f101138b874e25c20aa3fad66987cf97b8cda4bc33ec08f5a77f2678d7e1ef24fb88d0d4a6510bf34dc3190c6fb3a73fce816080da59360d72227bfa971821f7392d21fc1039b6aeb66b22ac60e0e7b6ca110b874d01acd913b30965ae1c5c8ffd0c908c5cc9b3fa0b98006877fc82a5d8a1a0fb0626860e7cbccadaf0802c15f0187f6d81bb2f7d0b72acaecddaf2c482fb8d7f405c0b5836f18dd7c934463b2aec42acb00ba4443b0170c800c6b3239c64feabef01f7a77ccceb44f4e8ba157c016ba9d19cb5327b5470d18ff77778c58bec30f78332a3850302f41216f6cee66e42344ea440c2f020a35ce2be999bb1c01d79b9e6e21b830cf81f032b88e778e1213d4627445f4eac4de0f5fba133cb779b44ed25c2968918798c769d7353855bf36312661adb2ffd1f14dbe348cfb27f6e58eaaf62ef7cc0a221a6d2336590f2fd659800f7551a5b926ab4d8065efe77fab948b3f28db472e637b444de72471b27e99fc211b95ea8f904e9059199e3d40ffdee110b813ef6c55286aecf1ac3d6dfca02d41dc2cc4b1056bf99b867416fea10b6b70926a82d4e17a5c4b008308381e08d38c928ba2487388f2e8dde9331551401ca61716e48e5a0d625d98aa54a308dbb44537a9a3ecde991587f97e45c1ffde2da7d97bcb9a31014b1a14973e1785d3d8c9d232f1b22ebf6851bb7f6d8841c04467122d4bce038b866016ac442e03488a03ca508bb5c5cf002dc8b3d2980b7429ed35535c61e882a215f462176aa5de57124cd364aa2e8b9d72eec14e1f829da7c6ed4671650635abfb7584f887fd7af31043202c38c9a1f2eacff16b095a433fd1a9f56adc4a7800130b914049b8f248a42fd482356ae08ff3f2071d245360474d8ff770ac2074c4eeb5457d8d386eb221d33a9fee447cb9a95a62fc7c21c57859d66c679dc637449025eee0ab7de4ba2e28e18428ade6fa7bc306554e7b9979d9d5fdfa030c8d7f231c9cb7386a027efe3649e14acf8ffb6ef1fe86ad00905a7dbaaf9a1e4b78cada73f944d35cb6c4e7bedc8fb9a59c43f9559e4c1e5e59a7f331a795db8ca3953e610a5ff8d1fd1dd68d51b4d7dbf59b37f9f0d7d98bfe211b31df9e897159bfbb4ad480c8a5264f74586487b5140ab2582ef2696f725f20ad0ec6303924089e4396e7a607afea3d3493c79c8f35f206becd4ffdf404680da866f46e39a96ee9f44978084805f82b07dfd7fb514d2ac4fdb5f003d68995be703c183d0c6caf1a304f3c89bf12446bf3940d1b855c763541e9e3cec7653b280978a05173468ffe1cb58f5b7d4621da075bd937ab85968491b9238fe8c119eb3e161c004f1d37be4652c8c5705cb6efe1e60280fd8ef6377f76b1143beb212d0fa0daef7ac088ceb24fa799acd97f3380e4975235e7d941948e868ba3951540bbf8825b61af8fde49eb8a3cb69b2242a20c68851e9bbbc27c1326a537342e4943f259bf79fac3fa58dcdd9d6e891919e4c3a7ccb90c555e8c3cd32f445d4d75094c0bd5ebe6aac8bafe74ef23ab7ab965d5c556791ceee9f03b541de10cadd78517b0036192b3e210ae7180e4b7d21a7530ec447c5d46fe2d3b9e7b3101fca6b74367d932a88814adb67a0dd6619f10f72ca154c86be787cb28d2910aee04cd9ee887ad93d5a5faa9a52bcbb1195f8f1afab06b043e7abe4bc8f3ea493a5a87a6061488667b389f278d9ed6b861e9f72901ef1394b97cc8702969841bcdc1af34582508534155a643365f867d3824dfe3da676953468141b7c910aaf6adb652103f611fdfc4459c432b15ae44e759955f6ec82e5a429e5bca4b0957e0c8535a9e672d189949a1749e2c528dd2afeb7934a025893d368d505de1fa59b4d611fab6c546b876fc893306c0ddf265c5000ff2bfdfe9bdd7b0f36488894a982c52c1c5e5456ccaa219bf6e929506fd895603f0710aa059dad7f30e705a0eddf6d35148a64ca969e627ec5d3ead9a26b8095748f422645d0e6a2fa75691894376800c31fd793d5c26bd0e8eefb589a7aa5fe47095520d7017fab7760746303591364017d9a3a45da49ce745fc98c4bfcbf52e5449013f2bd269f58353e46909487eb06d1c9234ab4bc55cb79e1360fac6a2273581cb92b427044fb8a146ec38325b0c36e5a22a1585397096ee4e851fbd21b3d18c034024b40510d6a2cd5d5458c163e9c343dc77367e4d70590a715c522f58308c6ed97ed5defed3ce7974230cee48d4f9dc811426f76716de8a3e1acd2ff21ce075e25399d1fa22631c9c'
+ 'BBABBABAABBBABBBBBBBAABBBBBABBBBABABABBBBBAABBAAAAABBBAABAABBBABAABBBBABBBBABBAABBAABABBBBABABBBAAABABBAAABBAABABBBBBABBBBBBBBBBBBBABBBBAABABBBBBBBBBBBABBAAABBAABBBBBBBBAAABBBBBBBAABABBAABBBBBBBBABBBBABBABBBBBAABBABBBBBABBBAAAABBABBBAABBBBBBABBABBABABBBABBAABBBABBBAABBBBBBBBBBBAABAAAABBABBBBBBBBBBBBBBAABABABBAABBBABBBBBBAAABBABAAABBBBABBBBBBBAAAAAABAAABBBAABBAAAAABBBABAAAABBBBAAAAABABBABBBBBBBABABBBAABBBBBBAAABBAAABBBBBBBABBABAABABBAABABBAABBAABBBBABBAAAABBBBBBBBAABBBAABABBABABBBBBBAAAABB'] to numeric
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 493 entries, 0 to 492
+Data columns (total 58 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   Id      493 non-null    object 
+ 1   AB      493 non-null    float64
+ 2   AF      493 non-null    float64
+ 3   AH      493 non-null    float64
+ 4   AM      493 non-null    float64
+ 5   AR      493 non-null    float64
+ 6   AX      493 non-null    float64
+ 7   AY      493 non-null    float64
+ 8   AZ      493 non-null    float64
+ 9   BC      493 non-null    float64
+ 10  BD      493 non-null    float64
+ 11  BN      493 non-null    float64
+ 12  BP      493 non-null    float64
+ 13  BQ      451 non-null    float64
+ 14  BR      493 non-null    float64
+ 15  BZ      493 non-null    float64
+ 16  CB      492 non-null    float64
+ 17  CC      492 non-null    float64
+ 18  CD      493 non-null    float64
+ 19  CF      493 non-null    float64
+ 20  CH      493 non-null    float64
+ 21  CL      493 non-null    float64
+ 22  CR      493 non-null    float64
+ 23  CS      493 non-null    float64
+ 24  CU      493 non-null    float64
+ 25  CW      493 non-null    float64
+ 26  DA      493 non-null    float64
+ 27  DE      493 non-null    float64
+ 28  DF      493 non-null    float64
+ 29  DH      493 non-null    float64
+ 30  DI      493 non-null    float64
+ 31  DL      493 non-null    float64
+ 32  DN      493 non-null    float64
+ 33  DU      492 non-null    float64
+ 34  DV      493 non-null    float64
+ 35  DY      493 non-null    float64
+ 36  EB      493 non-null    float64
+ 37  EE      493 non-null    float64
+ 38  EG      493 non-null    float64
+ 39  EH      493 non-null    float64
+ 40  EJ      493 non-null    object 
+ 41  EL      452 non-null    float64
+ 42  EP      493 non-null    float64
+ 43  EU      493 non-null    float64
+ 44  FC      493 non-null    float64
+ 45  FD      493 non-null    float64
+ 46  FE      493 non-null    float64
+ 47  FI      493 non-null    float64
+ 48  FL      492 non-null    float64
+ 49  FR      493 non-null    float64
+ 50  FS      492 non-null    float64
+ 51  GB      493 non-null    float64
+ 52  GE      493 non-null    float64
+ 53  GF      493 non-null    float64
+ 54  GH      493 non-null    float64
+ 55  GI      493 non-null    float64
+ 56  GL      492 non-null    float64
+ 57  Class   493 non-null    int64  
+dtypes: float64(55), int64(1), object(2)
+memory usage: 223.5+ KB
+None
+               AB            AF  ...          GL       Class
+count  493.000000    493.000000  ...  492.000000  493.000000
+mean     0.463907   3435.691598  ...    8.462133    0.168357
+std      0.392068   2221.571963  ...   10.300585    0.374563
+min      0.085460    192.593280  ...    0.001129    0.000000
+25%      0.252107   2174.834640  ...    0.121985    0.000000
+50%      0.354659   3045.933000  ...    0.334433    0.000000
+75%      0.542671   4268.308880  ...   21.978000    0.000000
+max      4.277273  28688.187660  ...   21.978000    1.000000
+
+[8 rows x 56 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 124 entries, 0 to 123
+Data columns (total 58 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   Id      124 non-null    object 
+ 1   AB      124 non-null    float64
+ 2   AF      124 non-null    float64
+ 3   AH      124 non-null    float64
+ 4   AM      124 non-null    float64
+ 5   AR      124 non-null    float64
+ 6   AX      124 non-null    float64
+ 7   AY      124 non-null    float64
+ 8   AZ      124 non-null    float64
+ 9   BC      124 non-null    float64
+ 10  BD      124 non-null    float64
+ 11  BN      124 non-null    float64
+ 12  BP      124 non-null    float64
+ 13  BQ      106 non-null    float64
+ 14  BR      124 non-null    float64
+ 15  BZ      124 non-null    float64
+ 16  CB      123 non-null    float64
+ 17  CC      122 non-null    float64
+ 18  CD      124 non-null    float64
+ 19  CF      124 non-null    float64
+ 20  CH      124 non-null    float64
+ 21  CL      124 non-null    float64
+ 22  CR      124 non-null    float64
+ 23  CS      124 non-null    float64
+ 24  CU      124 non-null    float64
+ 25  CW      124 non-null    float64
+ 26  DA      124 non-null    float64
+ 27  DE      124 non-null    float64
+ 28  DF      124 non-null    float64
+ 29  DH      124 non-null    float64
+ 30  DI      124 non-null    float64
+ 31  DL      124 non-null    float64
+ 32  DN      124 non-null    float64
+ 33  DU      124 non-null    float64
+ 34  DV      124 non-null    float64
+ 35  DY      124 non-null    float64
+ 36  EB      124 non-null    float64
+ 37  EE      124 non-null    float64
+ 38  EG      124 non-null    float64
+ 39  EH      124 non-null    float64
+ 40  EJ      124 non-null    object 
+ 41  EL      105 non-null    float64
+ 42  EP      124 non-null    float64
+ 43  EU      124 non-null    float64
+ 44  FC      123 non-null    float64
+ 45  FD      124 non-null    float64
+ 46  FE      124 non-null    float64
+ 47  FI      124 non-null    float64
+ 48  FL      124 non-null    float64
+ 49  FR      124 non-null    float64
+ 50  FS      123 non-null    float64
+ 51  GB      124 non-null    float64
+ 52  GE      124 non-null    float64
+ 53  GF      124 non-null    float64
+ 54  GH      124 non-null    float64
+ 55  GI      124 non-null    float64
+ 56  GL      124 non-null    float64
+ 57  Class   124 non-null    int64  
+dtypes: float64(55), int64(1), object(2)
+memory usage: 56.3+ KB
+None
+               AB            AF  ...          GL       Class
+count  124.000000    124.000000  ...  124.000000  124.000000
+mean     0.529800   3765.695157  ...    8.804053    0.201613
+std      0.693076   2582.865047  ...   10.468809    0.402832
+min      0.081187    192.593280  ...    0.015231    0.000000
+25%      0.252107   2432.459067  ...    0.133465    0.000000
+50%      0.350386   3462.545075  ...    0.366920    0.000000
+75%      0.591811   4545.875620  ...   21.978000    0.000000
+max      6.161666  18964.472780  ...   21.978000    1.000000
+
+[8 rows x 56 columns]

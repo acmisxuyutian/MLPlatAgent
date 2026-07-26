@@ -1,0 +1,424 @@
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# 查看数据的前几行
+print(train_df.head())
+print(test_df.head())
+
+# 定义映射字典
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+
+# 将 'Diet' 列转换为数值
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# 检查转换后的数据
+print(train_df.head())
+print(test_df.head())
+
+# 分离特征和目标变量
+X_train = train_df.drop('Heart Attack Risk', axis=1)
+y_train = train_df['Heart Attack Risk']
+
+# 初始化随机森林分类器
+rf_model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_model.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_df.drop('Heart Attack Risk', axis=1)
+y_test = test_df['Heart Attack Risk']
+
+# 进行预测
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 计算 ROC AUC 分数
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# 返回 ROC AUC 分数
+print(f"ROC AUC Score: {roc_auc}")
+
+
+执行结果：
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_4d809cfbc01a04777063962a82951934f33eaf0c4dc619029fa1611cfa154022.py", line 5, in <module>
+    train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+except FileNotFoundError:
+    print(f"Error: One or both of the files were not found. Please check the paths.")
+    exit(1)
+
+# 查看数据的前几行
+print(train_df.head())
+print(test_df.head())
+
+# 定义映射字典
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+
+# 将 'Diet' 列转换为数值
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# 检查转换后的数据
+print(train_df.head())
+print(test_df.head())
+
+# 分离特征和目标变量
+X_train = train_df.drop('Heart Attack Risk', axis=1)
+y_train = train_df['Heart Attack Risk']
+
+# 初始化随机森林分类器
+rf_model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_model.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_df.drop('Heart Attack Risk', axis=1)
+y_test = test_df['Heart Attack Risk']
+
+# 进行预测
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 计算 ROC AUC 分数
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# 返回 ROC AUC 分数
+print(f"ROC AUC Score: {roc_auc}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_6731ef2dc3c92c267afe56f8303cd2bc1eb5360cd818534c2810162d8c82a8a7.py", line 41, in <module>
+    rf_model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\ensemble\_forest.py", line 360, in fit
+    X, y = validate_data(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'RCA7696'
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+except FileNotFoundError:
+    print(f"Error: One or both of the files were not found. Please check the paths.")
+    exit(1)
+
+# 查看数据的前几行
+print(train_df.head())
+print(test_df.head())
+
+# 定义映射字典
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+
+# 将 'Diet' 列转换为数值
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# 检查转换后的数据
+print(train_df.head())
+print(test_df.head())
+
+# 使用 LabelEncoder 将类别列转换为数值
+label_encoders = {}
+for column in train_df.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_df[column] = le.fit_transform(train_df[column])
+    test_df[column] = le.transform(test_df[column])
+    label_encoders[column] = le
+
+# 分离特征和目标变量
+X_train = train_df.drop('Heart Attack Risk', axis=1)
+y_train = train_df['Heart Attack Risk']
+
+# 初始化随机森林分类器
+rf_model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_model.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_df.drop('Heart Attack Risk', axis=1)
+y_test = test_df['Heart Attack Risk']
+
+# 进行预测
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 计算 ROC AUC 分数
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# 返回 ROC AUC 分数
+print(f"ROC AUC Score: {roc_auc}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'BPY8954'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_22e4518ab52e915d0e48ef91e233dbbcb72326137acb326436e42579c3e9b9f6.py", line 38, in <module>
+    test_df[column] = le.transform(test_df[column])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\preprocessing\_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'BPY8954'
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+except FileNotFoundError:
+    print(f"Error: One or both of the files were not found. Please check the paths.")
+    exit(1)
+
+# 查看数据的前几行
+print(train_df.head())
+print(test_df.head())
+
+# 定义映射字典
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+
+# 将 'Diet' 列转换为数值
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# 检查转换后的数据
+print(train_df.head())
+print(test_df.head())
+
+# 使用 LabelEncoder 将类别列转换为数值
+label_encoders = {}
+for column in train_df.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_df[column] = le.fit_transform(train_df[column])
+    test_df[column] = le.transform(test_df[column])
+    label_encoders[column] = le
+
+# 分离特征和目标变量
+X_train = train_df.drop('Heart Attack Risk', axis=1)
+y_train = train_df['Heart Attack Risk']
+
+# 初始化随机森林分类器
+rf_model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_model.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_df.drop('Heart Attack Risk', axis=1)
+y_test = test_df['Heart Attack Risk']
+
+# 进行预测
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 计算 ROC AUC 分数
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# 返回 ROC AUC 分数
+print(f"ROC AUC Score: {roc_auc}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'BPY8954'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_22e4518ab52e915d0e48ef91e233dbbcb72326137acb326436e42579c3e9b9f6.py", line 38, in <module>
+    test_df[column] = le.transform(test_df[column])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\preprocessing\_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'BPY8954'
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    RCA7696   84  Male  ...  South America  Northern Hemisphere                  0
+1    RRP0438   88  Male  ...           Asia  Northern Hemisphere                  1
+2    HGB5652   90  Male  ...         Europe  Southern Hemisphere                  0
+3    MFR3315   27  Male  ...  South America  Northern Hemisphere                  0
+4    KRI1865   55  Male  ...         Africa  Southern Hemisphere                  0
+
+[5 rows x 25 columns]
+  Patient ID  Age   Sex  ...      Continent           Hemisphere  Heart Attack Risk
+0    BPY8954   65  Male  ...  South America  Southern Hemisphere                  0
+1    TBS9300   77  Male  ...           Asia  Northern Hemisphere                  1
+2    MPM7379   70  Male  ...         Africa  Southern Hemisphere                  1
+3    AFI9143   47  Male  ...           Asia  Northern Hemisphere                  1
+4    FEW6960   63  Male  ...         Europe  Northern Hemisphere                  0
+
+[5 rows x 25 columns]

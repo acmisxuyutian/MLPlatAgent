@@ -1,0 +1,622 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=preprocessor.get_feature_names_out())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 47
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2757)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=preprocessor.get_feature_names_out())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 53
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names[:X_train_preprocessed.shape[1]])
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names[:X_test_preprocessed.shape[1]])
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 54
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names[:X_train_preprocessed.shape[1]])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names[:X_train_preprocessed.shape[1]])
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names[:X_test_preprocessed.shape[1]])
+
+# Ensure the number of columns matches
+if X_train_preprocessed.shape[1] != len(feature_names):
+    feature_names = [f'feature_{i}' for i in range(X_train_preprocessed.shape[1])]
+    X_train_preprocessed.columns = feature_names
+    X_test_preprocessed.columns = feature_names[:X_test_preprocessed.shape[1]]
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 54
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names[:X_train_preprocessed.shape[1]])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names)
+
+# Ensure the number of columns matches
+if X_train_preprocessed.shape[1] != len(feature_names):
+    feature_names = [f'feature_{i}' for i in range(X_train_preprocessed.shape[1])]
+    X_train_preprocessed.columns = feature_names
+    X_test_preprocessed.columns = feature_names[:X_test_preprocessed.shape[1]]
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 54
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+
+# Ensure the number of columns matches the number of features
+if X_train_preprocessed.shape[1] != len(feature_names):
+    feature_names = [f'feature_{i}' for i in range(X_train_preprocessed.shape[1])]
+
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names[:X_test_preprocessed.shape[1]])
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 59
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Print the shapes of the transformed data for debugging
+print(f'Shape of X_train_preprocessed: {X_train_preprocessed.shape}')
+print(f'Shape of X_test_preprocessed: {X_test_preprocessed.shape}')
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+
+# Ensure the number of columns matches the number of features
+if X_train_preprocessed.shape[1] != len(feature_names):
+    feature_names = [f'feature_{i}' for i in range(X_train_preprocessed.shape[1])]
+
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names[:X_test_preprocessed.shape[1]])
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 63
+    X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (132027, 1), indices imply (132027, 2812)
+
+Shape of X_train_preprocessed: (132027, 2812)
+Shape of X_test_preprocessed: (33007, 2812)
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Combine training and test data for fitting the one-hot encoder
+combined_data = pd.concat([X_train, X_test], axis=0)
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Fit the preprocessor on the combined data
+preprocessor.fit(combined_data)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Print the shapes of the transformed data for debugging
+print(f'Shape of X_train_preprocessed: {X_train_preprocessed.shape}')
+print(f'Shape of X_test_preprocessed: {X_test_preprocessed.shape}')
+
+# Convert back to DataFrame
+feature_names = preprocessor.get_feature_names_out()
+
+# Ensure the number of columns matches the number of features
+if X_train_preprocessed.shape[1] != len(feature_names):
+    feature_names = [f'feature_{i}' for i in range(X_train_preprocessed.shape[1])]
+
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=feature_names)
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=feature_names[:X_test_preprocessed.shape[1]])
+
+# Print the first few rows of the preprocessed data for debugging
+print(X_train_preprocessed.head())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test

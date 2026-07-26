@@ -1,0 +1,946 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import root_mean_squared_log_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = root_mean_squared_log_error(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LightGBM model with the Tweedie objective function
+    model = LGBMRegressor(objective='tweedie', random_state=SEED)
+    model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)], early_stopping_rounds=10, verbose=10)
+    return model
+
+
+def predict(model, X):
+    # Use the trained model to make predictions
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['cost'], axis=1)
+    y = data_df['cost'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the validation set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final RMSLE on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['cost'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+[10]	valid_0's tweedie: 39.852
+[20]	valid_0's tweedie: 39.8489
+[30]	valid_0's tweedie: 39.8486
+Final RMSLE on validation set:  0.30929046178329733
+Final rmsle on test set:  0.3123228315907837
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import root_mean_squared_log_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from hyperopt import fmin, tpe, hp, Trials
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = root_mean_squared_log_error(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define the hyperparameter space
+    space = {
+        'n_estimators': hp.choice('n_estimators', [100, 200, 300, 400, 500]),
+        'learning_rate': hp.loguniform('learning_rate', -5, 0)
+    }
+
+    # Define the objective function for hyperopt
+    def objective(params):
+        model = LGBMRegressor(objective='tweedie', random_state=SEED, **params)
+        model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)], early_stopping_rounds=10, verbose=10)
+        y_valid_pred = model.predict(X_valid)
+        score = compute_metrics(y_valid, y_valid_pred)
+        return score
+
+    # Perform hyperparameter tuning
+    trials = Trials()
+    best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=50, trials=trials)
+
+    # Train the model with the best hyperparameters
+    best_params = {
+        'n_estimators': best['n_estimators'],
+        'learning_rate': best['learning_rate']
+    }
+    model = LGBMRegressor(objective='tweedie', random_state=SEED, **best_params)
+    model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)], early_stopping_rounds=10, verbose=10)
+    return model
+
+
+def predict(model, X):
+    # Use the trained model to make predictions
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['cost'], axis=1)
+    y = data_df['cost'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the validation set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final RMSLE on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['cost'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[10]	valid_0's tweedie: 39.8714
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[20]	valid_0's tweedie: 39.867
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[30]	valid_0's tweedie: 39.8636
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[40]	valid_0's tweedie: 39.8607
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[50]	valid_0's tweedie: 39.8583
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[60]	valid_0's tweedie: 39.8564
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[70]	valid_0's tweedie: 39.8548
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[80]	valid_0's tweedie: 39.8535
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[90]	valid_0's tweedie: 39.8525
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+[100]	valid_0's tweedie: 39.8518
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+  2%|▏        | 1/50 [00:00<00:23,  2.04trial/s, best loss: 0.3109069739644778]
+                                                                               
+[10]	valid_0's tweedie: 39.8539
+
+  2%|▏        | 1/50 [00:00<00:23,  2.04trial/s, best loss: 0.3109069739644778]
+                                                                               
+[10]	valid_0's tweedie: 39.8555
+
+  4%|▎       | 2/50 [00:00<00:23,  2.04trial/s, best loss: 0.31040727322447154]
+                                                                               
+[20]	valid_0's tweedie: 39.8503
+
+  4%|▎       | 2/50 [00:00<00:23,  2.04trial/s, best loss: 0.31040727322447154]
+                                                                               
+[30]	valid_0's tweedie: 39.8487
+
+  4%|▎       | 2/50 [00:00<00:23,  2.04trial/s, best loss: 0.31040727322447154]
+                                                                               
+[40]	valid_0's tweedie: 39.8482
+
+  4%|▎       | 2/50 [00:00<00:23,  2.04trial/s, best loss: 0.31040727322447154]
+  6%|▌         | 3/50 [00:00<00:09,  5.10trial/s, best loss: 0.309224461755109]
+                                                                               
+[10]	valid_0's tweedie: 39.8562
+
+  6%|▌         | 3/50 [00:00<00:09,  5.10trial/s, best loss: 0.309224461755109]
+                                                                               
+[10]	valid_0's tweedie: 39.8516
+
+  8%|▊         | 4/50 [00:00<00:09,  5.10trial/s, best loss: 0.309224461755109]
+                                                                               
+[20]	valid_0's tweedie: 39.8484
+
+  8%|▊         | 4/50 [00:00<00:09,  5.10trial/s, best loss: 0.309224461755109]
+                                                                               
+[30]	valid_0's tweedie: 39.8486
+
+  8%|▊         | 4/50 [00:00<00:09,  5.10trial/s, best loss: 0.309224461755109]
+ 10%|▊       | 5/50 [00:00<00:05,  7.51trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8517
+
+ 10%|▊       | 5/50 [00:00<00:05,  7.51trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8747
+
+ 12%|▉       | 6/50 [00:00<00:05,  7.51trial/s, best loss: 0.30918495260814627]
+ 14%|█       | 7/50 [00:00<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8686
+
+ 14%|█       | 7/50 [00:00<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.869
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[20]	valid_0's tweedie: 39.8633
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[30]	valid_0's tweedie: 39.8592
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[40]	valid_0's tweedie: 39.856
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[50]	valid_0's tweedie: 39.8538
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[60]	valid_0's tweedie: 39.8523
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[70]	valid_0's tweedie: 39.8512
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[80]	valid_0's tweedie: 39.8506
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[90]	valid_0's tweedie: 39.85
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+                                                                               
+[100]	valid_0's tweedie: 39.8496
+
+ 16%|█▎      | 8/50 [00:01<00:04, 10.15trial/s, best loss: 0.30918495260814627]
+ 18%|█▍      | 9/50 [00:01<00:05,  8.09trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8503
+
+ 18%|█▍      | 9/50 [00:01<00:05,  8.09trial/s, best loss: 0.30918495260814627]
+                                                                               
+[20]	valid_0's tweedie: 39.8492
+
+ 18%|█▍      | 9/50 [00:01<00:05,  8.09trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8593
+
+ 20%|█▍     | 10/50 [00:01<00:04,  8.09trial/s, best loss: 0.30918495260814627]
+ 22%|█▌     | 11/50 [00:01<00:04,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8495
+
+ 22%|█▌     | 11/50 [00:01<00:04,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[20]	valid_0's tweedie: 39.849
+
+ 22%|█▌     | 11/50 [00:01<00:04,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[30]	valid_0's tweedie: 39.8507
+
+ 22%|█▌     | 11/50 [00:01<00:04,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[10]	valid_0's tweedie: 39.8488
+
+ 24%|█▋     | 12/50 [00:01<00:03,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[20]	valid_0's tweedie: 39.848
+
+ 24%|█▋     | 12/50 [00:01<00:03,  9.65trial/s, best loss: 0.30918495260814627]
+                                                                               
+[30]	valid_0's tweedie: 39.8481
+
+ 24%|█▋     | 12/50 [00:01<00:03,  9.65trial/s, best loss: 0.30918495260814627]
+ 26%|█▊     | 13/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+                                                                               
+[10]	valid_0's tweedie: 39.853
+
+ 26%|█▊     | 13/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+                                                                               
+[10]	valid_0's tweedie: 39.8528
+
+ 28%|█▉     | 14/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+                                                                               
+[20]	valid_0's tweedie: 39.8498
+
+ 28%|█▉     | 14/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+                                                                               
+[30]	valid_0's tweedie: 39.8483
+
+ 28%|█▉     | 14/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+                                                                               
+[40]	valid_0's tweedie: 39.8483
+
+ 28%|█▉     | 14/50 [00:01<00:03,  9.86trial/s, best loss: 0.30896503205727976]
+ 30%|██     | 15/50 [00:01<00:03, 10.20trial/s, best loss: 0.30896503205727976]
+                                                                               
+[10]	valid_0's tweedie: 39.8482
+
+ 30%|██     | 15/50 [00:01<00:03, 10.20trial/s, best loss: 0.30896503205727976]
+                                                                               
+[20]	valid_0's tweedie: 39.851
+
+ 30%|██     | 15/50 [00:01<00:03, 10.20trial/s, best loss: 0.30896503205727976]
+                                                                               
+[10]	valid_0's tweedie: 39.8491
+
+ 32%|██▌     | 16/50 [00:01<00:03, 10.20trial/s, best loss: 0.3086371341395121]
+ 34%|██▋     | 17/50 [00:01<00:02, 11.42trial/s, best loss: 0.3086371341395121]
+                                                                               
+[10]	valid_0's tweedie: 39.8492
+
+ 34%|██▋     | 17/50 [00:01<00:02, 11.42trial/s, best loss: 0.3086371341395121]
+                                                                               
+[20]	valid_0's tweedie: 39.8505
+
+ 34%|██▋     | 17/50 [00:01<00:02, 11.42trial/s, best loss: 0.3086371341395121]
+                                                                               
+[10]	valid_0's tweedie: 39.8482
+
+ 36%|██▉     | 18/50 [00:02<00:02, 11.42trial/s, best loss: 0.3086371341395121]
+                                                                               
+[20]	valid_0's tweedie: 39.85
+
+ 36%|██▉     | 18/50 [00:02<00:02, 11.42trial/s, best loss: 0.3086371341395121]
+ 38%|██▋    | 19/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8516
+
+ 38%|██▋    | 19/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8595
+
+ 40%|██▊    | 20/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8526
+
+ 40%|██▊    | 20/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[30]	valid_0's tweedie: 39.8502
+
+ 40%|██▊    | 20/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[40]	valid_0's tweedie: 39.8492
+
+ 40%|██▊    | 20/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+                                                                               
+[50]	valid_0's tweedie: 39.8485
+
+ 40%|██▊    | 20/50 [00:02<00:02, 11.97trial/s, best loss: 0.30863427717718267]
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8615
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8541
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[30]	valid_0's tweedie: 39.8511
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[40]	valid_0's tweedie: 39.8498
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[50]	valid_0's tweedie: 39.8487
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[60]	valid_0's tweedie: 39.8484
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[70]	valid_0's tweedie: 39.8484
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[80]	valid_0's tweedie: 39.8485
+
+ 42%|██▉    | 21/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8493
+
+ 44%|███    | 22/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8494
+
+ 44%|███    | 22/50 [00:02<00:02, 10.79trial/s, best loss: 0.30863427717718267]
+ 46%|███▏   | 23/50 [00:02<00:03,  8.98trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8731
+
+ 46%|███▏   | 23/50 [00:02<00:03,  8.98trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.848
+
+ 48%|███▎   | 24/50 [00:02<00:02,  8.98trial/s, best loss: 0.30863427717718267]
+ 50%|███▌   | 25/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8641
+
+ 50%|███▌   | 25/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8575
+
+ 52%|███▋   | 26/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8513
+
+ 52%|███▋   | 26/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[30]	valid_0's tweedie: 39.8497
+
+ 52%|███▋   | 26/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[40]	valid_0's tweedie: 39.849
+
+ 52%|███▋   | 26/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+                                                                               
+[50]	valid_0's tweedie: 39.8492
+
+ 52%|███▋   | 26/50 [00:02<00:02, 10.52trial/s, best loss: 0.30863427717718267]
+ 54%|███▊   | 27/50 [00:02<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8508
+
+ 54%|███▊   | 27/50 [00:02<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8624
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8551
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[30]	valid_0's tweedie: 39.8517
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[40]	valid_0's tweedie: 39.8502
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[50]	valid_0's tweedie: 39.8491
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[60]	valid_0's tweedie: 39.8486
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+                                                                               
+[70]	valid_0's tweedie: 39.8486
+
+ 56%|███▉   | 28/50 [00:03<00:02, 10.30trial/s, best loss: 0.30863427717718267]
+ 58%|████   | 29/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8511
+
+ 58%|████   | 29/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8489
+
+ 58%|████   | 29/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8707
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[20]	valid_0's tweedie: 39.8659
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[30]	valid_0's tweedie: 39.8622
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[40]	valid_0's tweedie: 39.8592
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[50]	valid_0's tweedie: 39.8567
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[60]	valid_0's tweedie: 39.8549
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[70]	valid_0's tweedie: 39.8534
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[80]	valid_0's tweedie: 39.8523
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[90]	valid_0's tweedie: 39.8515
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[100]	valid_0's tweedie: 39.8508
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[110]	valid_0's tweedie: 39.8504
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[120]	valid_0's tweedie: 39.85
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[130]	valid_0's tweedie: 39.8495
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[140]	valid_0's tweedie: 39.8491
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[150]	valid_0's tweedie: 39.8491
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[160]	valid_0's tweedie: 39.8487
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[170]	valid_0's tweedie: 39.8484
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+                                                                               
+[180]	valid_0's tweedie: 39.8483
+
+ 60%|████▏  | 30/50 [00:03<00:02,  9.18trial/s, best loss: 0.30863427717718267]
+ 62%|████▎  | 31/50 [00:03<00:03,  6.05trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8458
+
+ 62%|████▎  | 31/50 [00:03<00:03,  6.05trial/s, best loss: 0.30863427717718267]
+                                                                               
+[10]	valid_0's tweedie: 39.8651
+
+ 64%|████▍  | 32/50 [00:03<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8582
+
+ 64%|████▍  | 32/50 [00:03<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.8539
+
+ 64%|████▍  | 32/50 [00:03<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.8517
+
+ 64%|████▍  | 32/50 [00:03<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[50]	valid_0's tweedie: 39.8503
+
+ 64%|████▍  | 32/50 [00:03<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[60]	valid_0's tweedie: 39.8496
+
+ 64%|████▍  | 32/50 [00:04<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[70]	valid_0's tweedie: 39.8491
+
+ 64%|████▍  | 32/50 [00:04<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[80]	valid_0's tweedie: 39.8484
+
+ 64%|████▍  | 32/50 [00:04<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[90]	valid_0's tweedie: 39.8482
+
+ 64%|████▍  | 32/50 [00:04<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+                                                                               
+[100]	valid_0's tweedie: 39.8482
+
+ 64%|████▍  | 32/50 [00:04<00:02,  6.05trial/s, best loss: 0.30836140926271643]
+ 66%|████▌  | 33/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8517
+
+ 66%|████▌  | 33/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8541
+
+ 68%|████▊  | 34/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8498
+
+ 68%|████▊  | 34/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.8485
+
+ 68%|████▊  | 34/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.8484
+
+ 68%|████▊  | 34/50 [00:04<00:02,  6.01trial/s, best loss: 0.30836140926271643]
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8728
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8693
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.8663
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.8638
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[50]	valid_0's tweedie: 39.8616
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[60]	valid_0's tweedie: 39.8597
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[70]	valid_0's tweedie: 39.8581
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[80]	valid_0's tweedie: 39.8566
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[90]	valid_0's tweedie: 39.8554
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[100]	valid_0's tweedie: 39.8543
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[110]	valid_0's tweedie: 39.8534
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[120]	valid_0's tweedie: 39.8526
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[130]	valid_0's tweedie: 39.852
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[140]	valid_0's tweedie: 39.8515
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[150]	valid_0's tweedie: 39.8511
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[160]	valid_0's tweedie: 39.8508
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[170]	valid_0's tweedie: 39.8505
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[180]	valid_0's tweedie: 39.8502
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[190]	valid_0's tweedie: 39.85
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[200]	valid_0's tweedie: 39.8497
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[210]	valid_0's tweedie: 39.8494
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[220]	valid_0's tweedie: 39.8491
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[230]	valid_0's tweedie: 39.8491
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[240]	valid_0's tweedie: 39.8489
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[250]	valid_0's tweedie: 39.8487
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[260]	valid_0's tweedie: 39.8486
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[270]	valid_0's tweedie: 39.8485
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+                                                                               
+[280]	valid_0's tweedie: 39.8485
+
+ 70%|████▉  | 35/50 [00:04<00:02,  6.91trial/s, best loss: 0.30836140926271643]
+ 72%|█████  | 36/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8568
+
+ 72%|█████  | 36/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8521
+
+ 74%|█████▏ | 37/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8485
+
+ 74%|█████▏ | 37/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.848
+
+ 74%|█████▏ | 37/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.8484
+
+ 74%|█████▏ | 37/50 [00:05<00:03,  4.06trial/s, best loss: 0.30836140926271643]
+ 76%|█████▎ | 38/50 [00:05<00:02,  5.18trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8509
+
+ 76%|█████▎ | 38/50 [00:05<00:02,  5.18trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8691
+
+ 78%|█████▍ | 39/50 [00:05<00:02,  5.18trial/s, best loss: 0.30836140926271643]
+ 80%|█████▌ | 40/50 [00:05<00:01,  6.77trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8524
+
+ 80%|█████▌ | 40/50 [00:05<00:01,  6.77trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8508
+
+ 82%|█████▋ | 41/50 [00:05<00:01,  6.77trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8506
+
+ 82%|█████▋ | 41/50 [00:05<00:01,  6.77trial/s, best loss: 0.30836140926271643]
+ 84%|█████▉ | 42/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8507
+
+ 84%|█████▉ | 42/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8488
+
+ 84%|█████▉ | 42/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8672
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8609
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.8566
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.8536
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[50]	valid_0's tweedie: 39.8519
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[60]	valid_0's tweedie: 39.8507
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[70]	valid_0's tweedie: 39.85
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[80]	valid_0's tweedie: 39.8493
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[90]	valid_0's tweedie: 39.8489
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[100]	valid_0's tweedie: 39.8485
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[110]	valid_0's tweedie: 39.8484
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[120]	valid_0's tweedie: 39.8484
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[130]	valid_0's tweedie: 39.8484
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[140]	valid_0's tweedie: 39.8483
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+                                                                               
+[150]	valid_0's tweedie: 39.8483
+
+ 86%|██████ | 43/50 [00:05<00:00,  8.27trial/s, best loss: 0.30836140926271643]
+ 88%|██████▏| 44/50 [00:05<00:00,  6.37trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8557
+
+ 88%|██████▏| 44/50 [00:05<00:00,  6.37trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8489
+
+ 90%|██████▎| 45/50 [00:05<00:00,  6.37trial/s, best loss: 0.30836140926271643]
+ 92%|██████▍| 46/50 [00:06<00:00,  7.87trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8506
+
+ 92%|██████▍| 46/50 [00:06<00:00,  7.87trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8493
+
+ 92%|██████▍| 46/50 [00:06<00:00,  7.87trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8693
+
+ 94%|██████▌| 47/50 [00:06<00:00,  7.87trial/s, best loss: 0.30836140926271643]
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8576
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[20]	valid_0's tweedie: 39.8515
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[30]	valid_0's tweedie: 39.8497
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[40]	valid_0's tweedie: 39.849
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[50]	valid_0's tweedie: 39.8487
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[60]	valid_0's tweedie: 39.8488
+
+ 96%|██████▋| 48/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+                                                                               
+[10]	valid_0's tweedie: 39.8566
+
+ 98%|██████▊| 49/50 [00:06<00:00,  9.24trial/s, best loss: 0.30836140926271643]
+100%|███████| 50/50 [00:06<00:00,  9.26trial/s, best loss: 0.30836140926271643]
+100%|███████| 50/50 [00:06<00:00,  7.87trial/s, best loss: 0.30836140926271643]
+Final RMSLE on validation set:  0.3113943095886581
+Final rmsle on test set:  0.31450786136529807
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

@@ -1,0 +1,274 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval and Initial Setup
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_data_analysis(df):
+    data_types = df.dtypes
+    summary_stats = df.describe()
+    target_column = 'is_canceled' if 'is_canceled' in df.columns else 'target_column'
+    if target_column in df.columns:
+        target_distribution = df[target_column].value_counts(normalize=True)
+    else:
+        target_distribution = None
+    missing_values = df.isnull().sum()
+    return data_types, summary_stats, target_distribution, missing_values, target_column
+
+# Data Preprocessing
+def preprocess_data(df, target_column):
+    # Handle Missing Values
+    numerical_columns = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_columns = df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[numerical_columns] = numerical_imputer.fit_transform(df[numerical_columns])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[categorical_columns] = categorical_imputer.fit_transform(df[categorical_columns])
+
+    # Feature Encoding
+    df = pd.get_dummies(df, drop_first=True)
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    return df, target_column
+
+# Data Augmentation
+def augment_data(df, target_column):
+    # Handling Class Imbalance
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    smote = SMOTE()
+    X, y = smote.fit_resample(X, y)
+
+    # Domain-Specific Features
+    if 'checkin_date' in df.columns and 'booking_date' in df.columns:
+        df['booking_lead_time'] = (pd.to_datetime(df['checkin_date']) - pd.to_datetime(df['booking_date'])).dt.days
+    if 'customer_age' in df.columns:
+        bins = [0, 18, 35, 50, 100]
+        labels = ['0-18', '19-35', '36-50', '51+']
+        df['customer_age_group'] = pd.cut(df['customer_age'], bins=bins, labels=labels, right=False)
+
+    # Date and Time Features
+    if 'checkin_date' in df.columns:
+        df['checkin_day_of_week'] = pd.to_datetime(df['checkin_date']).dt.dayofweek
+        df['checkin_month'] = pd.to_datetime(df['checkin_date']).dt.month
+        df['checkin_season'] = df['checkin_month'].apply(lambda month: 'Winter' if month in [12, 1, 2] else 'Spring' if month in [3, 4, 5] else 'Summer' if month in [6, 7, 8] else 'Fall')
+
+    # Interaction Features
+    if 'booking_lead_time' in df.columns and 'customer_type' in df.columns:
+        df['lead_time_customer_type'] = df['booking_lead_time'] * df['customer_type']
+
+    return X, y
+
+# Model Training and Evaluation
+def train_model(model, train_loader, val_loader, num_epochs=100, lr=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    best_val_auc = 0.0
+    best_model = None
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.unsqueeze(1))
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = []
+            val_labels = []
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                val_outputs.append(outputs)
+                val_labels.append(labels)
+            val_outputs = torch.cat(val_outputs).squeeze().numpy()
+            val_labels = torch.cat(val_labels).numpy()
+            val_auc = roc_auc_score(val_labels, val_outputs)
+            if val_auc > best_val_auc:
+                best_val_auc = val_auc
+                best_model = model.state_dict()
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Validation AUC: {val_auc:.4f}')
+
+    model.load_state_dict(best_model)
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = []
+        test_labels = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            test_outputs.append(outputs)
+            test_labels.append(labels)
+        test_outputs = torch.cat(test_outputs).squeeze().numpy()
+        test_labels = torch.cat(test_labels).numpy()
+        test_auc = roc_auc_score(test_labels, test_outputs)
+        print(f'Test AUC-ROC: {test_auc:.4f}')
+        performance_scores = {
+            'AUC-ROC': test_auc
+        }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+    df = load_dataset(dataset_path)
+    data_types, summary_stats, target_distribution, missing_values, target_column = initial_data_analysis(df)
+    print("Data Types:\n", data_types)
+    print("Summary Statistics:\n", summary_stats)
+    if target_distribution is not None:
+        print("Target Distribution:\n", target_distribution)
+    print("Missing Values:\n", missing_values)
+
+    if target_column in df.columns:
+        df, target_column = preprocess_data(df, target_column)
+        X, y = augment_data(df, target_column)
+
+        # Data Split
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+        # Data Loading and Batching
+        train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+        val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+        test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+
+        train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+        # Model Definition
+        class FeedforwardNN(nn.Module):
+            def __init__(self, input_size, hidden_sizes, output_size):
+                super(FeedforwardNN, self).__init__()
+                layers = []
+                layers.append(nn.Linear(input_size, hidden_sizes[0]))
+                layers.append(nn.ReLU())
+                for i in range(1, len(hidden_sizes)):
+                    layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+                    layers.append(nn.ReLU())
+                layers.append(nn.Linear(hidden_sizes[-1], output_size))
+                layers.append(nn.Sigmoid())
+                self.model = nn.Sequential(*layers)
+
+            def forward(self, x):
+                return self.model(x)
+
+        input_size = X_train.shape[1]
+        hidden_sizes = [128, 64, 32]
+        output_size = 1
+        model = FeedforwardNN(input_size, hidden_sizes, output_size)
+
+        # Model Training
+        model = train_model(model, train_loader, val_loader)
+
+        # Model Evaluation
+        model_performance = evaluate_model(model, test_loader)
+
+        # Model Saving
+        model_path = './agent_workspace/trained_models/reservation_cancellation_fnn.pth'
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        torch.save(model.state_dict(), model_path)
+
+        return model_performance
+    else:
+        print("Target column not found in the dataset.")
+        return None
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance is not None:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Data Types:
+ id                                        int64
+no_of_adults                              int64
+no_of_children                            int64
+no_of_weekend_nights                      int64
+no_of_week_nights                         int64
+type_of_meal_plan                         int64
+required_car_parking_space                int64
+room_type_reserved                        int64
+lead_time                                 int64
+arrival_year                              int64
+arrival_month                             int64
+arrival_date                              int64
+market_segment_type                       int64
+repeated_guest                            int64
+no_of_previous_cancellations              int64
+no_of_previous_bookings_not_canceled      int64
+avg_price_per_room                      float64
+no_of_special_requests                    int64
+booking_status                            int64
+dtype: object
+Summary Statistics:
+                  id  no_of_adults  ...  no_of_special_requests  booking_status
+count  33674.000000  33674.000000  ...            33674.000000    33674.000000
+mean   21075.355527      1.919374  ...                0.572667        0.392974
+std    12120.816554      0.527116  ...                0.776184        0.488418
+min        0.000000      0.000000  ...                0.000000        0.000000
+25%    10616.250000      2.000000  ...                0.000000        0.000000
+50%    21082.500000      2.000000  ...                0.000000        0.000000
+75%    31534.750000      2.000000  ...                1.000000        1.000000
+max    42099.000000      4.000000  ...                5.000000        1.000000
+
+[8 rows x 19 columns]
+Missing Values:
+ id                                      0
+no_of_adults                            0
+no_of_children                          0
+no_of_weekend_nights                    0
+no_of_week_nights                       0
+type_of_meal_plan                       0
+required_car_parking_space              0
+room_type_reserved                      0
+lead_time                               0
+arrival_year                            0
+arrival_month                           0
+arrival_date                            0
+market_segment_type                     0
+repeated_guest                          0
+no_of_previous_cancellations            0
+no_of_previous_bookings_not_canceled    0
+avg_price_per_room                      0
+no_of_special_requests                  0
+booking_status                          0
+dtype: int64
+Target column not found in the dataset.

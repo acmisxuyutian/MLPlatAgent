@@ -1,0 +1,177 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
+from sklearn.metrics import accuracy_score, f1_score
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Loading
+def load_data():
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv')
+    
+    # Verify the integrity of the datasets
+    train_df.info()
+    test_df.info()
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Check for target variable
+    if 'survival_status' not in train_df.columns:
+        raise KeyError("The target variable 'survival_status' is not found in the training dataset.")
+    
+    # Split the training dataset into training and validation sets
+    X = train_df.drop(columns=['survival_status'])
+    y = train_df['survival_status']
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+    
+    # Handle missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    X_train_numerical = numerical_imputer.fit_transform(X_train.select_dtypes(include=['number']))
+    X_train_categorical = categorical_imputer.fit_transform(X_train.select_dtypes(exclude=['number']))
+    X_val_numerical = numerical_imputer.transform(X_val.select_dtypes(include=['number']))
+    X_val_categorical = categorical_imputer.transform(X_val.select_dtypes(exclude=['number']))
+    
+    # Outlier detection and handling
+    def detect_outliers_iqr(data):
+        q1 = data.quantile(0.25)
+        q3 = data.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        return (data < lower_bound) | (data > upper_bound)
+    
+    outliers = detect_outliers_iqr(pd.DataFrame(X_train_numerical))
+    X_train_numerical = X_train_numerical[~outliers.any(axis=1)]
+    y_train = y_train[~outliers.any(axis=1)]
+    
+    # Feature scaling
+    scaler = StandardScaler()
+    X_train_numerical_scaled = scaler.fit_transform(X_train_numerical)
+    X_val_numerical_scaled = scaler.transform(X_val_numerical)
+    
+    # Categorical encoding
+    encoder = OneHotEncoder(handle_unknown='ignore')
+    X_train_categorical_encoded = encoder.fit_transform(X_train_categorical)
+    X_val_categorical_encoded = encoder.transform(X_val_categorical)
+    
+    # Target variable formatting
+    y_train = y_train.map({'alive': 0, 'dead': 1})
+    y_val = y_val.map({'alive': 0, 'dead': 1})
+    
+    # Combine numerical and categorical features
+    X_train_processed = np.hstack((X_train_numerical_scaled, X_train_categorical_encoded.toarray()))
+    X_val_processed = np.hstack((X_val_numerical_scaled, X_val_categorical_encoded.toarray()))
+    
+    # Feature engineering
+    interaction = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    X_train_interactions = interaction.fit_transform(X_train_numerical_scaled)
+    X_val_interactions = interaction.transform(X_val_numerical_scaled)
+    
+    X_train_processed = np.hstack((X_train_processed, X_train_interactions))
+    X_val_processed = np.hstack((X_val_processed, X_val_interactions))
+    
+    # Data augmentation
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_processed, y_train)
+    
+    return X_train_resampled, y_train_resampled, X_val_processed, y_val, test_df
+
+# Model Training
+def train_model(X_train, y_train):
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+    params = {
+        'objective': 'binary:logistic',
+        'eval_metric': 'logloss',
+        'n_estimators': 100,
+        'max_depth': 6,
+        'learning_rate': 0.1,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8
+    }
+    
+    model = xgb.train(params, dtrain, num_boost_round=100)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, test_df):
+    dval = xgb.DMatrix(X_val, label=y_val)
+    dtest = xgb.DMatrix(test_df.drop(columns=['survival_status']))
+    
+    preds_val = model.predict(dval)
+    logloss_val = xgb.eval(preds_val, y_val, metric='logloss')
+    print(f'Validation Logloss: {logloss_val}')
+    
+    preds_test = model.predict(dtest)
+    test_df['predicted_survival_status'] = (preds_test > 0.5).astype(int)
+    logloss_test = xgb.eval(preds_test, test_df['survival_status'], metric='logloss')
+    print(f'Test Logloss: {logloss_test}')
+    
+    performance_scores = {
+        'Validation Logloss': logloss_val,
+        'Test Logloss': logloss_test
+    }
+    
+    return performance_scores
+
+# Model Deployment
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save_model(model_path)
+
+def load_model(model_path):
+    loaded_model = xgb.Booster()
+    loaded_model.load_model(model_path)
+    return loaded_model
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1. Load the dataset
+    train_df, test_df = load_data()
+    
+    # Step 2. Preprocess the data
+    X_train, y_train, X_val, y_val, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 4. Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, test_df)
+    
+    # Step 5. Save the model
+    model_path = './agent_workspace/trained_models/cirrhosis_patient_model.json'
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 161, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 146, in main
+    X_train, y_train, X_val, y_val, test_df = preprocess_data(train_df, test_df)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 33, in preprocess_data
+    raise KeyError("The target variable 'survival_status' is not found in the training dataset.")
+KeyError: "The target variable 'survival_status' is not found in the training dataset."

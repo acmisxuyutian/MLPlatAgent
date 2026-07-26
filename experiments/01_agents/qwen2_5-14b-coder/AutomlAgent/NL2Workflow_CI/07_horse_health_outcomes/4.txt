@@ -1,0 +1,239 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, PolynomialFeatures
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import optuna
+import pandas as pd
+import matplotlib.pyplot as plt
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Handle Missing Values
+    numeric_cols = train_df.select_dtypes(include=[np.number]).columns
+    categorical_cols = train_df.select_dtypes(include=[object]).columns
+
+    numeric_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    train_df[numeric_cols] = numeric_imputer.fit_transform(train_df[numeric_cols])
+    test_df[numeric_cols] = numeric_imputer.transform(test_df[numeric_cols])
+
+    train_df[categorical_cols] = categorical_imputer.fit_transform(train_df[categorical_cols])
+    test_df[categorical_cols] = categorical_imputer.transform(test_df[categorical_cols])
+
+    # Feature Scaling
+    scaler = MinMaxScaler()
+    X_train_scaled = scaler.fit_transform(train_df.drop('outcome', axis=1))
+    X_test_scaled = scaler.transform(test_df.drop('outcome', axis=1))
+
+    # Categorical Encoding
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    X_train_encoded = encoder.fit_transform(train_df.drop('outcome', axis=1))
+    X_test_encoded = encoder.transform(test_df.drop('outcome', axis=1))
+
+    # Feature Interaction
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    X_train_interacted = poly.fit_transform(X_train_encoded)
+    X_test_interacted = poly.transform(X_test_encoded)
+
+    # Data Augmentation
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_interacted, train_df['outcome'])
+
+    # Data Splitting
+    X_train_final, X_val_final, y_train_final, y_val_final = train_test_split(X_train_resampled, y_train_resampled, test_size=0.2, random_state=42)
+
+    return X_train_final, X_val_final, y_train_final, y_val_final, X_test_interacted, test_df['outcome']
+
+# Define Neural Network Architecture
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, dropout_rate):
+        super(MLP, self).__init__()
+        layers = []
+        for i in range(len(hidden_sizes)):
+            if i == 0:
+                layers.append(nn.Linear(input_size, hidden_sizes[i]))
+            else:
+                layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+        layers.append(nn.Linear(hidden_sizes[-1], 2))  # Assuming binary classification
+        layers.append(nn.Softmax(dim=1))
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+# Train the Model
+def train_model(model, train_loader, val_loader, epochs, learning_rate):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+        print(f'Epoch {epoch+1}, Train Loss: {running_loss/len(train_loader)}, Val Loss: {val_loss/len(val_loader)}')
+
+    return model
+
+# Hyperparameter Tuning
+def objective(trial):
+    input_size = X_train_final.shape[1]
+    hidden_sizes = [trial.suggest_int(f'hidden_size_{i}', 32, 256) for i in range(3)]
+    dropout_rate = trial.suggest_uniform('dropout_rate', 0.1, 0.5)
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
+    epochs = 100
+
+    model = MLP(input_size, hidden_sizes, dropout_rate)
+    model = train_model(model, train_loader, val_loader, epochs, learning_rate)
+
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+
+    f1 = f1_score(y_true, y_pred, average='weighted')
+    return f1
+
+# Evaluate the Model
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted'),
+        'Precision': precision_score(y_true, y_pred, average='weighted'),
+        'Recall': recall_score(y_true, y_pred, average='weighted')
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train_final, X_val_final, y_train_final, y_val_final, X_test_interacted, y_test = preprocess_data(train_df, test_df)
+
+    train_dataset = TensorDataset(torch.tensor(X_train_final, dtype=torch.float32), torch.tensor(y_train_final, dtype=torch.long))
+    val_dataset = TensorDataset(torch.tensor(X_val_final, dtype=torch.float32), torch.tensor(y_val_final, dtype=torch.long))
+    test_dataset = TensorDataset(torch.tensor(X_test_interacted, dtype=torch.float32), torch.tensor(y_test, dtype=torch.long))
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is done in the preprocess_data function
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_final.shape[1]
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=10)
+    best_params = study.best_params
+    print("Best Hyperparameters:", best_params)
+
+    best_model = MLP(input_size, [best_params['hidden_size_0'], best_params['hidden_size_1'], best_params['hidden_size_2']], best_params['dropout_rate'])
+    best_model = train_model(best_model, train_loader, val_loader, 100, best_params['learning_rate'])
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(best_model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 199, in <module>
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 165, in main
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 39, in preprocess_data
+    imputer = SimpleImputer(strategy='mean')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 454, in fit
+    return self.partial_fit(X, y)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 494, in partial_fit
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 1053, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_array_api.py", line 757, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'yes'

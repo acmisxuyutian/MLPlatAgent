@@ -1,0 +1,193 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Calculate the 'YearsInCompany' feature
+    train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+    test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+    # Drop rows with NaN values in the target variable 'LeaveOrNot'
+    train_data = train_data.dropna(subset=['LeaveOrNot'])
+
+    # One-Hot Encoding
+    train_data = pd.get_dummies(train_data, drop_first=True)
+    test_data = pd.get_dummies(test_data, drop_first=True)
+
+    # Align columns between train and test data
+    test_data = test_data.reindex(columns=train_data.columns, fill_value=0)
+
+    # Split the data into features and target
+    X_train = train_data.drop('LeaveOrNot', axis=1)
+    y_train = train_data['LeaveOrNot']
+    X_test = test_data.drop('LeaveOrNot', axis=1)
+    y_test = test_data['LeaveOrNot']
+
+    return X_train, y_train, X_test, y_test
+
+def train_model(X_train, y_train):
+    # Define the parameter grid for hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20, None],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
+
+    # Initialize GridSearchCV
+    grid_search = GridSearchCV(estimator=RandomForestClassifier(random_state=SEED), 
+                                param_grid=param_grid, 
+                                cv=5, 
+                                scoring='roc_auc', 
+                                n_jobs=-1)
+
+    # Fit GridSearchCV
+    grid_search.fit(X_train, y_train)
+
+    # Get the best parameters
+    best_params = grid_search.best_params_
+
+    # Retrain the model with best parameters
+    best_rf_classifier = RandomForestClassifier(**best_params, random_state=SEED)
+    best_rf_classifier.fit(X_train, y_train)
+
+    return best_rf_classifier
+
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    # Predict probabilities on validation set
+    y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+
+    # Calculate AUC-ROC on validation set
+    auc_roc_val = roc_auc_score(y_val, y_val_pred_proba)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+
+    # Predict classes on validation set
+    y_val_pred = model.predict(X_val)
+
+    # Calculate confusion matrix on validation set
+    cm_val = confusion_matrix(y_val, y_val_pred)
+    print(f'Validation Confusion Matrix:\n{cm_val}')
+
+    # Predict probabilities on test set
+    y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    # Calculate AUC-ROC on test set
+    auc_roc_test = roc_auc_score(y_test, y_test_pred_proba)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+
+    # Predict classes on test set
+    y_test_pred = model.predict(X_test)
+
+    # Calculate confusion matrix on test set
+    cm_test = confusion_matrix(y_test, y_test_pred)
+    print(f'Test Confusion Matrix:\n{cm_test}')
+
+    # Return performance scores
+    performance_scores = {
+        'Validation AUC-ROC': auc_roc_val,
+        'Validation Confusion Matrix': cm_val,
+        'Test AUC-ROC': auc_roc_test,
+        'Test Confusion Matrix': cm_test
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/train.csv')
+    test_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop('LeaveOrNot', axis=1), 
+                                                        train_data['LeaveOrNot'], 
+                                                        test_size=0.3, 
+                                                        stratify=train_data['LeaveOrNot'], 
+                                                        random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Save the model
+    model_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/models/random_forest_employee_retention.pkl'
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 153, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 144, in main
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 78, in evaluate_model
+    y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 945, in predict_proba
+    X = self._validate_X_predict(X)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 637, in _validate_X_predict
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2929, in validate_data
+    _check_feature_names(_estimator, X, reset=reset)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2787, in _check_feature_names
+    raise ValueError(message)
+ValueError: The feature names should match those that were passed during fit.
+Feature names unseen at fit time:
+- City
+- Education
+- EverBenched
+- Gender
+Feature names seen at fit time, yet now missing:
+- City_New Delhi
+- City_Pune
+- Education_Masters
+- Education_PHD
+- EverBenched_Yes
+- ...
+

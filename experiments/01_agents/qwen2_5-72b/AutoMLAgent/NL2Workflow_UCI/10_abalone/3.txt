@@ -1,0 +1,165 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_log_error
+import xgboost as xgb
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Directory to save the trained model
+MODEL_DIR = "./agent_workspace/trained_models"
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+# Step 1: Load the dataset
+def load_dataset(dataset_url):
+    df = pd.read_csv(dataset_url)
+    return df
+
+# Step 2: Initial data exploration
+def initial_exploration(df):
+    summary_stats = df.describe()
+    print("Summary Statistics:\n", summary_stats)
+    
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+    
+    data_types = df.dtypes
+    print("Data Types:\n", data_types)
+
+# Step 3: Preprocess the data
+def preprocess_data(df):
+    # Handling categorical data
+    if 'sex' in df.columns:
+        label_encoder = LabelEncoder()
+        df['sex'] = label_encoder.fit_transform(df['sex'])
+    
+    # Handling missing data
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+    
+    # Normalization and scaling
+    scaler = MinMaxScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(df_imputed), columns=df_imputed.columns)
+    
+    # Feature engineering
+    if 'length' in df_scaled.columns and 'height' in df_scaled.columns:
+        df_scaled['length_height_ratio'] = df_scaled['length'] / df_scaled['height']
+    if 'diameter' in df_scaled.columns and 'length' in df_scaled.columns:
+        df_scaled['diameter_length_ratio'] = df_scaled['diameter'] / df_scaled['length']
+    
+    return df_scaled
+
+# Step 4: Split the data
+def split_data(df_scaled):
+    X = df_scaled.drop(columns=['age'])
+    y = df_scaled['age']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5: Train the model
+def train_model(X_train, y_train):
+    xgb_model = xgb.XGBRegressor(
+        learning_rate=0.1,
+        n_estimators=100,
+        max_depth=5,
+        min_child_weight=1,
+        gamma=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
+    )
+    
+    xgb_model.fit(X_train, y_train)
+    return xgb_model
+
+# Step 6: Evaluate the model
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    rmlse_val = mean_squared_log_error(y_val, y_val_pred, squared=False)
+    print(f'Validation RMLSE: {rmlse_val}')
+    
+    y_test_pred = model.predict(X_test)
+    rmlse_test = mean_squared_log_error(y_test, y_test_pred, squared=False)
+    print(f'Test RMLSE: {rmlse_test}')
+    
+    performance_scores = {
+        'Validation RMLSE': rmlse_val,
+        'Test RMLSE': rmlse_test
+    }
+    
+    return performance_scores
+
+# Step 7: Save the model
+def save_model(model, model_path):
+    model.save_model(model_path)
+
+# The main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    dataset_url = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    df = load_dataset(dataset_url)
+    
+    # Step 2: Initial data exploration
+    initial_exploration(df)
+    
+    # Step 3: Preprocess the data
+    df_scaled = preprocess_data(df)
+    
+    # Step 4: Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df_scaled)
+    
+    # Step 5: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 6: Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Step 7: Save the model
+    model_path = os.path.join(MODEL_DIR, 'abalone_age_prediction_model.json')
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 115, in main
+    df_scaled = preprocess_data(df)
+                ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 44, in preprocess_data
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 436, in fit
+    X = self._validate_input(X, in_fit=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 361, in _validate_input
+    raise new_ve from None
+ValueError: Cannot use mean strategy with non-numeric data:
+could not convert string to float: 'M'

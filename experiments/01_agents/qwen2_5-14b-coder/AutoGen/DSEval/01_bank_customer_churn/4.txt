@@ -1,0 +1,208 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'])
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'])
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# 分离特征和目标变量
+X_train = train_data.drop(columns=['Exited'])
+y_train = train_data['Exited']
+
+# 创建 DMatrix 对象
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 设置参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3
+}
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop(columns=['Exited'])
+y_test = test_data['Exited']
+
+# 创建 DMatrix 对象
+dtest = xgb.DMatrix(X_test)
+
+# 进行预测
+y_pred_prob = bst.predict(dtest)
+
+# 计算 AUC
+auc = roc_auc_score(y_test, y_pred_prob)
+print(f'AUC: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_bd736e46ce066dc14f97a771a1632fd6ded699043b020ce41ead9402078886b3.py", line 2, in <module>
+    train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'])
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'])
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'])
+
+# 分离特征和目标变量
+X_train = train_data.drop(columns=['Exited'])
+y_train = train_data['Exited']
+
+# 创建 DMatrix 对象
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 设置参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3
+}
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop(columns=['Exited'])
+y_test = test_data['Exited']
+
+# 创建 DMatrix 对象
+dtest = xgb.DMatrix(X_test)
+
+# 进行预测
+y_pred_prob = bst.predict(dtest)
+
+# 计算 AUC
+auc = roc_auc_score(y_test, y_pred_prob)
+print(f'AUC: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 407, in pandas_feature_info
+    new_feature_types.append(_pandas_dtype_mapper[dtype.name])
+KeyError: 'object'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b32cb970ad4fd0f45456d2ee4749adc24992ba10359f336794725029da20c98e.py", line 26, in <module>
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 729, in inner_f
+    return func(**kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\core.py", line 885, in __init__
+    handle, feature_names, feature_types = dispatch_data_backend(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 1441, in dispatch_data_backend
+    return _from_pandas_df(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 674, in _from_pandas_df
+    df, feature_names, feature_types = _transform_pandas_df(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 640, in _transform_pandas_df
+    feature_names, feature_types = pandas_feature_info(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 409, in pandas_feature_info
+    _invalid_dataframe_dtype(data)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\xgboost\data.py", line 372, in _invalid_dataframe_dtype
+    raise ValueError(msg)
+ValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:Gender: object
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import LabelEncoder
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# 删除不必要的列
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_data = train_data.drop(columns=columns_to_drop)
+test_data = test_data.drop(columns=columns_to_drop)
+
+# 对 "Geography" 和 "Card Type" 进行 one-hot 编码
+train_data = pd.get_dummies(train_data, columns=['Geography', 'Card Type'])
+test_data = pd.get_dummies(test_data, columns=['Geography', 'Card Type'])
+
+# 使用 LabelEncoder 将 "Gender" 列转换为数值类型
+label_encoder = LabelEncoder()
+train_data['Gender'] = label_encoder.fit_transform(train_data['Gender'])
+test_data['Gender'] = label_encoder.transform(test_data['Gender'])
+
+# 分离特征和目标变量
+X_train = train_data.drop(columns=['Exited'])
+y_train = train_data['Exited']
+
+# 创建 DMatrix 对象
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 设置参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3
+}
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 分离测试集的特征和目标变量
+X_test = test_data.drop(columns=['Exited'])
+y_test = test_data['Exited']
+
+# 创建 DMatrix 对象
+dtest = xgb.DMatrix(X_test)
+
+# 进行预测
+y_pred_prob = bst.predict(dtest)
+
+# 计算 AUC
+auc = roc_auc_score(y_test, y_pred_prob)
+print(f'AUC: {auc}')
+
+
+执行结果：
+AUC: 0.841813250236323

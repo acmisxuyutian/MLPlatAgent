@@ -1,0 +1,316 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 填充缺失值（这里假设缺失值较少，用中位数填充）
+train_data.fillna(train_data.median(), inplace=True)
+
+# 编码分类变量（假设 'cancellation' 是目标变量）
+train_data = pd.get_dummies(train_data, drop_first=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 假设 'booking_date' 和 'checkin_date' 是日期列
+train_data['booking_date'] = pd.to_datetime(train_data['booking_date'])
+train_data['checkin_date'] = pd.to_datetime(train_data['checkin_date'])
+
+# 创建新的特征 'booking_lead_time'
+train_data['booking_lead_time'] = (train_data['checkin_date'] - train_data['booking_date']).dt.days
+
+# 删除原始日期列
+train_data.drop(['booking_date', 'checkin_date'], axis=1, inplace=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X = train_data.drop('cancellation_Yes', axis=1)
+y = train_data['cancellation_Yes']
+
+# 将数据分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据分割结果
+print(f"训练集大小: {X_train.shape[0]}")
+print(f"测试集大小: {X_test.shape[0]}")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# 初始化逻辑回归模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"AUC-ROC: {auc_roc}")
+
+
+执行结果：
+      id  no_of_adults  ...  no_of_special_requests  booking_status
+0  15559             2  ...                       2               0
+1  32783             2  ...                       1               0
+2  11797             3  ...                       0               1
+3  39750             2  ...                       1               1
+4  28711             2  ...                       0               1
+
+[5 rows x 19 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_60a6f47dc8c769d29ee0b40f8f8cfd0c7f62ae21f5fb92f77749d6ef415fb715.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 填充缺失值（这里假设缺失值较少，用中位数填充）
+train_data.fillna(train_data.median(), inplace=True)
+
+# 编码分类变量（假设 'cancellation' 是目标变量）
+train_data = pd.get_dummies(train_data, drop_first=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 假设 'booking_date' 和 'checkin_date' 是日期列
+train_data['booking_date'] = pd.to_datetime(train_data['booking_date'])
+train_data['checkin_date'] = pd.to_datetime(train_data['checkin_date'])
+
+# 创建新的特征 'booking_lead_time'
+train_data['booking_lead_time'] = (train_data['checkin_date'] - train_data['booking_date']).dt.days
+
+# 删除原始日期列
+train_data.drop(['booking_date', 'checkin_date'], axis=1, inplace=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X = train_data.drop('cancellation_Yes', axis=1)
+y = train_data['cancellation_Yes']
+
+# 将数据分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据分割结果
+print(f"训练集大小: {X_train.shape[0]}")
+print(f"测试集大小: {X_test.shape[0]}")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# 初始化逻辑回归模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"AUC-ROC: {auc_roc}")
+
+
+执行结果：
+      id  no_of_adults  ...  no_of_special_requests  booking_status
+0  15559             2  ...                       2               0
+1  32783             2  ...                       1               0
+2  11797             3  ...                       0               1
+3  39750             2  ...                       1               1
+4  28711             2  ...                       0               1
+
+[5 rows x 19 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_60a6f47dc8c769d29ee0b40f8f8cfd0c7f62ae21f5fb92f77749d6ef415fb715.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 填充缺失值（这里假设缺失值较少，用中位数填充）
+train_data.fillna(train_data.median(), inplace=True)
+
+# 编码分类变量（假设 'cancellation' 是目标变量）
+train_data = pd.get_dummies(train_data, drop_first=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 假设 'booking_date' 和 'checkin_date' 是日期列
+train_data['booking_date'] = pd.to_datetime(train_data['booking_date'])
+train_data['checkin_date'] = pd.to_datetime(train_data['checkin_date'])
+
+# 创建新的特征 'booking_lead_time'
+train_data['booking_lead_time'] = (train_data['checkin_date'] - train_data['booking_date']).dt.days
+
+# 删除原始日期列
+train_data.drop(['booking_date', 'checkin_date'], axis=1, inplace=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X = train_data.drop('cancellation_Yes', axis=1)
+y = train_data['cancellation_Yes']
+
+# 将数据分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据分割结果
+print(f"训练集大小: {X_train.shape[0]}")
+print(f"测试集大小: {X_test.shape[0]}")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# 初始化逻辑回归模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"AUC-ROC: {auc_roc}")
+
+
+执行结果：
+      id  no_of_adults  ...  no_of_special_requests  booking_status
+0  15559             2  ...                       2               0
+1  32783             2  ...                       1               0
+2  11797             3  ...                       0               1
+3  39750             2  ...                       1               1
+4  28711             2  ...                       0               1
+
+[5 rows x 19 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_60a6f47dc8c769d29ee0b40f8f8cfd0c7f62ae21f5fb92f77749d6ef415fb715.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 填充缺失值（这里假设缺失值较少，用中位数填充）
+train_data.fillna(train_data.median(), inplace=True)
+
+# 编码分类变量（假设 'cancellation' 是目标变量）
+train_data = pd.get_dummies(train_data, drop_first=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 假设 'booking_date' 和 'checkin_date' 是日期列
+train_data['booking_date'] = pd.to_datetime(train_data['booking_date'])
+train_data['checkin_date'] = pd.to_datetime(train_data['checkin_date'])
+
+# 创建新的特征 'booking_lead_time'
+train_data['booking_lead_time'] = (train_data['checkin_date'] - train_data['booking_date']).dt.days
+
+# 删除原始日期列
+train_data.drop(['booking_date', 'checkin_date'], axis=1, inplace=True)
+
+# 查看处理后的数据
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X = train_data.drop('cancellation_Yes', axis=1)
+y = train_data['cancellation_Yes']
+
+# 将数据分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据分割结果
+print(f"训练集大小: {X_train.shape[0]}")
+print(f"测试集大小: {X_test.shape[0]}")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# 初始化逻辑回归模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"AUC-ROC: {auc_roc}")
+
+
+执行结果：
+      id  no_of_adults  ...  no_of_special_requests  booking_status
+0  15559             2  ...                       2               0
+1  32783             2  ...                       1               0
+2  11797             3  ...                       0               1
+3  39750             2  ...                       1               1
+4  28711             2  ...                       0               1
+
+[5 rows x 19 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_60a6f47dc8c769d29ee0b40f8f8cfd0c7f62ae21f5fb92f77749d6ef415fb715.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined

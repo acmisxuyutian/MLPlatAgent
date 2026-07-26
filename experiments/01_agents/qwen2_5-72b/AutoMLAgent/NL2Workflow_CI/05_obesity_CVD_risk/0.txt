@@ -1,0 +1,156 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    # KNN Imputation for numerical features
+    imputer = KNNImputer(n_neighbors=5)
+    train_df_numerical = pd.DataFrame(imputer.fit_transform(train_df[numerical_features]), columns=numerical_features)
+    test_df_numerical = pd.DataFrame(imputer.transform(test_df[numerical_features]), columns=numerical_features)
+
+    train_df = pd.concat([train_df_numerical, train_df[categorical_features]], axis=1)
+    test_df = pd.concat([test_df_numerical, test_df[categorical_features]], axis=1)
+
+    # Standardization of numerical features
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # One-hot encoding for categorical features
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+
+    return train_df, test_df
+
+# Data Augmentation
+def augment_data(train_df):
+    if 'obesity_risk' not in train_df.columns:
+        raise ValueError("The target column 'obesity_risk' is not found in the training dataset.")
+
+    X_train = train_df.drop(columns=['obesity_risk'])
+    y_train = train_df['obesity_risk']
+
+    # SMOTE for class imbalance
+    smote = SMOTE()
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    train_df = pd.concat([pd.DataFrame(X_train_resampled, columns=X_train.columns), pd.Series(y_train_resampled, name='obesity_risk')], axis=1)
+
+    # Feature perturbation
+    def perturb_data(df, features, perturbation_factor=0.05):
+        perturbed_df = df.copy()
+        for feature in features:
+            perturbed_df[feature] += np.random.normal(0, perturbation_factor, size=perturbed_df.shape[0])
+        return perturbed_df
+
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    train_df_augmented = perturb_data(train_df, numerical_features)
+    train_df = pd.concat([train_df, train_df_augmented], ignore_index=True)
+
+    return train_df
+
+# Model Training
+def train_model(X_train, y_train):
+    model = XGBClassifier(
+        learning_rate=0.1,
+        n_estimators=300,
+        max_depth=7,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
+    )
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    accuracy = accuracy_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+    report = classification_report(y_test, y_pred)
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'ROC-AUC': roc_auc,
+        'Classification Report': report
+    }
+
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+    # Step 1: Load the datasets
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Step 2: Preprocess the datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Augment the training dataset
+    train_df = augment_data(train_df)
+
+    # Step 4: Split the datasets into features and target
+    X_train = train_df.drop(columns=['obesity_risk'])
+    y_train = train_df['obesity_risk']
+    X_test = test_df.drop(columns=['obesity_risk'])
+    y_test = test_df['obesity_risk']
+
+    # Step 5: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 6: Evaluate the model
+    performance_scores = evaluate_model(model, X_test, y_test)
+
+    # Step 7: Save the model
+    model_path = './agent_workspace/trained_models/obesity_CVD_risk_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:")
+    print(json.dumps(model_performance, indent=4))
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 139, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 117, in main
+    train_df = augment_data(train_df)
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 52, in augment_data
+    raise ValueError("The target column 'obesity_risk' is not found in the training dataset.")
+ValueError: The target column 'obesity_risk' is not found in the training dataset.

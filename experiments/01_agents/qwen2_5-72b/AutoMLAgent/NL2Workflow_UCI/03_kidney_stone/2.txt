@@ -1,0 +1,200 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, cross_val_score
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+def load_dataset():
+    df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+    return df
+
+# Step 2. Run data preprocessing and feature engineering
+def preprocess_data(df):
+    print("Initial Data Exploration:")
+    print(df.head())
+    print(df.describe())
+    print(df.isnull().sum())
+    if 'has_kidney_stone' in df.columns:
+        print(df['has_kidney_stone'].value_counts())
+    else:
+        print("Target column 'has_kidney_stone' not found in the dataset.")
+    
+    # Handle Missing Values
+    df.fillna(df.mean(), inplace=True)
+    df.fillna(df.mode().iloc[0], inplace=True)
+    
+    # Remove or Correct Outliers
+    Q1 = df.quantile(0.25)
+    Q3 = df.quantile(0.75)
+    IQR = Q3 - Q1
+    df = df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]
+    
+    # Ensure the Target Variable is Binary
+    if 'has_kidney_stone' in df.columns:
+        df['has_kidney_stone'] = df['has_kidney_stone'].astype(int)
+    
+    # Encode Categorical Variables
+    df = pd.get_dummies(df, drop_first=True)
+    
+    # Normalize or Standardize Numerical Features
+    scaler = StandardScaler()
+    if 'has_kidney_stone' in df.columns:
+        df[df.columns.difference(['has_kidney_stone'])] = scaler.fit_transform(df[df.columns.difference(['has_kidney_stone'])])
+    else:
+        df = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
+    
+    # Create Domain-Specific Features
+    if 'BMI' in df.columns:
+        df['BMI_category'] = pd.cut(df['BMI'], bins=[0, 18.5, 24.9, 29.9, 100], labels=['Underweight', 'Normal', 'Overweight', 'Obese'])
+        df = pd.get_dummies(df, columns=['BMI_category'], drop_first=True)
+    
+    return df
+
+# Step 3. Augment the data
+def augment_data(df):
+    if 'has_kidney_stone' in df.columns:
+        X = df.drop(columns=['has_kidney_stone'])
+        y = df['has_kidney_stone']
+        smote = SMOTE()
+        X_resampled, y_resampled = smote.fit_resample(X, y)
+        df_resampled = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='has_kidney_stone')], axis=1)
+    else:
+        df_resampled = df
+    return df_resampled
+
+# Step 4. Split the dataset into training, validation, and test sets
+def split_data(df):
+    if 'has_kidney_stone' in df.columns:
+        X = df.drop(columns=['has_kidney_stone'])
+        y = df['has_kidney_stone']
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
+    else:
+        X_train, X_val, X_test, y_train, y_val, y_test = None, None, None, None, None, None
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5. Train the model
+def train_model(X_train, y_train):
+    param_dist = {
+        'learning_rate': [0.01, 0.1, 0.2],
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'subsample': [0.8, 1.0],
+        'colsample_bytree': [0.8, 1.0]
+    }
+
+    xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+    random_search = RandomizedSearchCV(xgb, param_distributions=param_dist, n_iter=50, cv=5, scoring='roc_auc', random_state=42)
+    random_search.fit(X_train, y_train)
+
+    best_params = random_search.best_params_
+    best_model = random_search.best_estimator_
+    return best_model, best_params
+
+# Step 6. Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    if X_test is not None and y_test is not None:
+        cv_scores = cross_val_score(model, X_test, y_test, cv=5, scoring='roc_auc')
+        print(f"Cross-Validation AUC-ROC: {cv_scores.mean()}")
+
+        y_pred = model.predict(X_test)
+        y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+        print("Test Set AUC-ROC:", roc_auc_score(y_test, y_pred_proba))
+        print("Classification Report:\n", classification_report(y_test, y_pred))
+        print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+        performance_scores = {
+            'AUC-ROC': roc_auc_score(y_test, y_pred_proba),
+            'Precision': classification_report(y_test, y_pred, output_dict=True)['1']['precision'],
+            'Recall': classification_report(y_test, y_pred, output_dict=True)['1']['recall'],
+            'F1-Score': classification_report(y_test, y_pred, output_dict=True)['1']['f1-score']
+        }
+    else:
+        performance_scores = None
+    return performance_scores
+
+# Step 7. Main function to orchestrate the process
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df = load_dataset()
+
+    # Step 2. Run data preprocessing and feature engineering
+    df = preprocess_data(df)
+
+    # Step 3. Augment the data
+    df = augment_data(df)
+
+    # Step 4. Split the dataset into training, validation, and test sets
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 5. Train the model
+    if X_train is not None and y_train is not None:
+        model, best_params = train_model(X_train, y_train)
+        print("Best Hyperparameters:", best_params)
+
+        # Step 6. Evaluate the model
+        performance_scores = evaluate_model(model, X_test, y_test)
+
+        # Step 7. Save the trained model
+        model_path = "./agent_workspace/trained_models/kidney_stone_model.pkl"
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        joblib.dump(model, model_path)
+
+        return performance_scores
+    else:
+        print("No data available for training and evaluation.")
+        return None
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+    else:
+        print("Model training and evaluation failed.")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Initial Data Exploration:
+    id  gravity    ph  osmo  cond  urea   calc  target
+0  192    1.012  5.77   461  17.4   195   1.40       0
+1  234    1.017  5.71   704  24.5   270   3.46       0
+2    5    1.025  6.90   947  28.4   395   2.64       1
+3   45    1.008  5.98   779  17.8   418   6.99       1
+4  245    1.031  5.24   703  23.6   364  12.68       1
+               id     gravity          ph  ...        urea        calc      target
+count  331.000000  331.000000  331.000000  ...  331.000000  331.000000  331.000000
+mean   210.528701    1.018142    5.945921  ...  281.755287    4.060967    0.441088
+std    117.388586    0.006595    0.647881  ...  134.351542    3.155523    0.497269
+min      1.000000    1.005000    4.760000  ...   10.000000    0.170000    0.000000
+25%    112.500000    1.013000    5.530000  ...  178.000000    1.505000    0.000000
+50%    213.000000    1.018000    5.730000  ...  282.000000    3.100000    0.000000
+75%    309.500000    1.022000    6.280000  ...  385.000000    5.640000    1.000000
+max    413.000000    1.040000    7.940000  ...  620.000000   14.340000    1.000000
+
+[8 rows x 8 columns]
+id         0
+gravity    0
+ph         0
+osmo       0
+cond       0
+urea       0
+calc       0
+target     0
+dtype: int64
+Target column 'has_kidney_stone' not found in the dataset.
+No data available for training and evaluation.
+Model training and evaluation failed.

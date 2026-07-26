@@ -1,0 +1,167 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder, MinMaxScaler, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import make_scorer
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+from sklearn.metrics import f1_score
+from flask import Flask, request, jsonify
+import logging
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Ensure the directory exists
+os.makedirs('./data/horse_health_outcomes/', exist_ok=True)
+
+# Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+dataset_path = './data/horse_health_outcomes/train.csv'
+
+# Download the dataset using SCP (assuming you have the necessary permissions and tools)
+# This step should be done manually or via a script before running the Python code
+# Example command:
+# scp r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv' ./data/horse_health_outcomes/
+
+# Load the dataset
+df = pd.read_csv(dataset_path)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Identify numerical and categorical columns
+    numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns
+
+    # Impute missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    # One-Hot Encoding for categorical variables
+    one_hot_encoder = OneHotEncoder(handle_unknown='ignore')
+
+    # Label Encoding for ordinal categorical variables (if any)
+    label_encoder = LabelEncoder()
+
+    # Min-Max Scaling for numerical features
+    min_max_scaler = MinMaxScaler()
+
+    # Standardization for numerical features
+    standard_scaler = StandardScaler()
+
+    # Create a preprocessing pipeline
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num_imputer', numerical_imputer, numerical_cols),
+            ('cat_imputer', categorical_imputer, categorical_cols),
+            ('one_hot', one_hot_encoder, categorical_cols),
+            ('min_max_scaler', min_max_scaler, numerical_cols),
+            ('standard_scaler', standard_scaler, numerical_cols)
+        ])
+
+    # Apply preprocessing
+    processed_data = preprocessor.fit_transform(df)
+
+    return processed_data
+
+def train_model(X_train, y_train):
+    # Define the model
+    model = xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=6,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8
+    )
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    return model
+
+def evaluate_model(model, X_test, y_test):    
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+    # Calculate performance scores
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred)
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = './data/horse_health_outcomes/train.csv'
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=SEED)
+    valid_df, test_df = train_test_split(temp_df, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train = preprocess_data(train_df.drop('health_status', axis=1))
+    y_train = train_df['health_status']
+
+    X_valid = preprocess_data(valid_df.drop('health_status', axis=1))
+    y_valid = valid_df['health_status']
+
+    X_test = preprocess_data(test_df.drop('health_status', axis=1))
+    y_test = test_df['health_status']
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 39, in <module>
+    df = pd.read_csv(dataset_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './data/horse_health_outcomes/train.csv'

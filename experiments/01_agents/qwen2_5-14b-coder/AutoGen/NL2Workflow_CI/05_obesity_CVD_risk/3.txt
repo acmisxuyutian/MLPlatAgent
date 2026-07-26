@@ -1,0 +1,574 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据集的前几行
+print(train_df.head())
+print(test_df.head())
+
+# 查看数据集的基本信息
+print(train_df.info())
+print(test_df.info())
+
+# 查看数据集的描述性统计
+print(train_df.describe())
+print(test_df.describe())
+
+# 查看目标变量的分布
+print(train_df['Obesity_Risk'].value_counts())
+
+# 示例：创建一个新的特征，例如BMI（体重指数）
+train_df['BMI'] = train_df['Weight'] / (train_df['Height'] / 100) ** 2
+test_df['BMI'] = test_df['Weight'] / (test_df['Height'] / 100) ** 2
+
+# 示例：创建一个虚拟变量，表示是否经常锻炼
+train_df['Active'] = (train_df['PhysicalActivity'] == 'Yes').astype(int)
+test_df['Active'] = (test_df['PhysicalActivity'] == 'Yes').astype(int)
+
+from sklearn.feature_selection import SelectKBest, f_classif
+
+# 定义特征和目标变量
+X_train = train_df.drop(columns=['Obesity_Risk'])
+y_train = train_df['Obesity_Risk']
+X_test = test_df.drop(columns=['Obesity_Risk'])
+y_test = test_df['Obesity_Risk']
+
+# 选择前10个最重要的特征
+selector = SelectKBest(score_func=f_classif, k=10)
+X_train_selected = selector.fit_transform(X_train, y_train)
+X_test_selected = selector.transform(X_test)
+
+# 获取选中的特征名称
+selected_features = X_train.columns[selector.get_support()]
+print("Selected features:", selected_features)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train_selected, y_train)
+
+# 预测测试集
+y_pred = model.predict(X_test_selected)
+
+# 计算准确率
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy on test set:", accuracy)
+
+
+执行结果：
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+      id  Gender  ...                 MTRANS           NObeyesdad
+0  10317  Female  ...  Public_Transportation     Obesity_Type_III
+1   4074    Male  ...  Public_Transportation   Overweight_Level_I
+2   9060  Female  ...  Public_Transportation       Obesity_Type_I
+3  11286    Male  ...  Public_Transportation      Obesity_Type_II
+4   8254    Male  ...  Public_Transportation  Insufficient_Weight
+
+[5 rows x 18 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_49ae824043f2afe747c586f2401ab5251f54a69365e1d72d4d59474854f392b9.py", line 2, in <module>
+    print(train_df.info())
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+try:
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    # 查看数据集的前几行
+    print(train_df.head())
+    print(test_df.head())
+    
+    # 查看数据集的基本信息
+    print(train_df.info())
+    print(test_df.info())
+    
+    # 查看数据集的描述性统计
+    print(train_df.describe())
+    print(test_df.describe())
+    
+    # 查看目标变量的分布
+    print(train_df['Obesity_Risk'].value_counts())
+    
+    # 特征构建
+    train_df['BMI'] = train_df['Weight'] / (train_df['Height'] / 100) ** 2
+    test_df['BMI'] = test_df['Weight'] / (test_df['Height'] / 100) ** 2
+    
+    train_df['Active'] = (train_df['PhysicalActivity'] == 'Yes').astype(int)
+    test_df['Active'] = (test_df['PhysicalActivity'] == 'Yes').astype(int)
+    
+    # 特征选择
+    from sklearn.feature_selection import SelectKBest, f_classif
+    
+    X_train = train_df.drop(columns=['Obesity_Risk'])
+    y_train = train_df['Obesity_Risk']
+    X_test = test_df.drop(columns=['Obesity_Risk'])
+    y_test = test_df['Obesity_Risk']
+    
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+    
+    selected_features = X_train.columns[selector.get_support()]
+    print("Selected features:", selected_features)
+    
+    # 训练模型
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score
+    
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train_selected, y_train)
+    
+    y_pred = model.predict(X_test_selected)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy on test set:", accuracy)
+    
+except Exception as e:
+    print("An error occurred:", e)
+
+
+执行结果：
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+      id  Gender  ...                 MTRANS           NObeyesdad
+0  10317  Female  ...  Public_Transportation     Obesity_Type_III
+1   4074    Male  ...  Public_Transportation   Overweight_Level_I
+2   9060  Female  ...  Public_Transportation       Obesity_Type_I
+3  11286    Male  ...  Public_Transportation      Obesity_Type_II
+4   8254    Male  ...  Public_Transportation  Insufficient_Weight
+
+[5 rows x 18 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 16606 entries, 0 to 16605
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              16606 non-null  int64  
+ 1   Gender                          16606 non-null  object 
+ 2   Age                             16606 non-null  float64
+ 3   Height                          16606 non-null  float64
+ 4   Weight                          16606 non-null  float64
+ 5   family_history_with_overweight  16606 non-null  object 
+ 6   FAVC                            16606 non-null  object 
+ 7   FCVC                            16606 non-null  float64
+ 8   NCP                             16606 non-null  float64
+ 9   CAEC                            16606 non-null  object 
+ 10  SMOKE                           16606 non-null  object 
+ 11  CH2O                            16606 non-null  float64
+ 12  SCC                             16606 non-null  object 
+ 13  FAF                             16606 non-null  float64
+ 14  TUE                             16606 non-null  float64
+ 15  CALC                            16606 non-null  object 
+ 16  MTRANS                          16606 non-null  object 
+ 17  NObeyesdad                      16606 non-null  object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 2.3+ MB
+None
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 4152 entries, 0 to 4151
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              4152 non-null   int64  
+ 1   Gender                          4152 non-null   object 
+ 2   Age                             4152 non-null   float64
+ 3   Height                          4152 non-null   float64
+ 4   Weight                          4152 non-null   float64
+ 5   family_history_with_overweight  4152 non-null   object 
+ 6   FAVC                            4152 non-null   object 
+ 7   FCVC                            4152 non-null   float64
+ 8   NCP                             4152 non-null   float64
+ 9   CAEC                            4152 non-null   object 
+ 10  SMOKE                           4152 non-null   object 
+ 11  CH2O                            4152 non-null   float64
+ 12  SCC                             4152 non-null   object 
+ 13  FAF                             4152 non-null   float64
+ 14  TUE                             4152 non-null   float64
+ 15  CALC                            4152 non-null   object 
+ 16  MTRANS                          4152 non-null   object 
+ 17  NObeyesdad                      4152 non-null   object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 584.0+ KB
+None
+                 id           Age  ...           FAF           TUE
+count  16606.000000  16606.000000  ...  16606.000000  16606.000000
+mean   10363.210888     23.892845  ...      0.985767      0.619577
+std     5999.344301      5.747219  ...      0.841048      0.604124
+min        0.000000     14.000000  ...      0.000000      0.000000
+25%     5171.250000     20.000000  ...      0.008822      0.000000
+50%    10377.500000     22.832105  ...      1.000000      0.573958
+75%    15542.500000     26.000000  ...      1.600536      1.000000
+max    20757.000000     61.000000  ...      3.000000      2.000000
+
+[8 rows x 9 columns]
+                 id          Age  ...          FAF          TUE
+count   4152.000000  4152.000000  ...  4152.000000  4152.000000
+mean   10439.649085    23.637665  ...     0.965667     0.605473
+std     5965.188879     5.440978  ...     0.827134     0.593941
+min        3.000000    14.000000  ...     0.000000     0.000000
+25%     5248.500000    19.871993  ...     0.001015     0.000000
+50%    10383.000000    22.657936  ...     1.000000     0.555468
+75%    15694.250000    26.000000  ...     1.541072     1.000000
+max    20756.000000    55.137881  ...     3.000000     2.000000
+
+[8 rows x 9 columns]
+An error occurred: 'Obesity_Risk'
+
+生成的代码：
+import pandas as pd
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+try:
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    # 查看数据集的前几行
+    print(train_df.head())
+    print(test_df.head())
+    
+    # 查看数据集的基本信息
+    print(train_df.info())
+    print(test_df.info())
+    
+    # 查看数据集的描述性统计
+    print(train_df.describe())
+    print(test_df.describe())
+    
+    # 查看目标变量的分布
+    print(train_df['NObeyesdad'].value_counts())
+    
+    # 特征构建
+    train_df['BMI'] = train_df['Weight'] / (train_df['Height'] / 100) ** 2
+    test_df['BMI'] = test_df['Weight'] / (test_df['Height'] / 100) ** 2
+    
+    train_df['Active'] = (train_df['PhysicalActivity'] == 'Yes').astype(int)
+    test_df['Active'] = (test_df['PhysicalActivity'] == 'Yes').astype(int)
+    
+    # 特征选择
+    X_train = train_df.drop(columns=['NObeyesdad'])
+    y_train = train_df['NObeyesdad']
+    X_test = test_df.drop(columns=['NObeyesdad'])
+    y_test = test_df['NObeyesdad']
+    
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+    
+    selected_features = X_train.columns[selector.get_support()]
+    print("Selected features:", selected_features)
+    
+    # 训练模型
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train_selected, y_train)
+    
+    y_pred = model.predict(X_test_selected)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy on test set:", accuracy)
+    
+except Exception as e:
+    print("An error occurred:", e)
+
+
+执行结果：
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+      id  Gender  ...                 MTRANS           NObeyesdad
+0  10317  Female  ...  Public_Transportation     Obesity_Type_III
+1   4074    Male  ...  Public_Transportation   Overweight_Level_I
+2   9060  Female  ...  Public_Transportation       Obesity_Type_I
+3  11286    Male  ...  Public_Transportation      Obesity_Type_II
+4   8254    Male  ...  Public_Transportation  Insufficient_Weight
+
+[5 rows x 18 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 16606 entries, 0 to 16605
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              16606 non-null  int64  
+ 1   Gender                          16606 non-null  object 
+ 2   Age                             16606 non-null  float64
+ 3   Height                          16606 non-null  float64
+ 4   Weight                          16606 non-null  float64
+ 5   family_history_with_overweight  16606 non-null  object 
+ 6   FAVC                            16606 non-null  object 
+ 7   FCVC                            16606 non-null  float64
+ 8   NCP                             16606 non-null  float64
+ 9   CAEC                            16606 non-null  object 
+ 10  SMOKE                           16606 non-null  object 
+ 11  CH2O                            16606 non-null  float64
+ 12  SCC                             16606 non-null  object 
+ 13  FAF                             16606 non-null  float64
+ 14  TUE                             16606 non-null  float64
+ 15  CALC                            16606 non-null  object 
+ 16  MTRANS                          16606 non-null  object 
+ 17  NObeyesdad                      16606 non-null  object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 2.3+ MB
+None
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 4152 entries, 0 to 4151
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              4152 non-null   int64  
+ 1   Gender                          4152 non-null   object 
+ 2   Age                             4152 non-null   float64
+ 3   Height                          4152 non-null   float64
+ 4   Weight                          4152 non-null   float64
+ 5   family_history_with_overweight  4152 non-null   object 
+ 6   FAVC                            4152 non-null   object 
+ 7   FCVC                            4152 non-null   float64
+ 8   NCP                             4152 non-null   float64
+ 9   CAEC                            4152 non-null   object 
+ 10  SMOKE                           4152 non-null   object 
+ 11  CH2O                            4152 non-null   float64
+ 12  SCC                             4152 non-null   object 
+ 13  FAF                             4152 non-null   float64
+ 14  TUE                             4152 non-null   float64
+ 15  CALC                            4152 non-null   object 
+ 16  MTRANS                          4152 non-null   object 
+ 17  NObeyesdad                      4152 non-null   object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 584.0+ KB
+None
+                 id           Age  ...           FAF           TUE
+count  16606.000000  16606.000000  ...  16606.000000  16606.000000
+mean   10363.210888     23.892845  ...      0.985767      0.619577
+std     5999.344301      5.747219  ...      0.841048      0.604124
+min        0.000000     14.000000  ...      0.000000      0.000000
+25%     5171.250000     20.000000  ...      0.008822      0.000000
+50%    10377.500000     22.832105  ...      1.000000      0.573958
+75%    15542.500000     26.000000  ...      1.600536      1.000000
+max    20757.000000     61.000000  ...      3.000000      2.000000
+
+[8 rows x 9 columns]
+                 id          Age  ...          FAF          TUE
+count   4152.000000  4152.000000  ...  4152.000000  4152.000000
+mean   10439.649085    23.637665  ...     0.965667     0.605473
+std     5965.188879     5.440978  ...     0.827134     0.593941
+min        3.000000    14.000000  ...     0.000000     0.000000
+25%     5248.500000    19.871993  ...     0.001015     0.000000
+50%    10383.000000    22.657936  ...     1.000000     0.555468
+75%    15694.250000    26.000000  ...     1.541072     1.000000
+max    20756.000000    55.137881  ...     3.000000     2.000000
+
+[8 rows x 9 columns]
+NObeyesdad
+Obesity_Type_III       3242
+Obesity_Type_II        2591
+Normal_Weight          2456
+Obesity_Type_I         2367
+Overweight_Level_II    2008
+Insufficient_Weight    1999
+Overweight_Level_I     1943
+Name: count, dtype: int64
+An error occurred: 'PhysicalActivity'
+
+生成的代码：
+import pandas as pd
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+try:
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    # 查看数据集的前几行
+    print(train_df.head())
+    print(test_df.head())
+    
+    # 查看数据集的基本信息
+    print(train_df.info())
+    print(test_df.info())
+    
+    # 查看数据集的描述性统计
+    print(train_df.describe())
+    print(test_df.describe())
+    
+    # 查看目标变量的分布
+    print(train_df['NObeyesdad'].value_counts())
+    
+    # 特征构建
+    train_df['BMI'] = train_df['Weight'] / (train_df['Height'] / 100) ** 2
+    test_df['BMI'] = test_df['Weight'] / (test_df['Height'] / 100) ** 2
+    
+    train_df['Active'] = (train_df['PhysicalActivity'] == 'Yes').astype(int)
+    test_df['Active'] = (test_df['PhysicalActivity'] == 'Yes').astype(int)
+    
+    # 特征选择
+    X_train = train_df.drop(columns=['NObeyesdad'])
+    y_train = train_df['NObeyesdad']
+    X_test = test_df.drop(columns=['NObeyesdad'])
+    y_test = test_df['NObeyesdad']
+    
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+    
+    selected_features = X_train.columns[selector.get_support()]
+    print("Selected features:", selected_features)
+    
+    # 训练模型
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train_selected, y_train)
+    
+    y_pred = model.predict(X_test_selected)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy on test set:", accuracy)
+    
+except Exception as e:
+    print("An error occurred:", e)
+
+
+执行结果：
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+      id  Gender  ...                 MTRANS           NObeyesdad
+0  10317  Female  ...  Public_Transportation     Obesity_Type_III
+1   4074    Male  ...  Public_Transportation   Overweight_Level_I
+2   9060  Female  ...  Public_Transportation       Obesity_Type_I
+3  11286    Male  ...  Public_Transportation      Obesity_Type_II
+4   8254    Male  ...  Public_Transportation  Insufficient_Weight
+
+[5 rows x 18 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 16606 entries, 0 to 16605
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              16606 non-null  int64  
+ 1   Gender                          16606 non-null  object 
+ 2   Age                             16606 non-null  float64
+ 3   Height                          16606 non-null  float64
+ 4   Weight                          16606 non-null  float64
+ 5   family_history_with_overweight  16606 non-null  object 
+ 6   FAVC                            16606 non-null  object 
+ 7   FCVC                            16606 non-null  float64
+ 8   NCP                             16606 non-null  float64
+ 9   CAEC                            16606 non-null  object 
+ 10  SMOKE                           16606 non-null  object 
+ 11  CH2O                            16606 non-null  float64
+ 12  SCC                             16606 non-null  object 
+ 13  FAF                             16606 non-null  float64
+ 14  TUE                             16606 non-null  float64
+ 15  CALC                            16606 non-null  object 
+ 16  MTRANS                          16606 non-null  object 
+ 17  NObeyesdad                      16606 non-null  object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 2.3+ MB
+None
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 4152 entries, 0 to 4151
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              4152 non-null   int64  
+ 1   Gender                          4152 non-null   object 
+ 2   Age                             4152 non-null   float64
+ 3   Height                          4152 non-null   float64
+ 4   Weight                          4152 non-null   float64
+ 5   family_history_with_overweight  4152 non-null   object 
+ 6   FAVC                            4152 non-null   object 
+ 7   FCVC                            4152 non-null   float64
+ 8   NCP                             4152 non-null   float64
+ 9   CAEC                            4152 non-null   object 
+ 10  SMOKE                           4152 non-null   object 
+ 11  CH2O                            4152 non-null   float64
+ 12  SCC                             4152 non-null   object 
+ 13  FAF                             4152 non-null   float64
+ 14  TUE                             4152 non-null   float64
+ 15  CALC                            4152 non-null   object 
+ 16  MTRANS                          4152 non-null   object 
+ 17  NObeyesdad                      4152 non-null   object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 584.0+ KB
+None
+                 id           Age  ...           FAF           TUE
+count  16606.000000  16606.000000  ...  16606.000000  16606.000000
+mean   10363.210888     23.892845  ...      0.985767      0.619577
+std     5999.344301      5.747219  ...      0.841048      0.604124
+min        0.000000     14.000000  ...      0.000000      0.000000
+25%     5171.250000     20.000000  ...      0.008822      0.000000
+50%    10377.500000     22.832105  ...      1.000000      0.573958
+75%    15542.500000     26.000000  ...      1.600536      1.000000
+max    20757.000000     61.000000  ...      3.000000      2.000000
+
+[8 rows x 9 columns]
+                 id          Age  ...          FAF          TUE
+count   4152.000000  4152.000000  ...  4152.000000  4152.000000
+mean   10439.649085    23.637665  ...     0.965667     0.605473
+std     5965.188879     5.440978  ...     0.827134     0.593941
+min        3.000000    14.000000  ...     0.000000     0.000000
+25%     5248.500000    19.871993  ...     0.001015     0.000000
+50%    10383.000000    22.657936  ...     1.000000     0.555468
+75%    15694.250000    26.000000  ...     1.541072     1.000000
+max    20756.000000    55.137881  ...     3.000000     2.000000
+
+[8 rows x 9 columns]
+NObeyesdad
+Obesity_Type_III       3242
+Obesity_Type_II        2591
+Normal_Weight          2456
+Obesity_Type_I         2367
+Overweight_Level_II    2008
+Insufficient_Weight    1999
+Overweight_Level_I     1943
+Name: count, dtype: int64
+An error occurred: 'PhysicalActivity'

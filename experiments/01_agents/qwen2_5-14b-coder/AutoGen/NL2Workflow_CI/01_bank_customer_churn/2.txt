@@ -1,0 +1,482 @@
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 检查缺失值
+print("训练集缺失值情况：")
+print(train_data.isnull().sum())
+print("测试集缺失值情况：")
+print(test_data.isnull().sum())
+
+# 编码分类变量
+label_encoders = {}
+for column in train_data.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+for column in test_data.select_dtypes(include=['object']).columns:
+    test_data[column] = label_encoders[column].transform(test_data[column])
+
+# 3. 特征选择
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 4. 模型训练
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+# 5. 模型预测
+y_pred = rf_model.predict(X_test)
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 6. 保存预测结果
+predictions_df = pd.DataFrame({'CustomerID': test_data['CustomerID'], 'Exited': y_pred})
+predictions_df.to_csv('predictions.csv', index=False)
+
+# 7. 评估模型
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("混淆矩阵：")
+print(conf_matrix)
+
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc}")
+
+# 绘制ROC曲线（可选）
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+plt.plot(fpr, tpr, label=f'AUC = {auc_roc:.2f}')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.legend()
+plt.show()
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'Sutton'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b33979b44d0918017123de078575b88cb5492aec8e1acf93c8650d32e34581be.py", line 30, in <module>
+    test_data[column] = label_encoders[column].transform(test_data[column])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\preprocessing\_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'Sutton'
+训练集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+测试集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 检查缺失值
+print("训练集缺失值情况：")
+print(train_data.isnull().sum())
+print("测试集缺失值情况：")
+print(test_data.isnull().sum())
+
+# 编码分类变量
+label_encoders = {}
+for column in train_data.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+for column in test_data.select_dtypes(include=['object']).columns:
+    test_data[column] = label_encoders[column].transform(test_data[column])
+
+# 3. 特征选择
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 4. 模型训练
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+# 5. 模型预测
+y_pred = rf_model.predict(X_test)
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 6. 保存预测结果
+predictions_df = pd.DataFrame({'CustomerID': test_data['CustomerID'], 'Exited': y_pred})
+predictions_df.to_csv('predictions.csv', index=False)
+
+# 7. 评估模型
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("混淆矩阵：")
+print(conf_matrix)
+
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc}")
+
+# 绘制ROC曲线（可选）
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+plt.plot(fpr, tpr, label=f'AUC = {auc_roc:.2f}')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.legend()
+plt.show()
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'Sutton'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f2542a8962f53f15ff3cc234070badb8454e875ac76047e8c84ba8c4b38ef0a3.py", line 31, in <module>
+    test_data[column] = label_encoders[column].transform(test_data[column])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\preprocessing\_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'Sutton'
+训练集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+测试集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 检查缺失值
+print("训练集缺失值情况：")
+print(train_data.isnull().sum())
+print("测试集缺失值情况：")
+print(test_data.isnull().sum())
+
+# 编码分类变量
+label_encoders = {}
+for column in train_data.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+for column in test_data.select_dtypes(include=['object']).columns:
+    test_data[column] = test_data[column].apply(lambda x: x if x in label_encoders[column].classes_ else label_encoders[column].classes_[0])
+    test_data[column] = label_encoders[column].transform(test_data[column])
+
+# 3. 特征选择
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 4. 模型训练
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+# 5. 模型预测
+y_pred = rf_model.predict(X_test)
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 6. 保存预测结果
+predictions_df = pd.DataFrame({'CustomerID': test_data['CustomerID'], 'Exited': y_pred})
+predictions_df.to_csv('predictions.csv', index=False)
+
+# 7. 评估模型
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("混淆矩阵：")
+print(conf_matrix)
+
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc}")
+
+# 绘制ROC曲线（可选）
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+plt.plot(fpr, tpr, label=f'AUC = {auc_roc:.2f}')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.legend()
+plt.show()
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'CustomerID'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_0d26f3d3f9557bf3e65f81f2d1ecfbbe6c1a9fdd338426e3eab4b979ebce4d69.py", line 49, in <module>
+    predictions_df = pd.DataFrame({'CustomerID': test_data['CustomerID'], 'Exited': y_pred})
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'CustomerID'
+训练集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+测试集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 检查缺失值
+print("训练集缺失值情况：")
+print(train_data.isnull().sum())
+print("测试集缺失值情况：")
+print(test_data.isnull().sum())
+
+# 编码分类变量
+label_encoders = {}
+for column in train_data.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+for column in test_data.select_dtypes(include=['object']).columns:
+    test_data[column] = test_data[column].apply(lambda x: x if x in label_encoders[column].classes_ else label_encoders[column].classes_[0])
+    test_data[column] = label_encoders[column].transform(test_data[column])
+
+# 3. 特征选择
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# 4. 模型训练
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+# 5. 模型预测
+y_pred = rf_model.predict(X_test)
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# 6. 保存预测结果
+predictions_df = pd.DataFrame({'CustomerID': test_data['CustomerId'], 'Exited': y_pred})
+predictions_df.to_csv('predictions.csv', index=False)
+
+# 7. 评估模型
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("混淆矩阵：")
+print(conf_matrix)
+
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc}")
+
+# 绘制ROC曲线（可选）
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+plt.plot(fpr, tpr, label=f'AUC = {auc_roc:.2f}')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.legend()
+plt.show()
+
+
+执行结果：
+训练集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+测试集缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+混淆矩阵：
+[[24780  1272]
+ [ 3248  3707]]
+AUC-ROC: 0.8822141068744553

@@ -1,0 +1,514 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 42, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 23, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_base.py", line 601, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Turkey'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Identify categorical columns
+    categorical_cols = data_df.select_dtypes(include=['object']).columns
+
+    # Perform one-hot encoding on categorical columns
+    data_df = pd.get_dummies(data_df, columns=categorical_cols)
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+
+    # Perform one-hot encoding on categorical columns for the test set
+    submission_df = pd.get_dummies(submission_df, columns=categorical_cols)
+
+    # Ensure the test set has the same columns as the training set
+    X_test = submission_df.reindex(columns=X.columns, fill_value=0)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 48, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 23, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_base.py", line 601, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1107, in check_array
+    _assert_all_finite(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 120, in _assert_all_finite
+    _assert_all_finite_element_wise(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 169, in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+ValueError: Input X contains NaN.
+LinearRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.impute import SimpleImputer
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    imputer = SimpleImputer(strategy='mean')
+    X_train_imputed = imputer.fit_transform(X_train)
+    X_valid_imputed = imputer.transform(X_valid)
+
+    model = LinearRegression()
+    model.fit(X_train_imputed, y_train)
+    return model, imputer
+
+
+def predict(model, imputer, X):
+    X_imputed = imputer.transform(X)
+    y_pred = model.predict(X_imputed)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Identify categorical columns
+    categorical_cols = data_df.select_dtypes(include=['object']).columns
+
+    # Perform one-hot encoding on categorical columns
+    data_df = pd.get_dummies(data_df, columns=categorical_cols)
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model, imputer = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, imputer, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+
+    # Perform one-hot encoding on categorical columns for the test set
+    submission_df = pd.get_dummies(submission_df, columns=categorical_cols)
+
+    # Ensure the test set has the same columns as the training set
+    X_test = submission_df.reindex(columns=X.columns, fill_value=0)
+    y_test_pred = predict(model, imputer, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 54, in <module>
+    model, imputer = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 28, in train_model
+    model.fit(X_train_imputed, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_base.py", line 601, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1387, in check_X_y
+    y = _check_y(y, multi_output=multi_output, y_numeric=y_numeric, estimator=estimator)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1397, in _check_y
+    y = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1107, in check_array
+    _assert_all_finite(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 120, in _assert_all_finite
+    _assert_all_finite_element_wise(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 169, in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+ValueError: Input y contains NaN.
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+from sklearn.linear_model import LinearRegression
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 37, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 22, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_base.py", line 601, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Turkey'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Initialize the OneHotEncoder
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    # Fit and transform the categorical columns
+    df_encoded = pd.DataFrame(encoder.fit_transform(df[categorical_cols]))
+    df_encoded.columns = encoder.get_feature_names_out(categorical_cols)
+    # Drop the original categorical columns
+    df = df.drop(categorical_cols, axis=1)
+    # Concatenate the encoded columns with the original dataframe
+    df = pd.concat([df, df_encoded], axis=1)
+    return df
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df)
+    X_test = submission_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 46, in <module>
+    data_df = preprocess_data(data_df)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 23, in preprocess_data
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Initialize the OneHotEncoder
+    encoder = OneHotEncoder(handle_unknown='ignore')
+    # Fit and transform the categorical columns
+    df_encoded = pd.DataFrame(encoder.fit_transform(df[categorical_cols]))
+    df_encoded.columns = encoder.get_feature_names_out(categorical_cols)
+    # Drop the original categorical columns
+    df = df.drop(categorical_cols, axis=1)
+    # Concatenate the encoded columns with the original dataframe
+    df = pd.concat([df, df_encoded], axis=1)
+    return df
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Preprocess the data
+    data_df = preprocess_data(data_df)
+
+    X = data_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y = data_df['Renewable energy share in the total final energy consumption (%)'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    # Preprocess the test data
+    submission_df = preprocess_data(submission_df)
+    X_test = submission_df.drop(['Renewable energy share in the total final energy consumption (%)'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 46, in <module>
+    data_df = preprocess_data(data_df)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/07_sustainable_energy/train.py", line 26, in preprocess_data
+    df_encoded.columns = encoder.get_feature_names_out(categorical_cols)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 6313, in __setattr__
+    return object.__setattr__(self, name, value)
+  File "properties.pyx", line 69, in pandas._libs.properties.AxisProperty.__set__
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 814, in _set_axis
+    self._mgr.set_axis(axis, labels)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/internals/managers.py", line 238, in set_axis
+    self._validate_set_axis(axis, new_labels)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/internals/base.py", line 98, in _validate_set_axis
+    raise ValueError(
+ValueError: Length mismatch: Expected axis has 1 elements, new values have 301 elements
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 136, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

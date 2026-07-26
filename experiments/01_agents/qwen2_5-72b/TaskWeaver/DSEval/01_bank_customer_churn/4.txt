@@ -1,0 +1,167 @@
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Drop the specified columns
+train_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+test_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+
+# Apply one-hot encoding to 'Geography' and 'Card Type'
+categorical_columns = ['Geography', 'Card Type']
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[categorical_columns])
+encoded_test = encoder.transform(test_df[categorical_columns])
+
+encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_columns))
+encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_columns))
+
+train_df = pd.concat([train_df.drop(columns=categorical_columns), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=categorical_columns), encoded_test_df], axis=1)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Train an XGBoost model
+model = XGBClassifier()
+model.fit(X_train, y_train)
+
+# Make predictions on the test data
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Compute the area under the ROC curve
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+train_df, test_df, model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:407 in pandas_feature_info
+    new_feature_types.append(_pandas_dtype_mapper[dtype.name])
+
+KeyError: 'object'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 36
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:729 in inner_f
+    return func(**kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:1663 in fit
+    train_dmatrix, evals = _wrap_evaluation_matrices(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:628 in _wrap_evaluation_matrices
+    train_dmatrix = create_dmatrix(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:1137 in _create_dmatrix
+    return QuantileDMatrix(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:729 in inner_f
+    return func(**kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:1614 in __init__
+    self._init(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:1678 in _init
+    it.reraise()
+
+  File D:\LLM-Driven_AI-Studio\MLAg
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Drop the specified columns
+train_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+test_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+
+# Apply one-hot encoding to 'Geography' and 'Card Type'
+categorical_columns = ['Geography', 'Card Type']
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[categorical_columns])
+encoded_test = encoder.transform(test_df[categorical_columns])
+
+encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_columns))
+encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_columns))
+
+train_df = pd.concat([train_df.drop(columns=categorical_columns), encoded_train_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=categorical_columns), encoded_test_df], axis=1)
+
+# Ensure all columns are numeric
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+# Separate features and target
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+
+# Train an XGBoost model
+model = XGBClassifier()
+model.fit(X_train, y_train)
+
+# Make predictions on the test data
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Compute the area under the ROC curve
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+train_df, test_df, model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      RowNumber  CreditScore  Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Exited  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          9255          686     NaN   32       6       0.00              2          1               1        179093.26       0                   2           510               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 1          1562          632     NaN   42       4  119624.60              2          1               1        195978.86       0                   4           959               0.0                1.0              0.0                0.0             0.0                 1.0               0.0
+ ...         ...          ...     ...  ...     ...        ...            ...        ...             ...              ...     ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 7998        861          667     NaN   43       8  190227.46              1          1               0         97508.04       1                   3           680               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 7999       7271          697     NaN   51       1  147910.30              1          1               1         53581.14       0                   4           639               0.0                1.0              0.0                1.0             0.0                 0.0               0.0
+ 
+ [8000 rows x 20 columns],
+       RowNumber  CreditScore  Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Exited  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          6253          596     NaN   32       3   96709.07              2          0               0         41788.37       0                   1           709               0.0                1.0              0.0                0.0             1.0                 0.0               0.0
+ 1          4685          623     NaN   43       1       0.00              2          1               1        146379.30       0                   2           508               1.0                0.0              0.0                0.0             0.0                 0.0               1.0
+ ...         ...          ...     ...  ...     ...        ...            ...        ...             ...              ...     ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 1998       1096          692     NaN   29       4       0.00              1          1               0         76755.99       1                   3           686               1.0                0.0              0.0                0.0             0.0                 1.0               0.0
+ 1999       6930          628     NaN   39       1  115341.19              1          1               1        107674.30       1                   4           887               0.0                1.0              0.0                0.0             0.0                 0.0               1.0
+ 
+ [2000 rows x 20 columns],
+ XGBClassifier(base_score=None, booster=None, callbacks=None,
+               colsample_bylevel=None, colsample_bynode=None,
+               colsample_bytree=None, device=None, early_stopping_rounds=None,
+               enable_categorical=False, eval_metric=None, feature_types=None,
+               feature_weights=None, gamma=None, grow_policy=None,
+               importance_type=None, interaction_constraints=None,
+               learning_rate=None, max_bin=None, max_cat_threshold=None,
+               max_cat_to_onehot=None, max_delta_step=None, max_depth=None,
+               max_leaves=None, min_child_weight=None, missing=nan,
+               monotone_constraints=None, multi_strategy=None, n_estimators=None,
+               n_jobs=None, num_parallel_tree=None, ...),
+ array([0.00673441, 0.03527663, 0.05344176, ..., 0.72319335, 0.07021137,
+        0.4665416 ], dtype=float32),
+ 0.8420491773427641)

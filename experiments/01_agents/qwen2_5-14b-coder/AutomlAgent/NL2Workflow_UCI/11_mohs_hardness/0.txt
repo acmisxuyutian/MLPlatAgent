@@ -1,0 +1,172 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_squared_log_error
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Standardize numerical features
+    scaler = StandardScaler()
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # One-hot encode categorical features
+    categorical_features = df.select_dtypes(include=['object']).columns
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoded_features = encoder.fit_transform(df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    df = pd.concat([df.drop(columns=categorical_features), encoded_df], axis=1)
+
+    # Impute missing values
+    imputer = SimpleImputer(strategy='mean')
+    df[numerical_features] = imputer.fit_transform(df[numerical_features])
+
+    # Remove outliers using Z-score
+    z_scores = stats.zscore(df[numerical_features])
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    return df
+
+def train_model(X_train, y_train):
+    # Define the model
+    rf = RandomForestRegressor(random_state=SEED)
+
+    # Hyperparameter tuning using Grid Search
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20, None],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
+
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=3, scoring='neg_mean_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Best model
+    best_rf = grid_search.best_estimator_
+
+    return best_rf
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model on the test set
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmsle = mean_squared_log_error(y_test, y_pred, squared=False)
+
+    performance_scores = {
+        "MAE": mae,
+        "MSE": mse,
+        "RMSLE": rmsle
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    mohs_hardness_df = pd.read_csv(dataset_path)
+
+    # Inspect the dataset structure
+    print(mohs_hardness_df.head())
+    print(mohs_hardness_df.info())
+    print(mohs_hardness_df.describe())
+
+    # Check for missing values
+    print(mohs_hardness_df.isnull().sum())
+
+    # Check for outliers (example using box plot)
+    target_column = 'Mohs hardness'  # Ensure this is the correct column name
+    plt.boxplot(mohs_hardness_df[target_column])
+    plt.title(f'Box Plot of {target_column}')
+    plt.show()
+
+    # Analyze the distribution of the target variable
+    sns.histplot(mohs_hardness_df[target_column], bins=30, kde=True)
+    plt.title(f'Distribution of {target_column}')
+    plt.show()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = mohs_hardness_df.drop(columns=[target_column])
+    y = mohs_hardness_df[target_column]
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train = preprocess_data(X_train)
+    X_val = preprocess_data(X_val)
+    X_test = preprocess_data(X_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the trained model
+    model_dir = "./agent_workspace/trained_models"
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, "mohs_hardness_model.pkl")
+    import joblib
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'Mohs hardness'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 141, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 100, in main
+    plt.boxplot(mohs_hardness_df[target_column])
+                ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'Mohs hardness'

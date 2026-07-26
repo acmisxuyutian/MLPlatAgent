@@ -1,0 +1,140 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_path, test_path):
+    # Load datasets
+    heart_attack_train = pd.read_csv(train_path)
+    heart_attack_test = pd.read_csv(test_path)
+
+    # Mapping for Diet column
+    diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+    heart_attack_train['Diet'] = heart_attack_train['Diet'].map(diet_mapping)
+    heart_attack_test['Diet'] = heart_attack_test['Diet'].map(diet_mapping)
+
+    # Handle missing values
+    numeric_features = heart_attack_train.select_dtypes(include=[np.number]).columns
+    imputer = SimpleImputer(strategy='mean')
+    heart_attack_train[numeric_features] = imputer.fit_transform(heart_attack_train[numeric_features])
+    heart_attack_test[numeric_features] = imputer.transform(heart_attack_test[numeric_features])
+
+    # Handle outliers
+    Q1 = heart_attack_train[numeric_features].quantile(0.25)
+    Q3 = heart_attack_train[numeric_features].quantile(0.75)
+    IQR = Q3 - Q1
+    heart_attack_train = heart_attack_train[~((heart_attack_train[numeric_features] < (Q1 - 1.5 * IQR)) | (heart_attack_train[numeric_features] > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    # Split into features and target
+    X_train = heart_attack_train.drop('Heart Attack Risk', axis=1)
+    y_train = heart_attack_train['Heart Attack Risk']
+    X_test = heart_attack_test.drop('Heart Attack Risk', axis=1)
+    y_test = heart_attack_test['Heart Attack Risk']
+
+    return X_train, y_train, X_test, y_test
+
+def train_model(X_train, y_train):
+    # Define the pipeline
+    numeric_features = X_train.select_dtypes(include=[np.number]).columns
+    numeric_transformer = Pipeline(steps=[
+        ('scaler', StandardScaler())
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numeric_transformer, numeric_features)
+        ])
+
+    rf = RandomForestClassifier(random_state=SEED)
+
+    model = Pipeline(steps=[('preprocessor', preprocessor),
+                          ('classifier', rf)])
+
+    # Define hyperparameter grid
+    param_grid = {
+        'classifier__n_estimators': [50, 100, 200],
+        'classifier__max_depth': [None, 10, 20, 30],
+        'classifier__min_samples_split': [2, 5, 10],
+        'classifier__min_samples_leaf': [1, 2, 4]
+    }
+
+    # Perform Grid Search
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_rf_model = grid_search.best_estimator_
+
+    return best_rf_model
+
+def evaluate_model(model, X_test, y_test):
+    # Predict probabilities on the test set
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    # Calculate ROC AUC score
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+    performance_scores = {
+        'ROC_AUC': roc_auc
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, y_train, X_test, y_test = preprocess_data(train_path, test_path)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'ROC_AUC': 0.4831507430997877}

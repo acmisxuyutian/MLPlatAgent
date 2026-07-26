@@ -1,0 +1,208 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the dataset path
+dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+
+# Define the model save path
+model_save_path = r'./agent_workspace/trained_models/cirrhosis_patient_fnn.pth'
+
+# Step 1: Load the dataset
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2: Preprocess the data
+def preprocess_data(df):
+    # Inspect the first few rows of the DataFrame
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+
+    # Handling missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[df.select_dtypes(include=['float64', 'int64']).columns] = numerical_imputer.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[df.select_dtypes(include=['object']).columns] = categorical_imputer.fit_transform(df.select_dtypes(include=['object']))
+
+    # Encode categorical features
+    label_encoders = {}
+    for column in df.select_dtypes(include=['object']).columns:
+        label_encoders[column] = LabelEncoder()
+        df[column] = label_encoders[column].fit_transform(df[column])
+
+    # Normalization
+    scaler = MinMaxScaler()
+    df[df.columns] = scaler.fit_transform(df[df.columns])
+
+    # Feature engineering
+    if 'feature1' in df.columns and 'feature2' in df.columns:
+        df['interaction_feature'] = df['feature1'] * df['feature2']
+        df['polynomial_feature'] = df['feature1'] ** 2
+    else:
+        print("Warning: 'feature1' or 'feature2' not found in the dataset. Skipping feature engineering.")
+
+    return df
+
+# Step 3: Augment the data
+def augment_data(df):
+    if 'survival_state' not in df.columns:
+        raise ValueError("The 'survival_state' column is missing in the dataset.")
+
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop('survival_state', axis=1), df['survival_state'])
+    df_resampled = pd.DataFrame(X_resampled, columns=df.drop('survival_state', axis=1).columns)
+    df_resampled['survival_state'] = y_resampled
+    return df_resampled
+
+# Step 4: Split the data
+def split_data(df):
+    X_train, X_temp, y_train, y_temp = train_test_split(df.drop('survival_state', axis=1), df['survival_state'], test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5: Define the Neural Network Model
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(FeedforwardNN, self).__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.layer2 = nn.Linear(hidden_size, hidden_size)
+        self.layer3 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x = self.relu(self.layer1(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer2(x))
+        x = self.dropout(x)
+        x = self.layer3(x)
+        x = self.softmax(x)
+        return x
+
+# Step 6: Train the model
+def train_model(model, X_train, y_train, X_val, y_val):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
+
+    num_epochs = 100
+    batch_size = 64
+    for epoch in range(num_epochs):
+        for i in range(0, len(X_train_tensor), batch_size):
+            X_batch = X_train_tensor[i:i+batch_size]
+            y_batch = y_train_tensor[i:i+batch_size]
+
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        with torch.no_grad():
+            val_outputs = model(X_val_tensor)
+            val_loss = criterion(val_outputs, y_val_tensor)
+            val_predictions = torch.argmax(val_outputs, dim=1)
+            val_accuracy = (val_predictions == y_val_tensor).float().mean()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}, Val Accuracy: {val_accuracy.item():.4f}')
+
+    return model
+
+# Step 7: Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    criterion = nn.CrossEntropyLoss()
+
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+
+    with torch.no_grad():
+        test_outputs = model(X_test_tensor)
+        test_loss = criterion(test_outputs, y_test_tensor)
+        test_predictions = torch.argmax(test_outputs, dim=1)
+        test_accuracy = (test_predictions == y_test_tensor).float().mean()
+        test_f1 = f1_score(y_test_tensor.cpu().numpy(), test_predictions.cpu().numpy())
+
+    performance_scores = {
+        'ACC': test_accuracy.item(),
+        'F1': test_f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset(dataset_path)
+
+    # Step 2: Preprocess the dataset
+    df = preprocess_data(df)
+
+    # Ensure the 'survival_state' column exists in the dataset
+    if 'survival_state' not in df.columns:
+        raise ValueError("The 'survival_state' column is missing in the dataset.")
+
+    # Step 3: Augment the dataset
+    df = augment_data(df)
+
+    # Step 4: Split the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 5: Define the model
+    input_size = X_train.shape[1]
+    hidden_size = 128
+    output_size = 2  # Assuming binary classification
+    model = FeedforwardNN(input_size, hidden_size, output_size)
+
+    # Step 6: Train the model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 7: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 8: Save the model
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    torch.save(model.state_dict(), model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 195, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 168, in main
+    raise ValueError("The 'survival_state' column is missing in the dataset.")
+ValueError: The 'survival_state' column is missing in the dataset.

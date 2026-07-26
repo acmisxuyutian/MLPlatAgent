@@ -1,0 +1,194 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_datasets():
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv')
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicate rows
+    train_df = train_df.drop_duplicates()
+
+    # Ensure the target variable is categorical
+    train_df['diabetes'] = train_df['diabetes'].astype(int)
+    test_df['diabetes'] = test_df['diabetes'].astype(int)
+
+    # One-Hot Encoding
+    categorical_columns = ['gender', 'smoking_history']
+    train_df = pd.get_dummies(train_df, columns=categorical_columns)
+    test_df = pd.get_dummies(test_df, columns=categorical_columns)
+
+    # Ensure consistent columns
+    train_columns = set(train_df.columns)
+    test_columns = set(test_df.columns)
+    common_columns = list(train_columns.intersection(test_columns))
+
+    train_df = train_df[common_columns]
+    test_df = test_df[common_columns]
+
+    # Feature Scaling
+    numerical_columns = train_df.select_dtypes(include=['int64', 'float64']).columns
+    scaler = StandardScaler()
+    train_df[numerical_columns] = scaler.fit_transform(train_df[numerical_columns])
+    test_df[numerical_columns] = scaler.transform(test_df[numerical_columns])
+
+    return train_df, test_df, scaler
+
+# Feature Ranking
+def rank_features(train_df):
+    # Train a preliminary Random Forest Classifier
+    preliminary_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    X_train = train_df.drop(columns=['diabetes'])
+    y_train = train_df['diabetes']
+    preliminary_model.fit(X_train, y_train)
+
+    # Get feature importance scores
+    feature_importances = preliminary_model.feature_importances_
+    feature_names = X_train.columns
+    feature_importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+    # Select top features
+    top_features = feature_importance_df['Feature'].head(10).tolist()
+    return top_features
+
+# Model Training
+def train_model(train_df, top_features):
+    # Define the parameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'max_depth': [None, 10, 20, 30, 40, 50],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    # Initialize the Random Forest Classifier
+    rf_model = RandomForestClassifier(random_state=42)
+
+    # Perform Randomized Search with 5-fold cross-validation
+    random_search = RandomizedSearchCV(rf_model, param_grid, n_iter=10, cv=5, scoring='roc_auc', random_state=42)
+    X_train = train_df[top_features]
+    y_train = train_df['diabetes']
+    random_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_rf_model = random_search.best_estimator_
+    return best_rf_model
+
+# Model Evaluation
+def evaluate_model(model, test_df, top_features):
+    # Make predictions on the test dataset
+    X_test = test_df[top_features]
+    y_test = test_df['diabetes']
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    y_pred = model.predict(X_test)
+
+    # Compute AUC-ROC
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    print(f'AUC-ROC: {auc_roc}')
+
+    # Generate confusion matrix
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    print(f'Confusion Matrix:\n{conf_matrix}')
+
+    # Generate classification report
+    classification_rep = classification_report(y_test, y_pred)
+    print(f'Classification Report:\n{classification_rep}')
+
+    # Return performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': conf_matrix,
+        'Classification Report': classification_rep
+    }
+    return performance_scores
+
+# Model Saving and Deployment
+def save_model(model, scaler):
+    model_path = './agent_workspace/trained_models/diabetes_random_forest.pkl'
+    scaler_path = './agent_workspace/trained_models/diabetes_scaler.pkl'
+    
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+    
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Load the datasets
+    train_df, test_df = load_datasets()
+
+    # Step 2. Preprocess the data
+    train_df, test_df, scaler = preprocess_data(train_df, test_df)
+
+    # Step 3. Rank features
+    top_features = rank_features(train_df)
+
+    # Step 4. Train the model
+    model = train_model(train_df, top_features)
+
+    # Step 5. Evaluate the model
+    performance_scores = evaluate_model(model, test_df, top_features)
+
+    # Step 6. Save the model and scaler
+    save_model(model, scaler)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py:30: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 146, in main
+    top_features = rank_features(train_df)
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 60, in rank_features
+    preliminary_model.fit(X_train, y_train)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 418, in fit
+    y, expanded_class_weight = self._validate_y_class_weight(y)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 830, in _validate_y_class_weight
+    check_classification_targets(y)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/multiclass.py", line 221, in check_classification_targets
+    raise ValueError(
+ValueError: Unknown label type: continuous. Maybe you are trying to fit a classifier, which expects discrete classes on a regression target with continuous values.

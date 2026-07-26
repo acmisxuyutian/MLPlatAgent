@@ -1,0 +1,142 @@
+import pandas as pd
+
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv'
+
+# Load the datasets
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Display the first 5 rows of each dataset
+train_df.head(), test_df.head()
+
+# Result variables
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                       Disease Fever Cough Fatigue Difficulty Breathing  Age  Gender Blood Pressure Cholesterol Level Outcome Variable
+ 0                  Ebola Virus   Yes   Yes     Yes                  Yes   50    Male         Normal            Normal         Positive
+ 1    Conjunctivitis (Pink Eye)    No   Yes      No                   No   35  Female           High              High         Positive
+ ..                         ...   ...   ...     ...                  ...  ...     ...            ...               ...              ...
+ 277              Typhoid Fever    No   Yes      No                   No   55    Male         Normal               Low         Positive
+ 278               Liver Cancer   Yes   Yes      No                   No   38  Female           High            Normal         Negative
+ 
+ [279 rows x 10 columns],
+                Disease Fever Cough Fatigue Difficulty Breathing  Age  Gender Blood Pressure Cholesterol Level Outcome Variable
+ 0       Hypothyroidism   Yes   Yes     Yes                   No   42  Female           High              High         Positive
+ 1          Tonsillitis   Yes   Yes     Yes                   No   70  Female           High              High         Positive
+ ..                 ...   ...   ...     ...                  ...  ...     ...            ...               ...              ...
+ 68  Sickle Cell Anemia    No    No     Yes                   No   45  Female         Normal            Normal         Positive
+ 69              Stroke   Yes   Yes     Yes                   No   65  Female           High              High         Positive
+ 
+ [70 rows x 10 columns])from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_selection import SelectKBest, chi2
+
+# One-hot encode categorical features
+train_encoded = pd.get_dummies(train_df.drop(columns=['Disease', 'Outcome Variable']), drop_first=True)
+test_encoded = pd.get_dummies(test_df.drop(columns=['Disease', 'Outcome Variable']), drop_first=True)
+
+# Ensure the same columns in both datasets
+missing_cols = set(train_encoded.columns) - set(test_encoded.columns)
+for c in missing_cols:
+    test_encoded[c] = 0
+
+# Reorder the columns in the test set to match the train set
+test_encoded = test_encoded[train_encoded.columns]
+
+# Feature selection
+selector = SelectKBest(score_func=chi2, k=5)
+X_train = train_encoded
+y_train = train_df['Outcome Variable']
+selector.fit(X_train, y_train)
+selected_features = X_train.columns[selector.get_support()]
+
+# Result variables
+train_encoded, test_encoded, selected_features
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     Age  Fever_Yes  Cough_Yes  Fatigue_Yes  Difficulty Breathing_Yes  Gender_Male  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0     50       True       True         True                      True         True               False                   True                  False                      True
+ 1     35      False       True        False                     False        False               False                  False                  False                     False
+ ..   ...        ...        ...          ...                       ...          ...                 ...                    ...                    ...                       ...
+ 277   55      False       True        False                     False         True               False                   True                   True                     False
+ 278   38       True       True        False                     False        False               False                  False                  False                      True
+ 
+ [279 rows x 10 columns],
+     Age  Fever_Yes  Cough_Yes  Fatigue_Yes  Difficulty Breathing_Yes  Gender_Male  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0    42       True       True         True                     False        False               False                  False                  False                     False
+ 1    70       True       True         True                     False        False               False                  False                  False                     False
+ ..  ...        ...        ...          ...                       ...          ...                 ...                    ...                    ...                       ...
+ 68   45      False      False         True                     False        False               False                   True                  False                      True
+ 69   65       True       True         True                     False        False               False                  False                  False                     False
+ 
+ [70 rows x 10 columns],
+ Index(['Gender_Male', 'Blood Pressure_Low', 'Blood Pressure_Normal',
+        'Cholesterol Level_Low', 'Cholesterol Level_Normal'],
+       dtype='object'))from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+
+# Model 1: Using all features
+X_train_all = train_encoded
+y_train = train_df['Outcome Variable']
+model1 = LogisticRegression(max_iter=1000)
+model1.fit(X_train_all, y_train)
+
+# Model 2: Using only the most important 5 features
+X_train_important = train_encoded[selected_features]
+model2 = LogisticRegression(max_iter=1000)
+model2.fit(X_train_important, y_train)
+
+# Result variables
+model1, model2, X_train_all, X_train_important, y_train
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LogisticRegression(max_iter=1000),
+ LogisticRegression(max_iter=1000),
+      Age  Fever_Yes  Cough_Yes  Fatigue_Yes  Difficulty Breathing_Yes  Gender_Male  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0     50       True       True         True                      True         True               False                   True                  False                      True
+ 1     35      False       True        False                     False        False               False                  False                  False                     False
+ ..   ...        ...        ...          ...                       ...          ...                 ...                    ...                    ...                       ...
+ 277   55      False       True        False                     False         True               False                   True                   True                     False
+ 278   38       True       True        False                     False        False               False                  False                  False                      True
+ 
+ [279 rows x 10 columns],
+      Gender_Male  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0           True               False                   True                  False                      True
+ 1          False               False                  False                  False                     False
+ ..           ...                 ...                    ...                    ...                       ...
+ 277         True               False                   True                   True                     False
+ 278        False               False                  False                  False                      True
+ 
+ [279 rows x 5 columns],
+ 0      Positive
+ 1      Positive
+          ...   
+ 277    Positive
+ 278    Negative
+ Name: Outcome Variable, Length: 279, dtype: object)from sklearn.metrics import accuracy_score, classification_report
+
+# Prepare the test data
+X_test_all = test_encoded
+X_test_important = test_encoded[selected_features]
+y_test = test_df['Outcome Variable']
+
+# Predict using model1
+y_pred_model1 = model1.predict(X_test_all)
+accuracy_model1 = accuracy_score(y_test, y_pred_model1)
+report_model1 = classification_report(y_test, y_pred_model1)
+
+# Predict using model2
+y_pred_model2 = model2.predict(X_test_important)
+accuracy_model2 = accuracy_score(y_test, y_pred_model2)
+report_model2 = classification_report(y_test, y_pred_model2)
+
+# Result variables
+accuracy_model1, report_model1, accuracy_model2, report_model2
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.5714285714285714, '              precision    recall  f1-score   support\n\n    Negative       0.50      0.53      0.52        30\n    Positive       0.63      0.60      0.62        40\n\n    accuracy                           0.57        70\n   macro avg       0.57      0.57      0.57        70\nweighted avg       0.58      0.57      0.57        70\n', 0.5857142857142857, '              precision    recall  f1-score   support\n\n    Negative       0.52      0.53      0.52        30\n    Positive       0.64      0.62      0.63        40\n\n    accuracy                           0.59        70\n   macro avg       0.58      0.58      0.58        70\nweighted avg       0.59      0.59      0.59        70\n')

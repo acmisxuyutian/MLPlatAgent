@@ -1,0 +1,114 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    # Load training dataset
+    crab_age_train = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+    
+    # Load testing dataset
+    crab_age_test = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv')
+    
+    return crab_age_train, crab_age_test
+
+# Data preprocessing
+def preprocess_data(crab_age_train, crab_age_test):
+    # Inspect the datasets
+    crab_age_train.info()
+    crab_age_train.describe()
+    
+    crab_age_test.info()
+    crab_age_test.describe()
+    
+    # Identify categorical variables and apply one-hot encoding
+    crab_age_train_encoded = pd.get_dummies(crab_age_train, drop_first=True)
+    crab_age_test_encoded = pd.get_dummies(crab_age_test, drop_first=True)
+    
+    # Ensure both encoded datasets have the same columns
+    missing_cols = set(crab_age_train_encoded.columns) - set(crab_age_test_encoded.columns)
+    for c in missing_cols:
+        crab_age_test_encoded[c] = 0
+    
+    # Split the datasets into features (X) and target (y)
+    target_column = 'age'  # Change this if the actual target column name is different
+    
+    if target_column not in crab_age_train_encoded.columns:
+        raise ValueError(f"Target column '{target_column}' not found in training dataset.")
+    if target_column not in crab_age_test_encoded.columns:
+        raise ValueError(f"Target column '{target_column}' not found in testing dataset.")
+    
+    X_train = crab_age_train_encoded.drop(target_column, axis=1)
+    y_train = crab_age_train_encoded[target_column]
+    
+    X_test = crab_age_test_encoded.drop(target_column, axis=1)
+    y_test = crab_age_test_encoded[target_column]
+    
+    return X_train, y_train, X_test, y_test
+
+# Model training
+def train_model(X_train, y_train):
+    rf_model = RandomForestRegressor(n_estimators=100, max_depth=20, min_samples_split=5, random_state=42)
+    rf_model.fit(X_train, y_train)
+    return rf_model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    performance_scores = {
+        'MAE': mae
+    }
+    return performance_scores
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    crab_age_train, crab_age_test = load_data()
+    
+    # Step 2: Preprocess the data
+    X_train, y_train, X_test, y_test = preprocess_data(crab_age_train, crab_age_test)
+    
+    # Step 3: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 4: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Step 5: Save the model (optional)
+    model_save_path = './agent_workspace/trained_models/crab_age_rf_model.pkl'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    joblib.dump(model, model_save_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 98, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 82, in main
+    X_train, y_train, X_test, y_test = preprocess_data(crab_age_train, crab_age_test)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 49, in preprocess_data
+    raise ValueError(f"Target column '{target_column}' not found in training dataset.")
+ValueError: Target column 'age' not found in training dataset.

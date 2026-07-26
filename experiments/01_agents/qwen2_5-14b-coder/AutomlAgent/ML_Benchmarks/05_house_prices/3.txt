@@ -1,0 +1,200 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics import mean_squared_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initial setup
+def load_data():
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/05_house_prices/split_train.csv')
+    eval_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/05_house_prices/split_eval.csv')
+    return train_data, eval_data
+
+# Data preprocessing
+def preprocess_data(train_data, eval_data):
+    # Handling missing values
+    imputer_numeric = SimpleImputer(strategy='mean')
+    imputer_categorical = SimpleImputer(strategy='most_frequent')
+
+    numeric_features = train_data.select_dtypes(include=[np.number]).columns
+    categorical_features = train_data.select_dtypes(include=['object']).columns
+
+    train_data_numeric_imputed = pd.DataFrame(imputer_numeric.fit_transform(train_data[numeric_features]), columns=numeric_features)
+    eval_data_numeric_imputed = pd.DataFrame(imputer_numeric.transform(eval_data[numeric_features]), columns=numeric_features)
+
+    train_data_categorical_imputed = pd.DataFrame(imputer_categorical.fit_transform(train_data[categorical_features]), columns=categorical_features)
+    eval_data_categorical_imputed = pd.DataFrame(imputer_categorical.transform(eval_data[categorical_features]), columns=categorical_features)
+
+    train_data_imputed = pd.concat([train_data_numeric_imputed, train_data_categorical_imputed], axis=1)
+    eval_data_imputed = pd.concat([eval_data_numeric_imputed, eval_data_categorical_imputed], axis=1)
+
+    # Normalization/Standardization
+    scaler = MinMaxScaler()
+
+    train_data_scaled = pd.DataFrame(scaler.fit_transform(train_data_imputed[numeric_features]), columns=numeric_features)
+    eval_data_scaled = pd.DataFrame(scaler.transform(eval_data_imputed[numeric_features]), columns=numeric_features)
+
+    train_data_final = pd.concat([train_data_scaled, train_data_imputed[categorical_features]], axis=1)
+    eval_data_final = pd.concat([eval_data_scaled, eval_data_imputed[categorical_features]], axis=1)
+
+    # Feature Engineering
+    train_data_final['TotalSF'] = train_data_final['GrLivArea'] + train_data_final['TotalBsmtSF']
+    eval_data_final['TotalSF'] = eval_data_final['GrLivArea'] + eval_data_final['TotalBsmtSF']
+
+    # Categorical Encoding
+    encoder = OneHotEncoder(drop='first', handle_unknown='ignore')
+    categorical_features = train_data_final.select_dtypes(include=['object']).columns
+
+    train_data_encoded = pd.DataFrame(encoder.fit_transform(train_data_final[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+    eval_data_encoded = pd.DataFrame(encoder.transform(eval_data_final[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+
+    # Ensure the encoded columns match in both train and eval data
+    missing_cols = set(train_data_encoded.columns) - set(eval_data_encoded.columns)
+    for col in missing_cols:
+        eval_data_encoded[col] = 0
+
+    eval_data_encoded = eval_data_encoded[train_data_encoded.columns]
+
+    train_data_final = pd.concat([train_data_final.drop(columns=categorical_features), train_data_encoded], axis=1)
+    eval_data_final = pd.concat([eval_data_final.drop(columns=categorical_features), eval_data_encoded], axis=1)
+
+    return train_data_final, eval_data_final
+
+# Model training
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size):
+        super(FeedforwardNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, 1)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+def train_model(model, train_loader, valid_loader, num_epochs=100, learning_rate=0.001, weight_decay=0.01):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(train_loader['X'])
+        loss = criterion(outputs, train_loader['y'])
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(valid_loader['X'])
+            val_loss = criterion(val_outputs, valid_loader['y'])
+            print(f'Validation Loss: {val_loss.item():.4f}')
+
+    return model
+
+# Model evaluation
+def evaluate_model(model, eval_loader):
+    model.eval()
+    with torch.no_grad():
+        eval_outputs = model(eval_loader['X'])
+
+    eval_predictions = eval_outputs.numpy().flatten()
+    eval_true = eval_loader['y'].numpy().flatten()
+    rmse = np.sqrt(mean_squared_error(np.log(eval_true + 1), np.log(eval_predictions + 1)))
+    performance_scores = {
+        'RMSE': rmse
+    }
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data, eval_data = load_data()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_data, valid_data = train_test_split(train_data, test_size=0.2, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_data_final, eval_data_final = preprocess_data(train_data, eval_data)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = train_data_final.shape[1] - 1  # Assuming 'SalePrice' is the target column
+    model = FeedforwardNN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    train_loader = {
+        'X': torch.tensor(train_data_final.drop(columns='SalePrice').values, dtype=torch.float32),
+        'y': torch.tensor(train_data_final['SalePrice'].values, dtype=torch.float32).view(-1, 1)
+    }
+    valid_loader = {
+        'X': torch.tensor(valid_data.drop(columns='SalePrice').values, dtype=torch.float32),
+        'y': torch.tensor(valid_data['SalePrice'].values, dtype=torch.float32).view(-1, 1)
+    }
+    model = train_model(model, train_loader, valid_loader)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    eval_loader = {
+        'X': torch.tensor(eval_data_final.drop(columns='SalePrice').values, dtype=torch.float32),
+        'y': torch.tensor(eval_data_final['SalePrice'].values, dtype=torch.float32).view(-1, 1)
+    }
+    model_performance = evaluate_model(model, eval_loader)
+
+    # Step 7. Save the trained model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/house_prices_model.pth')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Eval Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 176, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 143, in main
+    train_data_final, eval_data_final = preprocess_data(train_data, eval_data)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 61, in preprocess_data
+    train_data_encoded = pd.DataFrame(encoder.fit_transform(train_data_final[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 867, in __init__
+    mgr = ndarray_to_mgr(
+          ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/construction.py", line 336, in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/construction.py", line 420, in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+ValueError: Shape of passed values is (934, 1), indices imply (934, 200)

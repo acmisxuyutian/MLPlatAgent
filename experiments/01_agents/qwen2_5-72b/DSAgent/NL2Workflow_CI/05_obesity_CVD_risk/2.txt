@@ -1,0 +1,633 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Define and train the logistic regression model
+    model = LogisticRegression(random_state=SEED)
+    model.fit(X_train_scaled, y_train)
+    
+    return model, scaler
+
+def predict(model, X, scaler):
+    # Standardize the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the obesity risk
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid, scaler)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    y_test_pred = predict(model, X_test, scaler)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 50, in <module>
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 23, in train_model
+    X_train_scaled = scaler.fit_transform(X_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 918, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_data.py", line 894, in fit
+    return self.partial_fit(X, y, sample_weight)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_data.py", line 930, in partial_fit
+    X = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2944, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Female'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Convert categorical data to numeric
+    le = LabelEncoder()
+    for column in X_train.select_dtypes(include=['object']).columns:
+        X_train[column] = le.fit_transform(X_train[column])
+        X_valid[column] = le.transform(X_valid[column])
+    
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Define and train the logistic regression model
+    model = LogisticRegression(random_state=SEED)
+    model.fit(X_train_scaled, y_train)
+    
+    return model, scaler, le
+
+def predict(model, X, scaler, le):
+    # Convert categorical data to numeric
+    for column in X.select_dtypes(include=['object']).columns:
+        X[column] = le.transform(X[column])
+    
+    # Standardize the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the obesity risk
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler, le = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid, scaler, le)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    y_test_pred = predict(model, X_test, scaler, le)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'Female'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 70, in <module>
+    y_test_pred = predict(model, X_test, scaler, le)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 41, in predict
+    X[column] = le.transform(X[column])
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'Female'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid, le):
+    # Convert categorical data to numeric
+    for column in X_train.select_dtypes(include=['object']).columns:
+        X_train[column] = le.transform(X_train[column])
+        X_valid[column] = le.transform(X_valid[column])
+    
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Define and train the logistic regression model
+    model = LogisticRegression(random_state=SEED, max_iter=1000)
+    model.fit(X_train_scaled, y_train)
+    
+    return model, scaler
+
+def predict(model, X, scaler, le):
+    # Convert categorical data to numeric
+    for column in X.select_dtypes(include=['object']).columns:
+        X[column] = le.transform(X[column])
+    
+    # Standardize the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the obesity risk
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Fit the LabelEncoder on the entire dataset to handle unseen labels
+    le = LabelEncoder()
+    for column in X.select_dtypes(include=['object']).columns:
+        le.fit(X[column])
+        X[column] = le.transform(X[column])
+    
+    # Define and train the model
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid, le)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid, scaler, le)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    for column in X_test.select_dtypes(include=['object']).columns:
+        X_test[column] = le.transform(X_test[column])
+    y_test_pred = predict(model, X_test, scaler, le)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'Female'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 65, in <module>
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid, le)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 23, in train_model
+    X_train[column] = le.transform(X_train[column])
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'Female'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define the scaler and model
+    scaler = StandardScaler()
+    model = LogisticRegression(random_state=SEED)
+    
+    # Scale the features
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Train the model
+    model.fit(X_train_scaled, y_train)
+    
+    # Evaluate the model on the validation set
+    y_valid_pred = model.predict(X_valid_scaled)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Validation accuracy: ", score)
+    
+    return model, scaler
+
+
+def predict(model, scaler, X):
+    # Scale the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the model
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, scaler, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    y_test_pred = predict(model, scaler, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 61, in <module>
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 28, in train_model
+    X_train_scaled = scaler.fit_transform(X_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 918, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_data.py", line 894, in fit
+    return self.partial_fit(X, y, sample_weight)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/preprocessing/_data.py", line 930, in partial_fit
+    X = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2944, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Female'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+
+def preprocess_data(X):
+    # Convert categorical columns to numeric
+    label_encoders = {}
+    for column in X.select_dtypes(include=['object']).columns:
+        le = LabelEncoder()
+        X[column] = le.fit_transform(X[column])
+        label_encoders[column] = le
+    return X, label_encoders
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Preprocess the data
+    X_train, label_encoders = preprocess_data(X_train)
+    X_valid, _ = preprocess_data(X_valid)
+    
+    # Define the scaler and model
+    scaler = StandardScaler()
+    model = LogisticRegression(random_state=SEED)
+    
+    # Scale the features
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Train the model
+    model.fit(X_train_scaled, y_train)
+    
+    # Evaluate the model on the validation set
+    y_valid_pred = model.predict(X_valid_scaled)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Validation accuracy: ", score)
+    
+    return model, scaler, label_encoders
+
+
+def predict(model, scaler, label_encoders, X):
+    # Preprocess the data
+    X, _ = preprocess_data(X, label_encoders)
+    
+    # Scale the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the model
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler, label_encoders = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, scaler, label_encoders, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    y_test_pred = predict(model, scaler, label_encoders, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 81, in <module>
+    y_valid_pred = predict(model, scaler, label_encoders, X_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/05_obesity_CVD_risk/train.py", line 58, in predict
+    X, _ = preprocess_data(X, label_encoders)
+TypeError: preprocess_data() takes 1 positional argument but 2 were given
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = accuracy_score(y_test, y_test_pred)
+    return score
+
+
+def preprocess_data(X, label_encoders=None):
+    # Convert categorical columns to numeric
+    if label_encoders is None:
+        label_encoders = {}
+        for column in X.select_dtypes(include=['object']).columns:
+            le = LabelEncoder()
+            X[column] = le.fit_transform(X[column])
+            label_encoders[column] = le
+    else:
+        for column in X.select_dtypes(include=['object']).columns:
+            le = label_encoders[column]
+            X[column] = le.transform(X[column])
+    return X, label_encoders
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Preprocess the data
+    X_train, label_encoders = preprocess_data(X_train)
+    X_valid, _ = preprocess_data(X_valid, label_encoders)
+    
+    # Define the scaler and model
+    scaler = StandardScaler()
+    model = LogisticRegression(random_state=SEED, max_iter=1000)
+    
+    # Scale the features
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    
+    # Train the model
+    model.fit(X_train_scaled, y_train)
+    
+    # Evaluate the model on the validation set
+    y_valid_pred = model.predict(X_valid_scaled)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Validation accuracy: ", score)
+    
+    return model, scaler, label_encoders
+
+
+def predict(model, scaler, label_encoders, X):
+    # Preprocess the data
+    X, _ = preprocess_data(X, label_encoders)
+    
+    # Scale the features
+    X_scaled = scaler.transform(X)
+    
+    # Predict the model
+    y_pred = model.predict(X_scaled)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['NObeyesdad'], axis=1)
+    y = data_df['NObeyesdad'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler, label_encoders = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, scaler, label_encoders, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final accuracy on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['NObeyesdad'], axis=1)
+    y_test_pred = predict(model, scaler, label_encoders, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Validation accuracy:  0.8567128236002408
+Final accuracy on validation set:  0.8567128236002408
+Final accuracy on test set:  0.8622350674373795
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

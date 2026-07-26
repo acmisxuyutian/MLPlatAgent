@@ -1,0 +1,171 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import median_absolute_error
+from sklearn.preprocessing import MinMaxScaler
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1. Retrieve the dataset
+def download_dataset(user_link, dataset_name, save_path):
+    import requests
+    response = requests.get(user_link + dataset_name)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"Dataset {dataset_name} downloaded successfully.")
+    else:
+        raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
+
+# Step 2. Preprocess the retrieved dataset
+def preprocess_data(df):
+    # Inspect the dataset
+    print(df.info())
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Handle missing values
+    df.fillna(df.mean(), inplace=True)
+
+    # Ensure consistent data types
+    df['feature1'] = df['feature1'].astype('float')
+    df['feature2'] = df['feature2'].astype('float')
+
+    # Feature scaling
+    scaler = MinMaxScaler()
+    df[['feature1', 'feature2']] = scaler.fit_transform(df[['feature1', 'feature2']])
+
+    # Categorical variable handling
+    df = pd.get_dummies(df, columns=['category_column'])
+
+    # Feature creation
+    df['new_feature'] = df['feature1'] * df['feature2']
+
+    # Data splitting
+    X = df.drop('target', axis=1)
+    y = df['target']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 3. Define the model
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
+        self.dropout = nn.Dropout(0.2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.bn2 = nn.BatchNorm1d(64)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = self.bn1(x)
+        x = self.dropout(x)
+        x = torch.tanh(self.fc2(x))
+        x = self.bn2(x)
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return x
+
+# Step 4. Train the model
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100, lr=0.01):
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+                val_loss = criterion(val_outputs, torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1))
+                print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+    
+    return model
+
+# Step 5. Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(X_test.values, dtype=torch.float32))
+        test_mae = median_absolute_error(y_test, test_outputs.numpy())
+        print(f'Test MAE: {test_mae:.4f}')
+    
+    performance_scores = {
+        "MAE": test_mae
+    }
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    user_link = "https://example.com/"  # Replace with the actual user-link
+    dataset_name = "mohs_hardness.csv"
+    dataset_path = './datasets/mohs_hardness.csv'
+    
+    if not os.path.exists('./datasets'):
+        os.makedirs('./datasets')
+    
+    if not os.path.exists(dataset_path):
+        download_dataset(user_link, dataset_name, dataset_path)
+    
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+
+    # Step 3. Define required model
+    input_size = X_train.shape[1]
+    model = NeuralNetwork(input_size)
+
+    # Step 4. Train the model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the model
+    model_path = './agent_workspace/trained_models/mohs_hardness_model.pth'
+    if not os.path.exists('./agent_workspace/trained_models'):
+        os.makedirs('./agent_workspace/trained_models')
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 156, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 130, in main
+    download_dataset(user_link, dataset_name, dataset_path)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 29, in download_dataset
+    raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
+Exception: Failed to download dataset. Status code: 404

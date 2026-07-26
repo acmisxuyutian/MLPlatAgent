@@ -1,0 +1,51 @@
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataset
+train_df.head()
+
+train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+0      15559             2               0                     0                  3                  0                           0                   1         65          2018             11             2                    0               0                             0                                     0                60.0                       2               0
+1      32783             2               0                     1                  4                  0                           0                   1         73          2018             12            26                    1               0                             0                                     0               111.6                       1               0
+...      ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+33672    860             2               0                     0                  2                  0                           0                   0         21          2017             12            10                    0               0                             0                                     0                70.0                       0               0
+33673  15795             2               0                     2                  1                  0                           0                   1        253          2018             10             5                    1               0                             0                                     0               115.2                       0               1
+
+[33674 rows x 19 columns]from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Preprocess the data
+X = train_df.drop(['id', 'booking_status'], axis=1)
+y = train_df['booking_status']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Predict probabilities
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+# Calculate AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+auc_roc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.8689706865316621

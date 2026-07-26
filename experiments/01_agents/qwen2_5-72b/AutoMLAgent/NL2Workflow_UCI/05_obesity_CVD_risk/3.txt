@@ -1,0 +1,207 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_url):
+    try:
+        df = pd.read_csv(dataset_url)
+    except FileNotFoundError:
+        print(f"File not found: {dataset_url}")
+        exit(1)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Initial Exploration
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+
+    # Handling Missing Values
+    df.fillna(df.mean(), inplace=True)
+    df.fillna(df.mode().iloc[0], inplace=True)
+
+    # Feature Engineering
+    if 'Diet' in df.columns and 'Lifestyle' in df.columns:
+        df['Diet_Lifestyle_Interaction'] = df['Diet'] * df['Lifestyle']
+    if 'Diet' in df.columns and 'Lifestyle' in df.columns and 'Exercise' in df.columns:
+        df['Aggregated_Feature'] = df[['Diet', 'Lifestyle', 'Exercise']].mean(axis=1)
+
+    # Normalization/Standardization
+    numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Categorical Encoding
+    categorical_features = df.select_dtypes(include=[object]).columns.tolist()
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    # Data Splitting
+    X = df.drop(columns=['obesity_risk_level'])
+    y = df['obesity_risk_level']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Definition
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, dropout_rate):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout_rate)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return self.softmax(x)
+
+# Model Training
+def train_model(model, train_loader, val_loader, num_epochs=100, patience=5):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+    best_val_accuracy = 0
+    no_improvement = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_idx, (data, target) in enumerate(train_loader):
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data, target in val_loader:
+                output = model(data)
+                _, predicted = torch.max(output.data, 1)
+                total += target.size(0)
+                correct += (predicted == target).sum().item()
+
+        val_accuracy = correct / total
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation Accuracy: {val_accuracy:.4f}')
+
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            torch.save(model.state_dict(), 'best_model.pth')
+            no_improvement = 0
+        else:
+            no_improvement += 1
+
+        if no_improvement >= patience:
+            print('Early stopping triggered')
+            break
+
+    return model
+
+# Model Evaluation
+def evaluate_model(model, test_loader):
+    model.load_state_dict(torch.load('best_model.pth'))
+    model.eval()
+    correct = 0
+    total = 0
+    all_preds = []
+    all_targets = []
+
+    with torch.no_grad():
+        for data, target in test_loader:
+            output = model(data)
+            _, predicted = torch.max(output.data, 1)
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+            all_preds.extend(predicted.numpy())
+            all_targets.extend(target.numpy())
+
+    test_accuracy = correct / total
+    precision = precision_score(all_targets, all_preds, average='weighted')
+    recall = recall_score(all_targets, all_preds, average='weighted')
+    f1 = f1_score(all_targets, all_preds, average='weighted')
+    cm = confusion_matrix(all_targets, all_preds)
+
+    performance_scores = {
+        'Accuracy': test_accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-Score': f1,
+        'Confusion Matrix': cm
+    }
+
+    return performance_scores
+
+# Main Function
+def main():
+    dataset_url = 'r:/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+    df = load_dataset(dataset_url)
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+
+    # Create data loaders
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Define the model
+    input_size = X_train.shape[1]
+    output_size = len(y_train.unique())
+    model = FNN(input_size, 128, output_size, 0.3)
+
+    # Train the model
+    model = train_model(model, train_loader, val_loader)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/best_model.pth"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:

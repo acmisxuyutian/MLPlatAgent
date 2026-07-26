@@ -1,0 +1,157 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import mean_squared_log_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Handle missing values
+    missing_values = dataset.isnull().sum()
+    for column in missing_values[missing_values > 0].index:
+        if dataset[column].dtype == 'object':
+            dataset[column].fillna(dataset[column].mode()[0], inplace=True)  # Mode Imputation for Categorical Variables
+        else:
+            dataset[column].fillna(dataset[column].mean(), inplace=True)  # Mean Imputation for Numerical Variables
+
+    # Separate target variable
+    X = dataset.drop('media_cost', axis=1)
+    y = dataset['media_cost']
+
+    # Encode categorical variables
+    categorical_vars = X.select_dtypes(include=['object']).columns
+    X_encoded = pd.get_dummies(X, columns=categorical_vars)
+
+    # Scale numerical features
+    numerical_vars = X_encoded.select_dtypes(include=['int64', 'float64']).columns
+    scaler = StandardScaler()
+    X_encoded[numerical_vars] = scaler.fit_transform(X_encoded[numerical_vars])
+
+    return X_encoded, y
+
+# Define the model architecture
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 50)
+        self.fc2 = nn.Linear(50, 50)
+        self.fc3 = nn.Linear(50, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, num_epochs=200, learning_rate=0.0001):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+        loss.backward()
+        optimizer.step()
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_val, y_val):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+        predictions = outputs.numpy().flatten()
+        rmlse = np.sqrt(mean_squared_log_error(y_val, predictions))
+        print(f'RMLSE on validation set: {rmlse:.4f}')
+    return rmlse
+
+# Save the model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# Load the model
+def load_model(model, model_path):
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X, y = preprocess_data(dataset)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in the previous step
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = NeuralNetwork(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train, y_train)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/media_campaign_cost_neural_network.pth'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 129, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 104, in main
+    X, y = preprocess_data(dataset)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 30, in preprocess_data
+    X = dataset.drop('media_cost', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['media_cost'] not found in axis"

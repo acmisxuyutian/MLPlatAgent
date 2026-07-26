@@ -1,0 +1,153 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Data Retrieval and Preparation
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_inspection(df):
+    print("Initial Data Inspection:")
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+    
+    # Check for missing values
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+    
+    # Handle missing values (e.g., imputation)
+    df.fillna(df.mean(), inplace=True)
+    return df
+
+# Step 2: Data Preprocessing
+def feature_engineering(df):
+    required_columns = ['heart_rate', 'systolic_bp', 'diastolic_bp']
+    if all(col in df.columns for col in required_columns):
+        df['heart_rate_variability'] = df['heart_rate'].rolling(window=10).std()
+        df['blood_pressure_ratio'] = df['systolic_bp'] / df['diastolic_bp']
+        df.dropna(inplace=True)  # Drop rows with NaN values after rolling window
+    else:
+        print("Required columns for feature engineering are missing.")
+    return df
+
+def standardize_features(df):
+    scaler = StandardScaler()
+    features_to_scale = ['heart_rate', 'blood_pressure_ratio']
+    if all(feature in df.columns for feature in features_to_scale):
+        df[features_to_scale] = scaler.fit_transform(df[features_to_scale])
+    else:
+        print("Required columns for standardization are missing.")
+    return df
+
+def split_data(df):
+    if 'smoker_status' not in df.columns:
+        raise KeyError("The 'smoker_status' column is missing in the dataset.")
+    
+    X = df.drop(columns=['smoker_status'])
+    y = df['smoker_status']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 3: Data Augmentation
+def apply_smote(X_train, y_train):
+    smote = SMOTE()
+    X_train_augmented, y_train_augmented = smote.fit_resample(X_train, y_train)
+    return X_train_augmented, y_train_augmented
+
+# Step 4: Model Training and Evaluation
+def initialize_model():
+    rf_model = RandomForestClassifier(n_estimators=50, max_depth=10, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    return rf_model
+
+def train_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    auc_roc_val = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+    return auc_roc_val
+
+def final_evaluation(model, X_test, y_test):
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    auc_roc_test = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+    return auc_roc_test
+
+# Step 5: Model Saving and Deployment
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f'Model saved at: {model_path}')
+
+# Main function to orchestrate the entire pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    
+    # Step 1: Data Retrieval and Preparation
+    df = load_dataset(dataset_path)
+    df = initial_inspection(df)
+    
+    # Step 2: Data Preprocessing
+    df = feature_engineering(df)
+    df = standardize_features(df)
+    
+    # Ensure the 'smoker_status' column exists
+    if 'smoker_status' not in df.columns:
+        raise KeyError("The 'smoker_status' column is missing in the dataset.")
+    
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+    
+    # Step 3: Data Augmentation
+    X_train_augmented, y_train_augmented = apply_smote(X_train, y_train)
+    
+    # Step 4: Model Training and Evaluation
+    model = initialize_model()
+    model = train_model(model, X_train_augmented, y_train_augmented)
+    auc_roc_val = evaluate_model(model, X_val, y_val)
+    auc_roc_test = final_evaluation(model, X_test, y_test)
+    
+    # Step 5: Model Saving and Deployment
+    model_path = './agent_workspace/trained_models/random_forest_smoker_status_model.pkl'
+    save_model(model, model_path)
+    
+    return {
+        'Validation AUC-ROC': auc_roc_val,
+        'Test AUC-ROC': auc_roc_test
+    }
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 140, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 117, in main
+    raise KeyError("The 'smoker_status' column is missing in the dataset.")
+KeyError: "The 'smoker_status' column is missing in the dataset."

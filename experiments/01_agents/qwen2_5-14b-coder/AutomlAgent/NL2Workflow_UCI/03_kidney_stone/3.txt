@@ -1,0 +1,126 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+from scipy import stats
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.classification import TabNetClassifier
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = imputer.fit_transform(df)
+    df_imputed = pd.DataFrame(df_imputed, columns=df.columns)
+    
+    # Handle outliers
+    z_scores = np.abs(stats.zscore(df_imputed.select_dtypes(include=['float64', 'int64'])))
+    filtered_entries = (z_scores < 3).all(axis=1)
+    df_filtered = df_imputed[filtered_entries]
+    
+    # Normalize or standardize data
+    scaler = StandardScaler()
+    df_scaled = scaler.fit_transform(df_filtered.select_dtypes(include=['float64', 'int64']))
+    df_scaled = pd.DataFrame(df_scaled, columns=df_filtered.select_dtypes(include=['float64', 'int64']).columns)
+    
+    # Convert categorical variables
+    df_encoded = pd.get_dummies(df_filtered.select_dtypes(include=['object']))
+    df = pd.concat([df_scaled, df_encoded], axis=1)
+    
+    return df
+
+def train_model(tabnet, X_train, y_train, X_val, y_val):
+    tabnet.fit(
+        X_train=X_train.values,
+        y_train=y_train.values,
+        eval_set=[(X_val.values, y_val.values)],
+        patience=20,
+        max_epochs=100
+    )
+    return tabnet
+
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test.values)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_url = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    df = pd.read_csv(dataset_url)
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = df.drop('has_kidney_stones', axis=1)
+    y = df['has_kidney_stones']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.67, random_state=SEED)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train = preprocess_data(X_train)
+    X_val = preprocess_data(X_val)
+    X_test = preprocess_data(X_test)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    tabnet = TabNetClassifier(
+        n_d=16,
+        n_a=16,
+        gamma=1.3,
+        n_steps=3,
+        lambda_sparse=0.001,
+        optimizer_fn=torch.optim.Adam,
+        optimizer_params=dict(lr=0.001),
+        max_epochs=100,
+        batch_size=64,
+        patience=20,
+        verbose=1
+    )
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    tabnet = train_model(tabnet, X_train, y_train, X_val, y_val)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(tabnet, X_test, y_test)
+    
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/tabnet_kidney_stones_model"
+    tabnet.save_model(model_save_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 19, in <module>
+    from pytorch_tabnet.classification import TabNetClassifier
+ModuleNotFoundError: No module named 'pytorch_tabnet.classification'

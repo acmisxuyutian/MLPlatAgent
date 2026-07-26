@@ -1,0 +1,379 @@
+import pandas as pd
+
+# Load the train and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Define a function to categorize GDP into bins
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif 1000 < gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+# Apply the function to create the 'GDP_bins' feature
+train_df['GDP_bins'] = train_df['GDP'].apply(categorize_gdp)
+test_df['GDP_bins'] = test_df['GDP'].apply(categorize_gdp)
+
+# Output the modified train and test datasets
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        Country      Status  Life expectancy   Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP  Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0         Ghana  Developing              61.2              263             40     1.64              225.221947           91       120   26.1                  58     91               4.81           91        1.3  1574.978653  25121796.0                    6.9                  6.8                            0.554       10.9  Medium GDP
+ 1     Argentina  Developing              74.1              138             12     7.81              470.186915           66         0   55.1                  13     94               8.31           93        0.1  2579.193168   3788937.0                    1.2                  1.0                            0.776       16.3  Medium GDP
+ ...         ...         ...               ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...         ...                    ...                  ...                              ...        ...         ...
+ 1317   Thailand  Developing              73.5              162             11     5.92              609.951163           98      7790   25.7                  13     99               3.92           99        0.3  4378.687460   6654576.0                    8.5                  8.6                            0.700       12.9  Medium GDP
+ 1318   Pakistan  Developing              65.1              172            372     0.04                0.667515           82      4321   21.9                 461     82               3.20           82        0.1    14.142268   1756182.0                    2.2                  2.7                            0.521        7.5     Low GDP
+ 
+ [1319 rows x 22 columns],
+        Country      Status  Life expectancy  Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP   Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0    Indonesia  Developing             67.5               19            154     0.06              102.633435           76     19456    2.5                 188     77               3.10           73        0.2  1855.939150  232989141.0                    1.8                  1.7                            0.638       11.0  Medium GDP
+ 1       Serbia  Developing             73.8              132              1     9.30              772.870035           99       201   55.1                   1     93               1.20           94        0.1  5458.121718    7381579.0                    2.4                  2.4                            0.743       13.5  Medium GDP
+ ..         ...         ...              ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...          ...                    ...                  ...                              ...        ...         ...
+ 328     Bhutan  Developing             69.1              219              0     0.01               19.790574           97         0   22.7                   1     97               3.83           97        0.6   235.882889     764961.0                   15.9                 16.5                            0.589       12.6     Low GDP
+ 329   Cameroon  Developing             54.8              373             54     5.89                9.042541            8       251   25.4                  85     79               5.70            8        6.3   123.195380   19432541.0                    6.3                  6.3                            0.473        9.2     Low GDP
+ 
+ [330 rows x 22 columns])from sklearn.linear_model import LinearRegression
+
+# Select features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to dummy variables
+train_df_with_dummies = pd.get_dummies(train_df, columns=['GDP_bins'], drop_first=True)
+test_df_with_dummies = pd.get_dummies(test_df, columns=['GDP_bins'], drop_first=True)
+
+# Align the dummies to ensure same columns in train and test sets
+train_df_with_dummies, test_df_with_dummies = train_df_with_dummies.align(test_df_with_dummies, join='inner', axis=1)
+
+# Prepare the data for modeling
+X_train = train_df_with_dummies.drop(target, axis=1)
+y_train = train_df_with_dummies[target]
+X_test = test_df_with_dummies.drop(target, axis=1)
+y_test = test_df_with_dummies[target]
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+model, predictions
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 15
+    X_train = train_df_with_dummies.drop(target, axis=1)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['Life expectancy'] not found in axis"
+
+from sklearn.linear_model import LinearRegression
+
+# Select features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to dummy variables
+train_df_with_dummies = pd.get_dummies(train_df, columns=['GDP_bins'], drop_first=True)
+test_df_with_dummies = pd.get_dummies(test_df, columns=['GDP_bins'], drop_first=True)
+
+# Ensure the target variable is included in the alignment
+train_df_with_dummies, test_df_with_dummies = train_df_with_dummies.align(test_df_with_dummies, join='inner', axis=1)
+
+# Prepare the data for modeling
+X_train = train_df_with_dummies.drop(target, axis=1)
+y_train = train_df_with_dummies[target]
+X_test = test_df_with_dummies.drop(target, axis=1)
+y_test = test_df_with_dummies[target]
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+model, predictions
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 15
+    X_train = train_df_with_dummies.drop(target, axis=1)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['Life expectancy'] not found in axis"
+
+from sklearn.linear_model import LinearRegression
+
+# Select features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to dummy variables
+train_df_features = pd.get_dummies(train_df[features], columns=['GDP_bins'], drop_first=True)
+test_df_features = pd.get_dummies(test_df[features], columns=['GDP_bins'], drop_first=True)
+
+# Align the feature columns
+train_df_features, test_df_features = train_df_features.align(test_df_features, join='inner', axis=1)
+
+# Prepare the data for modeling
+X_train = train_df_features
+y_train = train_df[target]
+X_test = test_df_features
+y_test = test_df[target]
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+model, predictions
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[4], line 16
+    y_train = train_df[target]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy'
+
+from sklearn.linear_model import LinearRegression
+
+# Check the column names in the DataFrame
+print(train_df.columns)
+
+# Select features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to dummy variables
+train_df_features = pd.get_dummies(train_df[features], columns=['GDP_bins'], drop_first=True)
+test_df_features = pd.get_dummies(test_df[features], columns=['GDP_bins'], drop_first=True)
+
+# Align the feature columns
+train_df_features, test_df_features = train_df_features.align(test_df_features, join='inner', axis=1)
+
+# Prepare the data for modeling
+X_train = train_df_features
+y_train = train_df[target]
+X_test = test_df_features
+y_test = test_df[target]
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+model, predictions
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[5], line 19
+    y_train = train_df[target]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy'
+
+Index(['Country', 'Status', 'Life expectancy ', 'Adult Mortality',
+       'infant deaths', 'Alcohol', 'percentage expenditure', 'Hepatitis B',
+       'Measles ', ' BMI ', 'under-five deaths ', 'Polio', 'Total expenditure',
+       'Diphtheria ', ' HIV/AIDS', 'GDP', 'Population',
+       ' thinness  1-19 years', ' thinness 5-9 years',
+       'Income composition of resources', 'Schooling', 'GDP_bins'],
+      dtype='object')
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Strip spaces from column names
+train_df.columns = train_df.columns.str.strip()
+test_df.columns = test_df.columns.str.strip()
+
+# Select features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to dummy variables
+train_df_features = pd.get_dummies(train_df[features], columns=['GDP_bins'], drop_first=True)
+test_df_features = pd.get_dummies(test_df[features], columns=['GDP_bins'], drop_first=True)
+
+# Align the feature columns
+train_df_features, test_df_features = train_df_features.align(test_df_features, join='inner', axis=1)
+
+# Prepare the data for modeling
+X_train = train_df_features
+y_train = train_df[target]
+X_test = test_df_features
+y_test = test_df[target]
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Evaluate the performance of the model using R-squared score
+r2 = r2_score(y_test, predictions)
+
+model, predictions, r2
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+ array([70.62244616, 71.08985055, 79.58825339, 64.29792426, 64.24732387,
+        64.2373172 , 70.87879177, 71.07876126, 70.63202675, 70.67309226,
+        70.84482415, 71.19667283, 70.72044302, 64.22111531, 64.23127558,
+        70.6850966 , 76.82657512, 81.04771163, 78.44102351, 70.93871888,
+        71.00350205, 71.06023442, 70.58469081, 77.2794235 , 70.61706819,
+        76.66476625, 70.6780387 , 79.22762264, 71.1022039 , 64.19429369,
+        64.2189375 , 71.33698876, 64.20881499, 79.87731512, 70.73649441,
+        70.66088038, 70.84858739, 70.56119544, 70.57024584, 77.41561536,
+        64.19886959, 77.21734492, 71.23472723, 70.55380974, 70.57310691,
+        64.25224967, 71.21047987, 70.54429656, 70.60000083, 70.93625269,
+        64.25899117, 70.59310616, 64.25538996, 71.48632068, 77.01595994,
+        64.25150046, 71.44554944, 64.20091226, 70.88035572, 64.22101987,
+        64.24377782, 64.26465039, 71.41479097, 64.24571202, 64.24458813,
+        64.26002565, 64.19573121, 64.2426773 , 70.70357196, 71.14129783,
+        76.73218303, 64.21392931, 64.23269564, 64.19535598, 71.21624509,
+        64.20160933, 64.20129716, 64.29740032, 71.14443101, 70.68362865,
+        70.77009453, 64.22624801, 70.5804429 , 70.94172541, 64.22951969,
+        64.31570454, 70.58345911, 70.58574857, 70.62034286, 64.29738726,
+        70.87186877, 70.91849915, 70.92421218, 64.26974321, 81.82270715,
+        70.78546452, 64.21158299, 64.30305579, 76.78913386, 64.22117165,
+        64.20393395, 64.29562179, 70.96292813, 70.56241103, 70.57879765,
+        70.74961145, 77.41989098, 71.23629273, 64.28412523, 71.48779103,
+        70.93423002, 70.75293067, 70.54295629, 64.25151314, 71.20607351,
+        70.5337509 , 64.23208473, 70.85319595, 70.66428518, 70.62280308,
+        70.89325235, 64.22221346, 70.88359801, 70.91701896, 64.20546532,
+        78.51781394, 78.04114121, 64.19596746, 70.75596609, 70.79965883,
+        77.20975174, 64.20886596, 64.21090451, 64.24895309, 64.27902091,
+        77.94422552, 70.93531312, 64.2711773 , 71.25773875, 64.24916936,
+        76.94861922, 70.59491446, 71.40355296, 64.21914513, 64.22558487,
+        64.29660474, 64.22372929, 83.64701116, 71.26958083, 64.25893098,
+        71.27329631, 76.7439164 , 64.30385544, 64.29057149, 70.54491479,
+        71.33127705, 71.11264535, 70.88655636, 70.94647026, 76.90250558,
+        64.3000542 , 64.25106881, 64.23322299, 64.23079054, 71.15612403,
+        71.33060433, 64.19733771, 70.61028895, 70.76628552, 64.24249403,
+        70.72462922, 64.26499456, 70.83927331, 71.32484488, 64.28995952,
+        70.88095581, 70.59865284, 70.53152868, 64.31153422, 70.61802662,
+        70.53443146, 70.97745225, 71.49147915, 70.74749326, 71.5193167 ,
+        64.26955839, 70.56901525, 70.60474697, 70.7108631 , 64.19959829,
+        70.73914324, 64.26642446, 64.26622606, 64.20528772, 71.14954829,
+        64.23684965, 64.1958323 , 64.19825757, 64.27874488, 64.26358939,
+        64.31758964, 71.44746604, 70.87968658, 71.49271329, 77.06584878,
+        64.23011403, 70.59409678, 71.4006436 , 71.6253719 , 64.25952035,
+        70.75709543, 71.21508705, 64.20800385, 71.20400476, 70.91782377,
+        64.30872112, 70.82184311, 70.53905545, 64.25357947, 70.84522562,
+        64.22623254, 77.09637384, 64.19384949, 64.19040968, 70.79094383,
+        70.94280531, 77.01593905, 70.57148771, 64.31445773, 64.25182056,
+        78.91160515, 79.3375527 , 70.9815337 , 64.22684782, 64.31004525,
+        64.23247454, 64.23581809, 64.23496638, 70.56040757, 81.96677747,
+        70.97159322, 64.2847287 , 81.57466313, 70.88137387, 71.06222107,
+        70.59217396, 70.74467987, 71.37363874, 64.20782965, 70.56196914,
+        70.89513773, 64.24670271, 70.84311196, 70.95640127, 64.21339972,
+        77.05891519, 64.20901051, 70.59808107, 64.19282874, 70.60755063,
+        64.20380351, 64.29079137, 64.22478881, 64.23683864, 70.94850757,
+        71.09413746, 64.23796671, 70.55491053, 64.20825319, 78.76170092,
+        64.20782832, 64.1903851 , 64.26317761, 64.24385054, 70.60506338,
+        79.30459893, 71.44061289, 64.20636828, 64.25113226, 81.19991469,
+        64.1923746 , 64.21877651, 64.24654946, 64.25235931, 78.33628207,
+        70.80977632, 78.38836328, 70.67443001, 70.95012504, 70.53406167,
+        64.22498932, 70.55710696, 77.31986247, 64.25922114, 64.24817385,
+        64.30344713, 71.04791802, 64.27012115, 71.33218434, 64.20821034,
+        70.65734199, 64.22577522, 71.13792506, 70.71894005, 70.55480607,
+        70.76725812, 70.8209412 , 64.23821837, 71.27395237, 64.24654524,
+        64.31732625, 77.07766429, 70.58442576, 71.0759838 , 70.8162689 ,
+        64.19772988, 71.61230579, 70.80016665, 71.01123171, 77.04156703,
+        70.52666531, 64.26360624, 81.31056329, 71.3194689 , 64.19526166,
+        71.20581219, 70.91588253, 70.54455488, 64.21954586, 64.204924  ]),
+ 0.2904598144739593)

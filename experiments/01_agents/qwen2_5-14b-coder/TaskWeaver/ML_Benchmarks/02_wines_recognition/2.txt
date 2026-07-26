@@ -1,0 +1,36 @@
+from sklearn.datasets import load_wine
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# Load the dataset
+wine = load_wine()
+df = pd.DataFrame(data=wine.data, columns=wine.feature_names)
+df['target'] = wine.target
+
+# Perform EDA and create a plot
+plt.figure(figsize=(10, 6))
+pd.plotting.scatter_matrix(df, alpha=0.2, figsize=(10, 10))
+plt.show()
+
+# Split the dataset into training and testing sets
+X = df.drop('target', axis=1)
+y = df['target']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a model to predict wine class
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+
+# Output the results
+accuracy
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+1.0

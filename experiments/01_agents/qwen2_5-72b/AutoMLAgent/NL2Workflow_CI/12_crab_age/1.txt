@@ -1,0 +1,175 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_absolute_error
+import joblib
+
+SEED = 42
+np.random.seed(SEED)
+
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+def preprocess_data(train_df, test_df):
+    # Data Inspection
+    print("Training Data Head:")
+    print(train_df.head())
+    print("Test Data Head:")
+    print(test_df.head())
+
+    print("Training Data Missing Values:")
+    print(train_df.isnull().sum())
+    print("Test Data Missing Values:")
+    print(test_df.isnull().sum())
+
+    print("Training Data Summary Statistics:")
+    print(train_df.describe())
+    print("Test Data Summary Statistics:")
+    print(test_df.describe())
+
+    # Handle Missing Values
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # One-Hot Encoding
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ],
+        remainder='passthrough'
+    )
+
+    train_df = pd.DataFrame(preprocessor.fit_transform(train_df), columns=preprocessor.get_feature_names_out())
+    test_df = pd.DataFrame(preprocessor.transform(test_df), columns=preprocessor.get_feature_names_out())
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    numerical_features_after_encoding = [col for col in train_df.columns if col.startswith('num__')]
+    train_df[numerical_features_after_encoding] = scaler.fit_transform(train_df[numerical_features_after_encoding])
+    test_df[numerical_features_after_encoding] = scaler.transform(test_df[numerical_features_after_encoding])
+
+    return train_df, test_df
+
+def train_model(train_df):
+    X_train = train_df.drop(columns=['age'])
+    y_train = train_df['age']
+
+    model = RandomForestRegressor(random_state=42)
+
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+    return best_model
+
+def evaluate_model(model, test_df):
+    X_test = test_df.drop(columns=['age'])
+    y_test = test_df['age']
+
+    test_predictions = model.predict(X_test)
+    test_mae = mean_absolute_error(y_test, test_predictions)
+    performance_scores = {
+        'MAE': test_mae
+    }
+    return performance_scores
+
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+def save_predictions(predictions, predictions_path):
+    os.makedirs(os.path.dirname(predictions_path), exist_ok=True)
+    predictions_df = pd.DataFrame({'age': predictions})
+    predictions_df.to_csv(predictions_path, index=False)
+
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+    model_path = './agent_workspace/trained_models/random_forest_regressor.pkl'
+    predictions_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/predictions.csv'
+
+    # Step 1: Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2: Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Train model
+    best_model = train_model(train_df)
+
+    # Step 4: Evaluate model
+    performance_scores = evaluate_model(best_model, test_df)
+
+    # Step 5: Save model
+    save_model(best_model, model_path)
+
+    # Step 6: Save predictions
+    X_test = test_df.drop(columns=['age'])
+    y_pred = best_model.predict(X_test)
+    save_predictions(y_pred, predictions_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 137, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 118, in main
+    train_df, test_df = preprocess_data(train_df, test_df)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 64, in preprocess_data
+    train_df[numerical_features_after_encoding] = scaler.fit_transform(train_df[numerical_features_after_encoding])
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 907, in fit
+    return self.partial_fit(X, y, sample_weight)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 943, in partial_fit
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 929, in check_array
+    dtype_orig = np.result_type(*dtypes_orig)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: at least one array or dtype is required

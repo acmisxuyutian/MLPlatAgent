@@ -1,0 +1,183 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical features
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    # Impute numerical features
+    numerical_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    # Impute categorical features
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Feature Scaling
+    scaler = MinMaxScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Feature Engineering
+    if 'attack' in train_df.columns and 'defense' in train_df.columns:
+        train_df['total_power'] = train_df['attack'] + train_df['defense']
+    if 'attack' in test_df.columns and 'defense' in test_df.columns:
+        test_df['total_power'] = test_df['attack'] + test_df['defense']
+
+    # One-Hot Encoding
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+
+    return train_df, test_df
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    # Synthetic Data Generation
+    smote = SMOTE()
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    # Data Perturbation
+    def perturb_data(X, y, perturbation_factor=0.01):
+        noise = np.random.normal(0, perturbation_factor, X.shape)
+        X_perturbed = X + noise
+        return X_perturbed, y
+
+    X_train_perturbed, y_train_perturbed = perturb_data(X_train_resampled, y_train_resampled)
+    return X_train_perturbed, y_train_perturbed
+
+# Model Training
+def train_model(X_train, y_train):
+    # Split the resampled data into training and validation sets
+    X_train_final, X_val, y_train_final, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+    # Initialize and train the XGBoost model
+    xgb_model = XGBClassifier(
+        n_estimators=300,
+        max_depth=7,
+        learning_rate=0.1,
+        subsample=0.7,
+        colsample_bytree=0.7
+    )
+    xgb_model.fit(X_train_final, y_train_final)
+
+    return xgb_model, X_val, y_val
+
+# Model Evaluation
+def evaluate_model(xgb_model, X_val, y_val, X_test, y_test):
+    # Evaluate on the validation set
+    y_val_pred = xgb_model.predict(X_val)
+    val_accuracy = accuracy_score(y_val, y_val_pred)
+    print(f'Validation Accuracy: {val_accuracy}')
+
+    # Evaluate on the test set
+    y_test_pred = xgb_model.predict(X_test)
+    test_accuracy = accuracy_score(y_test, y_test_pred)
+    print(f'Test Accuracy: {test_accuracy}')
+
+    # Print classification report
+    print(classification_report(y_test, y_test_pred))
+
+    performance_scores = {
+        'Validation Accuracy': val_accuracy,
+        'Test Accuracy': test_accuracy
+    }
+
+    return performance_scores, y_test_pred
+
+# Save Model and Predictions
+def save_model_and_predictions(xgb_model, y_test_pred, model_path, predictions_path):
+    joblib.dump(xgb_model, model_path)
+    predictions_df = pd.DataFrame({'monster_type': y_test_pred})
+    predictions_df.to_csv(predictions_path, index=False)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Ensure 'monster_type' column exists in both datasets
+    if 'monster_type' not in train_df.columns:
+        raise ValueError("The 'monster_type' column is missing in the training dataset.")
+    if 'monster_type' not in test_df.columns:
+        raise ValueError("The 'monster_type' column is missing in the test dataset.")
+
+    # Split data
+    X_train = train_df.drop(columns=['monster_type'])
+    y_train = train_df['monster_type']
+    X_test = test_df.drop(columns=['monster_type'])
+    y_test = test_df['monster_type']
+
+    # Augment data
+    X_train, y_train = augment_data(X_train, y_train)
+
+    # Train model
+    xgb_model, X_val, y_val = train_model(X_train, y_train)
+
+    # Evaluate model
+    performance_scores, y_test_pred = evaluate_model(xgb_model, X_val, y_val, X_test, y_test)
+
+    # Save model and predictions
+    model_path = './agent_workspace/trained_models/monster_type_classifier.pkl'
+    predictions_path = './agent_workspace/trained_models/monster_type_predictions.csv'
+    save_model_and_predictions(xgb_model, y_test_pred, model_path, predictions_path)
+
+    # Generate final report
+    final_report = f"""
+    Final Report:
+    - Validation Accuracy: {performance_scores['Validation Accuracy']}
+    - Test Accuracy: {performance_scores['Test Accuracy']}
+    - Model Path: {model_path}
+    - Predictions Path: {predictions_path}
+    """
+    with open('./agent_workspace/trained_models/final_report.txt', 'w') as f:
+        f.write(final_report)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 170, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 132, in main
+    raise ValueError("The 'monster_type' column is missing in the training dataset.")
+ValueError: The 'monster_type' column is missing in the training dataset.

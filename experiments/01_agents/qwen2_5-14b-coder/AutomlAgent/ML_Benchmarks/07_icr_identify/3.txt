@@ -1,0 +1,247 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, eval_df):
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=[np.number]).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+    
+    # Handle missing values
+    for col in numerical_cols:
+        train_df[col] = train_df[col].fillna(train_df[col].mean())
+        eval_df[col] = eval_df[col].fillna(train_df[col].mean())
+    for col in categorical_cols:
+        train_df[col] = train_df[col].fillna(train_df[col].mode()[0])
+        eval_df[col] = eval_df[col].fillna(train_df[col].mode()[0])
+    
+    # One-hot encode categorical features
+    encoder = OneHotEncoder(drop='first', handle_unknown='ignore')
+    train_encoded = encoder.fit_transform(train_df[categorical_cols])
+    eval_encoded = encoder.transform(eval_df[categorical_cols])
+    
+    # Normalize continuous features
+    scaler = MinMaxScaler()
+    train_scaled = scaler.fit_transform(train_df[numerical_cols])
+    eval_scaled = scaler.transform(eval_df[numerical_cols])
+    
+    # Combine encoded and scaled features
+    X_train = np.hstack((train_scaled, train_encoded.toarray()))
+    X_eval = np.hstack((eval_scaled, eval_encoded.toarray()))
+    
+    # Split into features and target
+    y_train = train_df['Class']
+    y_eval = eval_df['Class']
+    
+    # Split eval into validation and test
+    X_val, X_test, y_val, y_test = train_test_split(X_eval, y_eval, test_size=0.5, random_state=42)
+    
+    return X_train, y_train, X_val, y_val, X_test, y_test, scaler, encoder
+
+# Model definition
+class NLNModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(NLNModel, self).__init__()
+        self.input_layer = nn.Linear(input_size, hidden_size)
+        self.hidden_layer = nn.Linear(hidden_size, hidden_size)
+        self.output_layer = nn.Linear(hidden_size, output_size)
+    
+    def forward(self, x):
+        x = torch.relu(self.input_layer(x))
+        x = torch.relu(self.hidden_layer(x))
+        x = self.output_layer(x)
+        return x
+
+# Model training
+def train_model(model, train_loader, val_loader, epochs=10, learning_rate=0.0005, batch_size=64):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    for epoch in range(epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        
+        model.eval()
+        val_loss = 0.0
+        val_correct = 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                val_correct += (predicted == labels).sum().item()
+        
+        val_loss /= len(val_loader)
+        val_accuracy = val_correct / len(val_loader.dataset)
+        print(f'Epoch {epoch+1}/{epochs}, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.4f}')
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(predicted.cpu().numpy())
+    
+    performance_scores = {
+        'F1': f1_score(y_true, y_pred)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_train.csv')
+    eval_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_eval.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, y_train, X_val, y_val, X_test, y_test, scaler, encoder = preprocess_data(train_df, eval_df)
+    
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+    
+    # Create DataLoader
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=64, shuffle=True)
+    val_loader = DataLoader(TensorDataset(X_val_tensor, y_val_tensor), batch_size=64, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=64, shuffle=False)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in the preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    hidden_size = 128  # Example hidden size
+    output_size = len(np.unique(y_train))
+    model = NLNModel(input_size, hidden_size, output_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, train_loader, val_loader, epochs=10, learning_rate=0.0005, batch_size=64)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/model.pth"
+    torch.save(model.state_dict(), model_path)
+    
+    # Save the scaler and encoder
+    scaler_path = "./agent_workspace/trained_models/scaler.pkl"
+    encoder_path = "./agent_workspace/trained_models/encoder.pkl"
+    import pickle
+    with open(scaler_path, 'wb') as f:
+        pickle.dump(scaler, f)
+    with open(encoder_path, 'wb') as f:
+        pickle.dump(encoder, f)
+    
+    # Save the configuration
+    config_path = "./agent_workspace/trained_models/config.json"
+    config = {
+        "model_path": model_path,
+        "scaler_path": scaler_path,
+        "encoder_path": encoder_path,
+        "train_data_path": "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_train.csv",
+        "eval_data_path": "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_eval.csv",
+        "learning_rate": 0.0005,
+        "batch_size": 64,
+        "num_rule_modules": 15,
+        "l1_regularization": 0.005,
+        "l2_regularization": 0.0005
+    }
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_encoders.py:246: UserWarning:
+
+Found unknown categories in columns [0] during transform. These unknown categories will be encoded as all zeros
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 197, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 159, in main
+    model = train_model(model, train_loader, val_loader, epochs=10, learning_rate=0.0005, batch_size=64)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 75, in train_model
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

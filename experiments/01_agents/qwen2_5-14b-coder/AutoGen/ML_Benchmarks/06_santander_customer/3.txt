@@ -1,0 +1,247 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv')
+
+# 加载评估数据
+eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv')
+
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(eval_data.isnull().sum())
+
+# 如果有缺失值，可以选择填充或删除
+# 例如，用均值填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+eval_data.fillna(eval_data.mean(), inplace=True)
+
+# 检查数据类型
+print(train_data.dtypes)
+print(eval_data.dtypes)
+
+# 如果有需要，可以转换数据类型
+# 例如，将某些列转换为类别类型
+# train_data['column_name'] = train_data['column_name'].astype('category')
+# eval_data['column_name'] = eval_data['column_name'].astype('category')
+
+# 示例：创建一个新的特征
+# train_data['new_feature'] = train_data['feature1'] + train_data['feature2']
+# eval_data['new_feature'] = eval_data['feature1'] + eval_data['feature2']
+
+# 示例：标准化特征
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+train_features = train_data.drop('target', axis=1)
+eval_features = eval_data.drop('target', axis=1)
+
+train_features_scaled = scaler.fit_transform(train_features)
+eval_features_scaled = scaler.transform(eval_features)
+
+# 将标准化后的特征重新转换为DataFrame
+train_features_scaled = pd.DataFrame(train_features_scaled, columns=train_features.columns)
+eval_features_scaled = pd.DataFrame(eval_features_scaled, columns=eval_features.columns)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# 分割训练数据为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(train_features_scaled, train_data['target'], test_size=0.2, random_state=42)
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测评估数据的概率
+y_eval_pred_proba = model.predict_proba(eval_features_scaled)[:, 1]
+
+# 计算AUC
+auc_score = roc_auc_score(eval_data['target'], y_eval_pred_proba)
+print(f'AUC on eval data: {auc_score}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b8929d5db3f6bbac58885cbd09c221079389246918eb04ee1db116ed3800ed42.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv')
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径")
+except Exception as e:
+    print(f"加载训练数据时发生错误: {e}")
+
+# 加载评估数据
+try:
+    eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv')
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print("评估数据文件未找到，请检查文件路径")
+except Exception as e:
+    print(f"加载评估数据时发生错误: {e}")
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功
+
+生成的代码：
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b8929d5db3f6bbac58885cbd09c221079389246918eb04ee1db116ed3800ed42.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv')
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径")
+except Exception as e:
+    print(f"加载训练数据时发生错误: {e}")
+
+# 加载评估数据
+try:
+    eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv')
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print("评估数据文件未找到，请检查文件路径")
+except Exception as e:
+    print(f"加载评估数据时发生错误: {e}")
+
+# 数据分析
+if 'train_data' in locals() and 'eval_data' in locals():
+    # 查看训练数据的基本信息
+    print(train_data.info())
+
+    # 查看训练数据的统计摘要
+    print(train_data.describe())
+
+    # 查看评估数据的基本信息
+    print(eval_data.info())
+
+    # 查看评估数据的统计摘要
+    print(eval_data.describe())
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 160000 entries, 0 to 159999
+Data columns (total 19 columns):
+ #   Column  Non-Null Count   Dtype  
+---  ------  --------------   -----  
+ 0   target  160000 non-null  int64  
+ 1   var_0   160000 non-null  float64
+ 2   var_1   160000 non-null  float64
+ 3   var_2   160000 non-null  float64
+ 4   var_3   160000 non-null  float64
+ 5   var_4   160000 non-null  float64
+ 6   var_5   160000 non-null  float64
+ 7   var_6   160000 non-null  float64
+ 8   var_7   160000 non-null  float64
+ 9   var_8   160000 non-null  float64
+ 10  var_9   160000 non-null  float64
+ 11  var_10  160000 non-null  float64
+ 12  var_11  160000 non-null  float64
+ 13  var_12  160000 non-null  float64
+ 14  var_13  160000 non-null  float64
+ 15  var_14  160000 non-null  float64
+ 16  var_15  160000 non-null  float64
+ 17  var_16  160000 non-null  float64
+ 18  var_17  160000 non-null  float64
+dtypes: float64(18), int64(1)
+memory usage: 23.2 MB
+None
+              target          var_0  ...         var_16         var_17
+count  160000.000000  160000.000000  ...  160000.000000  160000.000000
+mean        0.100175      10.677401  ...       9.337185      -5.700292
+std         0.300234       3.039160  ...       2.558483       6.715098
+min         0.000000       0.408400  ...       0.635100     -33.380200
+25%         0.000000       8.452700  ...       7.455175     -10.485750
+50%         0.000000      10.524750  ...       9.235850      -5.663200
+75%         0.000000      12.759200  ...      11.064625      -0.810775
+max         1.000000      20.315000  ...      17.950600      19.025900
+
+[8 rows x 19 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 40000 entries, 0 to 39999
+Data columns (total 19 columns):
+ #   Column  Non-Null Count  Dtype  
+---  ------  --------------  -----  
+ 0   target  40000 non-null  int64  
+ 1   var_0   40000 non-null  float64
+ 2   var_1   40000 non-null  float64
+ 3   var_2   40000 non-null  float64
+ 4   var_3   40000 non-null  float64
+ 5   var_4   40000 non-null  float64
+ 6   var_5   40000 non-null  float64
+ 7   var_6   40000 non-null  float64
+ 8   var_7   40000 non-null  float64
+ 9   var_8   40000 non-null  float64
+ 10  var_9   40000 non-null  float64
+ 11  var_10  40000 non-null  float64
+ 12  var_11  40000 non-null  float64
+ 13  var_12  40000 non-null  float64
+ 14  var_13  40000 non-null  float64
+ 15  var_14  40000 non-null  float64
+ 16  var_15  40000 non-null  float64
+ 17  var_16  40000 non-null  float64
+ 18  var_17  40000 non-null  float64
+dtypes: float64(18), int64(1)
+memory usage: 5.8 MB
+None
+             target         var_0  ...        var_16        var_17
+count  40000.000000  40000.000000  ...  40000.000000  40000.000000
+mean       0.101750     10.689968  ...      9.317579     -5.682488
+std        0.302323      3.043630  ...      2.553141      6.702726
+min        0.000000      0.452800  ...      0.863400    -29.029100
+25%        0.000000      8.458700  ...      7.440475    -10.442000
+50%        0.000000     10.524450  ...      9.216600     -5.683250
+75%        0.000000     12.753225  ...     11.027825     -0.811625
+max        1.000000     20.315000  ...     16.449400     16.394400
+
+[8 rows x 19 columns]

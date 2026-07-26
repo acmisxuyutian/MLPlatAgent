@@ -1,0 +1,178 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from scipy import stats
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Retrieve or load the dataset
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Step 2: Preprocess the datasets
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical features
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = train_df.select_dtypes(include=['object']).columns.tolist()
+
+    # Mean imputation for numerical features
+    if numerical_features:
+        numerical_imputer = SimpleImputer(strategy='mean')
+        train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    # Mode imputation for categorical features
+    if categorical_features:
+        categorical_imputer = SimpleImputer(strategy='most_frequent')
+        train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+        test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Remove outliers using Z-score method
+    if numerical_features:
+        z_scores = np.abs(stats.zscore(train_df[numerical_features]))
+        filtered_entries = (z_scores < 3).all(axis=1)
+        train_df = train_df[filtered_entries]
+
+    # Check for inconsistencies
+    if 'age' in train_df.columns:
+        train_df = train_df[train_df['age'] > 0]
+    if 'age' in test_df.columns:
+        test_df = test_df[test_df['age'] > 0]
+
+    # Standardize numerical features
+    if numerical_features:
+        scaler = StandardScaler()
+        train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Create new features (e.g., BMI)
+    if 'weight' in train_df.columns and 'height' in train_df.columns:
+        train_df['BMI'] = train_df['weight'] / (train_df['height'] ** 2)
+        test_df['BMI'] = test_df['weight'] / (test_df['height'] ** 2)
+
+    # Encode categorical variables using one-hot encoding
+    if categorical_features:
+        train_df = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+        test_df = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+
+    return train_df, test_df
+
+# Step 3: Split the data
+def split_data(train_df):
+    if 'label' not in train_df.columns:
+        raise KeyError("The 'label' column is not found in the training dataset.")
+    
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop(columns=['label']), train_df['label'], test_size=0.2, stratify=train_df['label'], random_state=42
+    )
+    return X_train, X_val, y_train, y_val
+
+# Step 4: Data augmentation
+def augment_data(X_train, y_train):
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    return X_train_resampled, y_train_resampled
+
+# Step 5: Train the model
+def train_model(X_train, y_train):
+    model = xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=6,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
+    )
+    model.fit(X_train, y_train)
+    return model
+
+# Step 6: Evaluate the model
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    auc_roc_val = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    auc_roc_test = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+
+    performance_scores = {
+        'Validation AUC-ROC': auc_roc_val,
+        'Test AUC-ROC': auc_roc_test
+    }
+    return performance_scores
+
+# Step 7: Save the trained model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save_model(model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Split the data
+    X_train, X_val, y_train, y_val = split_data(train_df)
+
+    # Data augmentation
+    X_train_resampled, y_train_resampled = augment_data(X_train, y_train)
+
+    # Train the model
+    model = train_model(X_train_resampled, y_train_resampled)
+
+    # Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, test_df.drop(columns=['label']), test_df['label'])
+
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/xgboost_kidney_stone_model.pkl"
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py:59: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 154, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 136, in main
+    X_train, X_val, y_train, y_val = split_data(train_df)
+                                     ^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 77, in split_data
+    raise KeyError("The 'label' column is not found in the training dataset.")
+KeyError: "The 'label' column is not found in the training dataset."

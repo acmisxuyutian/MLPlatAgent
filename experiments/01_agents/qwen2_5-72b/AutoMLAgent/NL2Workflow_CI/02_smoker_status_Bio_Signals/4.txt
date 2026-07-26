@@ -1,0 +1,142 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    # Verify data integrity
+    train_missing = train_df.isnull().sum()
+    test_missing = test_df.isnull().sum()
+    
+    if 'smoker_status' not in train_df.columns:
+        raise ValueError("Target variable 'smoker_status' is missing in the training dataset.")
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    numerical_columns = train_df.select_dtypes(include=['number']).columns
+    categorical_columns = train_df.select_dtypes(include=['object']).columns
+
+    train_df[numerical_columns] = numerical_imputer.fit_transform(train_df[numerical_columns])
+    train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+
+    test_df[numerical_columns] = numerical_imputer.transform(test_df[numerical_columns])
+    test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+    # Feature normalization/standardization
+    scaler = StandardScaler()
+    train_df[numerical_columns] = scaler.fit_transform(train_df[numerical_columns])
+    test_df[numerical_columns] = scaler.transform(test_df[numerical_columns])
+
+    # Categorical encoding
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    train_encoded = encoder.fit_transform(train_df[categorical_columns])
+    test_encoded = encoder.transform(test_df[categorical_columns])
+
+    train_df = pd.concat([train_df, pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(categorical_columns))], axis=1)
+    test_df = pd.concat([test_df, pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(categorical_columns))], axis=1)
+
+    train_df.drop(columns=categorical_columns, inplace=True)
+    test_df.drop(columns=categorical_columns, inplace=True)
+
+    return train_df, test_df
+
+# Data Augmentation
+def augment_data(train_df):
+    # Synthetic data generation
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(train_df.drop(columns=['smoker_status']), train_df['smoker_status'])
+
+    # Data perturbation
+    def add_gaussian_noise(data, std=0.1):
+        noise = np.random.normal(0, std, data.shape)
+        return data + noise
+
+    X_train_perturbed = add_gaussian_noise(X_train)
+
+    return X_train_perturbed, y_train
+
+# Model Training
+def train_model(X_train, y_train):
+    model = XGBClassifier(booster='dart', learning_rate=0.1, n_estimators=100, max_depth=5, subsample=0.8, colsample_bytree=0.8, gamma=0.1)
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, test_df):
+    y_pred_proba = model.predict_proba(test_df.drop(columns=['smoker_status']))[:, 1]
+    auc_roc = roc_auc_score(test_df['smoker_status'], y_pred_proba)
+    return auc_roc
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv'
+    model_path = './agent_workspace/trained_models/xgboost_dart_model.pkl'
+
+    # Step 1: Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2: Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Augment data
+    X_train, y_train = augment_data(train_df)
+
+    # Step 4: Train model
+    model = train_model(X_train, y_train)
+
+    # Step 5: Evaluate model
+    auc_roc = evaluate_model(model, test_df)
+    print(f"AUC-ROC Score: {auc_roc}")
+
+    # Step 6: Save model
+    save_model(model, model_path)
+
+    return auc_roc
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 105, in main
+    train_df, test_df = load_datasets(train_path, test_path)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 29, in load_datasets
+    raise ValueError("Target variable 'smoker_status' is missing in the training dataset.")
+ValueError: Target variable 'smoker_status' is missing in the training dataset.

@@ -1,0 +1,221 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset, random_split
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preparation
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data exploration and preprocessing
+def preprocess_data(train_df, test_df):
+    # Identify target variable and features
+    target = '健康状况'
+    if target not in train_df.columns:
+        raise ValueError(f"Target variable '{target}' not found in the training dataset.")
+    if target not in test_df.columns:
+        raise ValueError(f"Target variable '{target}' not found in the testing dataset.")
+    
+    X_train = train_df.drop(columns=[target])
+    y_train = train_df[target]
+    X_test = test_df.drop(columns=[target])
+    y_test = test_df[target]
+
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    X_train_imputed = imputer.fit_transform(X_train)
+    X_test_imputed = imputer.transform(X_test)
+
+    # Encode categorical variables
+    label_encoder = LabelEncoder()
+    y_train_encoded = label_encoder.fit_transform(y_train)
+    y_test_encoded = label_encoder.transform(y_test)
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_imputed)
+    X_test_scaled = scaler.transform(X_test_imputed)
+
+    return X_train_scaled, y_train_encoded, X_test_scaled, y_test_encoded, label_encoder
+
+# Feature engineering
+def feature_engineering(X_train, y_train):
+    # Feature selection using RandomForest
+    rf = RandomForestClassifier(n_estimators=100, random_state=SEED)
+    rf.fit(X_train, y_train)
+    selector = SelectFromModel(rf, prefit=True)
+    X_train_selected = selector.transform(X_train)
+    return X_train_selected, selector
+
+# Define the neural network model
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(FNN, self).__init__()
+        layers = []
+        layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        layers.append(nn.ReLU())
+        layers.append(nn.BatchNorm1d(hidden_sizes[0]))
+        layers.append(nn.Dropout(0.2))
+        
+        for i in range(1, len(hidden_sizes)):
+            layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+            layers.append(nn.ReLU())
+            layers.append(nn.BatchNorm1d(hidden_sizes[i]))
+            layers.append(nn.Dropout(0.2))
+        
+        layers.append(nn.Linear(hidden_sizes[-1], output_size))
+        layers.append(nn.Softmax(dim=1))
+        
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+# Train the model
+def train_model(model, train_loader, valid_loader, epochs, criterion, optimizer):
+    early_stopping_patience = 5
+    best_val_loss = float('inf')
+    early_stopping_counter = 0
+
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        avg_train_loss = running_loss / len(train_loader)
+        print(f'Epoch [{epoch+1}/{epochs}], Train Loss: {avg_train_loss:.4f}')
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+        avg_val_loss = val_loss / len(valid_loader)
+        print(f'Epoch [{epoch+1}/{epochs}], Validation Loss: {avg_val_loss:.4f}')
+
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/fnn_model.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= early_stopping_patience:
+                print("Early stopping triggered.")
+                break
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader, label_encoder):
+    model.eval()
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+
+    y_true = label_encoder.inverse_transform(y_true)
+    y_pred = label_encoder.inverse_transform(y_pred)
+
+    performance_scores = {
+        'F1': f1_score(y_true, y_pred, average='weighted'),
+        'Classification Report': classification_report(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# Custom Dataset class
+class HorseHealthDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Step 2: Preprocess the data
+    X_train, y_train, X_test, y_test, label_encoder = preprocess_data(train_df, test_df)
+
+    # Step 3: Feature engineering
+    X_train_selected, selector = feature_engineering(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+
+    # Step 4: Create datasets and dataloaders
+    train_dataset = HorseHealthDataset(X_train_selected, y_train)
+    test_dataset = HorseHealthDataset(X_test_selected, y_test)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    # Step 5: Define the model
+    input_size = X_train_selected.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = len(np.unique(y_train))
+    model = FNN(input_size, hidden_sizes, output_size)
+
+    # Step 6: Train the model
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    model = train_model(model, train_loader, test_loader, epochs=100, criterion=criterion, optimizer=optimizer)
+
+    # Step 7: Evaluate the model
+    model_performance = evaluate_model(model, test_loader, label_encoder)
+    print("Model Performance on Test Set:", model_performance)
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 207, in <module>
+    main()
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in main
+    X_train, y_train, X_test, y_test, label_encoder = preprocess_data(train_df, test_df)
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in preprocess_data
+    raise ValueError(f"Target variable '{target}' not found in the training dataset.")
+ValueError: Target variable '健康状况' not found in the training dataset.

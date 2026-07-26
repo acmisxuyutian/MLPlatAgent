@@ -1,0 +1,144 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Remove duplicates
+    train_df = train_df.drop_duplicates()
+    
+    # One-hot encoding for categorical features
+    train_df = pd.get_dummies(train_df, columns=['gender', 'smoking_history'])
+    test_df = pd.get_dummies(test_df, columns=['gender', 'smoking_history'])
+    
+    # Ensure both datasets have the same columns
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    
+    test_df = test_df[train_df.columns]
+    
+    return train_df, test_df
+
+def train_model(X_train, y_train):
+    # Split the training set into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=SEED)
+    
+    # Train a random forest classifier
+    rf = RandomForestClassifier(random_state=SEED)
+    rf.fit(X_train, y_train)
+    
+    # Hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100],
+        'max_depth': [10],
+        'min_samples_split': [2],
+        'min_samples_leaf': [1]
+    }
+    
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=5, scoring='roc_auc')
+    grid_search.fit(X_train, y_train)
+    
+    best_rf = grid_search.best_estimator_
+    
+    return best_rf, X_val, y_val
+
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    # Evaluate model on the validation set
+    y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+    auc_roc_val = roc_auc_score(y_val, y_val_pred_proba)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+    
+    # Evaluate model on the test set
+    y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc_test = roc_auc_score(y_test, y_test_pred_proba)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+    
+    # Visualize confusion matrix for the test set
+    y_test_pred = model.predict(X_test)
+    cm = confusion_matrix(y_test, y_test_pred)
+    
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['No Diabetes', 'Diabetes'], yticklabels=['No Diabetes', 'Diabetes'])
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
+    
+    # Return performance scores
+    performance_scores = {
+        'Validation AUC-ROC': auc_roc_val,
+        'Test AUC-ROC': auc_roc_test
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    try:
+        train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv')
+        test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv')
+    except pd.errors.ParserError as e:
+        print(f"Error reading CSV file: {e}")
+        return
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    X_train = train_df.drop('diabetes', axis=1)
+    y_train = train_df['diabetes']
+    X_test = test_df.drop('diabetes', axis=1)
+    y_test = test_df['diabetes']
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data = preprocess_data(train_df, test_df)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model, X_val, y_val = train_model(X_train, y_train)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Save the trained model
+    model_save_path = './agent_workspace/trained_models/diabetes_rf_model.pkl'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    joblib.dump(model, model_save_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error reading CSV file: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+
+Model Performance on Test Set: None

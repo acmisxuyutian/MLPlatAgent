@@ -1,0 +1,109 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(X, y):
+    # Standardize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, y
+
+def train_model(X_train, y_train):
+    # Define and train the model
+    model = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    performance_scores = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+    return performance_scores
+
+def visualize_feature_importance(model, feature_names):
+    # Visualize feature importance
+    feature_importance = model.feature_importances_
+    indices = np.argsort(feature_importance)[::-1]
+
+    plt.figure()
+    plt.title("Feature Importances")
+    plt.bar(range(len(feature_names)), feature_importance[indices], align="center")
+    plt.xticks(range(len(feature_names)), np.array(feature_names)[indices], rotation=90)
+    plt.xlim([-1, len(feature_names)])
+    plt.savefig('feature_importance.png')  # Save the plot to a file
+    plt.close()
+
+def save_model(model):
+    # Save the trained model
+    model_dir = "./agent_workspace/trained_models"
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    joblib.dump(model, os.path.join(model_dir, 'random_forest_model.pkl'))
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    from sklearn.datasets import load_iris
+    iris = load_iris()
+    X, y = iris.data, iris.target
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train, y_train = preprocess_data(X_train, y_train)
+    X_valid, y_valid = preprocess_data(X_valid, y_valid)
+    X_test, y_test = preprocess_data(X_test, y_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the trained model
+    save_model(model)
+
+    # Visualize feature importance
+    visualize_feature_importance(model, iris.feature_names)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'Accuracy': 1.0, 'F1': 1.0}

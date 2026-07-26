@@ -1,0 +1,953 @@
+import pandas as pd
+
+# Load the train and eval datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Display the first few rows of both datasets
+train_df.head(), eval_df.head()
+
+# Result variables
+train_df, eval_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       Id  MSSubClass MSZoning  LotFrontage  LotArea Street Alley LotShape LandContour Utilities LotConfig LandSlope Neighborhood Condition1 Condition2 BldgType HouseStyle  OverallQual  OverallCond  YearBuilt  YearRemodAdd RoofStyle RoofMatl Exterior1st Exterior2nd MasVnrType  MasVnrArea ExterQual ExterCond Foundation BsmtQual BsmtCond BsmtExposure BsmtFinType1  BsmtFinSF1 BsmtFinType2  BsmtFinSF2  BsmtUnfSF  TotalBsmtSF Heating  ... CentralAir Electrical 1stFlrSF  2ndFlrSF  LowQualFinSF  GrLivArea  BsmtFullBath  BsmtHalfBath  FullBath  HalfBath  BedroomAbvGr  KitchenAbvGr  KitchenQual TotRmsAbvGrd  Functional Fireplaces  FireplaceQu GarageType GarageYrBlt  GarageFinish GarageCars  GarageArea  GarageQual GarageCond PavedDrive WoodDeckSF  OpenPorchSF  EnclosedPorch  3SsnPorch  ScreenPorch  PoolArea  PoolQC  Fence MiscFeature MiscVal  MoSold  YrSold  SaleType SaleCondition SalePrice
+ 0     134          20       RL          NaN     6853   Pave   NaN      IR1         Lvl    AllPub    Inside       Gtl       Timber       Norm       Norm     1Fam     1Story            8            5       2001          2002     Gable  CompShg     VinylSd     VinylSd    BrkFace       136.0        Gd        TA      PConc       Ex       TA           No          GLQ        1005          Unf           0        262         1267    GasA  ...          Y      SBrkr     1296         0             0       1296             1             0         2         0             2             1           Gd            6         Typ          0          NaN     Attchd      2001.0           Fin          2         471          TA         TA          Y        192           25              0          0            0         0     NaN    NaN         NaN       0       6    2009        WD        Normal    220000
+ 1     291          60       RL        120.0    15611   Pave   NaN      Reg         Lvl    AllPub    Inside       Gtl      CollgCr       Norm       Norm     1Fam     2Story            8            5       2006          2006     Gable  CompShg     VinylSd     VinylSd        NaN         0.0        Gd        TA      PConc       Gd       TA           Av          Unf           0          Unf           0       1079         1079    GasA  ...          Y      SBrkr     1079       840             0       1919             0             0         2         1             3             1           Gd            8         Typ          1           Gd     Attchd      2006.0           RFn          2         685          Gd         TA          Y          0           51              0          0            0         0     NaN    NaN         NaN       0       7    2006       New       Partial    233230
+ ...   ...         ...      ...          ...      ...    ...   ...      ...         ...       ...       ...       ...          ...        ...        ...      ...        ...          ...          ...        ...           ...       ...      ...         ...         ...        ...         ...       ...       ...        ...      ...      ...          ...          ...         ...          ...         ...        ...          ...     ...  ...        ...        ...      ...       ...           ...        ...           ...           ...       ...       ...           ...           ...          ...          ...         ...        ...          ...        ...         ...           ...        ...         ...         ...        ...        ...        ...          ...            ...        ...          ...       ...     ...    ...         ...     ...     ...     ...       ...           ...       ...
+ 1166   80          50       RM         60.0    10440   Pave  Grvl      Reg         Lvl    AllPub    Corner       Gtl      OldTown       Norm       Norm     1Fam     2Story            5            6       1910          1981     Gable  CompShg     Wd Sdng     Wd Sdng        NaN         0.0        TA        TA      PConc       TA       TA           No          Unf           0          Unf           0        440          440    GasA  ...          Y      SBrkr      682       548             0       1230             0             0         1         1             2             1           TA            5         Typ          0          NaN     Detchd      1966.0           Unf          2         440          TA         TA          Y         74            0            128          0            0         0     NaN  MnPrv         NaN       0       5    2009        WD        Normal    110000
+ 1167  793          60       RL         92.0     9920   Pave   NaN      IR1         Lvl    AllPub   CulDSac       Gtl      NoRidge       Norm       Norm     1Fam     2Story            7            5       1996          1997     Gable  CompShg     MetalSd     MetalSd        NaN         0.0        Gd        TA      PConc       Gd       TA           Av          GLQ         862          Unf           0        255         1117    GasA  ...          Y      SBrkr     1127       886             0       2013             1             0         2         1             3             1           TA            8         Typ          1           TA     Attchd      1997.0           Unf          2         455          TA         TA          Y        180          130              0          0            0         0     NaN    NaN         NaN       0       6    2007        WD        Normal    269790
+ 
+ [1168 rows x 81 columns],
+        Id  MSSubClass MSZoning  LotFrontage  LotArea Street Alley LotShape LandContour Utilities LotConfig LandSlope Neighborhood Condition1 Condition2 BldgType HouseStyle  OverallQual  OverallCond  YearBuilt  YearRemodAdd RoofStyle RoofMatl Exterior1st Exterior2nd MasVnrType  MasVnrArea ExterQual ExterCond Foundation BsmtQual BsmtCond BsmtExposure BsmtFinType1  BsmtFinSF1 BsmtFinType2  BsmtFinSF2  BsmtUnfSF  TotalBsmtSF Heating  ... CentralAir Electrical 1stFlrSF  2ndFlrSF  LowQualFinSF  GrLivArea  BsmtFullBath  BsmtHalfBath  FullBath  HalfBath  BedroomAbvGr  KitchenAbvGr  KitchenQual TotRmsAbvGrd  Functional Fireplaces  FireplaceQu GarageType GarageYrBlt  GarageFinish GarageCars  GarageArea  GarageQual GarageCond PavedDrive WoodDeckSF  OpenPorchSF  EnclosedPorch  3SsnPorch  ScreenPorch  PoolArea  PoolQC Fence MiscFeature MiscVal  MoSold  YrSold  SaleType SaleCondition SalePrice
+ 0    1437          20       RL         60.0     9000   Pave   NaN      Reg         Lvl    AllPub       FR2       Gtl        NAmes       Norm       Norm     1Fam     1Story            4            6       1971          1971     Gable  CompShg     HdBoard     HdBoard        NaN         0.0        TA        TA      PConc       TA       TA           No          ALQ         616          Unf           0        248          864    GasA  ...          Y      SBrkr      864         0             0        864             0             0         1         0             3             1           TA            5         Typ          0          NaN     Detchd      1974.0           Unf          2         528          TA         TA          Y          0            0              0          0            0         0     NaN  GdWo         NaN       0       5    2007        WD        Normal    120500
+ 1      58          60       RL         89.0    11645   Pave   NaN      IR1         Lvl    AllPub    Corner       Gtl      CollgCr       Norm       Norm     1Fam     2Story            7            5       2004          2004     Gable  CompShg     VinylSd     VinylSd        NaN         0.0        Gd        TA      PConc       Gd       TA           No          Unf           0          Unf           0        860          860    GasA  ...          Y      SBrkr      860       860             0       1720             0             0         2         1             3             1           Gd            7         Typ          0          NaN     Attchd      2004.0           RFn          2         565          TA         TA          Y          0           70              0          0            0         0     NaN   NaN         NaN       0       8    2006        WD        Normal    196500
+ ..    ...         ...      ...          ...      ...    ...   ...      ...         ...       ...       ...       ...          ...        ...        ...      ...        ...          ...          ...        ...           ...       ...      ...         ...         ...        ...         ...       ...       ...        ...      ...      ...          ...          ...         ...          ...         ...        ...          ...     ...  ...        ...        ...      ...       ...           ...        ...           ...           ...       ...       ...           ...           ...          ...          ...         ...        ...          ...        ...         ...           ...        ...         ...         ...        ...        ...        ...          ...            ...        ...          ...       ...     ...   ...         ...     ...     ...     ...       ...           ...       ...
+ 290   662          60       RL         52.0    46589   Pave   NaN      IR2         Lvl    AllPub   CulDSac       Gtl      NoRidge       Norm       Norm     1Fam     2Story            8            7       1994          2005       Hip  CompShg     VinylSd     VinylSd    BrkFace       528.0        Gd        TA      PConc       Gd       Gd           No          GLQ        1361          Rec         180         88         1629    GasA  ...          Y      SBrkr     1686       762             0       2448             1             0         2         1             4             1           Gd            8         Typ          1           TA     Attchd      1994.0           RFn          3         711          TA         TA          Y        517           76              0          0            0         0     NaN   NaN         NaN       0       7    2009        WD        Normal    402000
+ 291   915         160       FV         30.0     3000   Pave  Pave      Reg         Lvl    AllPub    Inside       Gtl      Somerst       Norm       Norm   TwnhsE     2Story            6            5       2009          2009     Gable  CompShg     VinylSd     VinylSd      Stone        76.0        Gd        TA      PConc       Gd       TA           Av          GLQ         294          Unf           0        318          612    GasA  ...          Y      SBrkr      612       612             0       1224             0             0         2         1             2             1           Gd            4         Typ          0          NaN     Detchd      2009.0           RFn          2         528          TA         TA          Y          0          234              0          0            0         0     NaN   NaN         NaN       0       6    2009       New       Partial    173733
+ 
+ [292 rows x 81 columns])import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Basic statistics
+train_stats = train_df.describe()
+eval_stats = eval_df.describe()
+
+# Missing values
+train_missing = train_df.isnull().sum()
+eval_missing = eval_df.isnull().sum()
+
+# Distribution of SalePrice
+plt.figure(figsize=(12, 6))
+sns.histplot(train_df['SalePrice'], kde=True)
+plt.title('Distribution of SalePrice')
+plt.show()
+
+# Correlation matrix
+plt.figure(figsize=(12, 10))
+corr_matrix = train_df.corr()
+sns.heatmap(corr_matrix, annot=False, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Relationship between top correlated features and SalePrice
+most_correlated = corr_matrix['SalePrice'].sort_values(ascending=False)[:5].index.tolist()
+for feature in most_correlated:
+    if feature != 'SalePrice':
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=train_df, x=feature, y='SalePrice')
+        plt.title(f'Relationship between {feature} and SalePrice')
+        plt.show()
+
+# Result variables
+train_stats, eval_stats, train_missing, eval_missing, most_correlated
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 26
+    corr_matrix = train_df.corr()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11049 in corr
+    mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:1993 in to_numpy
+    result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1694 in as_array
+    arr = self._interleave(dtype=dtype, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1753 in _interleave
+    result[rl.indexer] = arr
+
+ValueError: could not convert string to float: 'RL'
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Basic statistics
+train_stats = train_df.describe()
+eval_stats = eval_df.describe()
+
+# Missing values
+train_missing = train_df.isnull().sum()
+eval_missing = eval_df.isnull().sum()
+
+# Select only numeric columns for correlation matrix
+numeric_train_df = train_df.select_dtypes(include=[np.number])
+
+# Distribution of SalePrice
+plt.figure(figsize=(12, 6))
+sns.histplot(train_df['SalePrice'], kde=True)
+plt.title('Distribution of SalePrice')
+plt.show()
+
+# Correlation matrix
+plt.figure(figsize=(12, 10))
+corr_matrix = numeric_train_df.corr()
+sns.heatmap(corr_matrix, annot=False, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Relationship between top correlated features and SalePrice
+most_correlated = corr_matrix['SalePrice'].sort_values(ascending=False)[:5].index.tolist()
+for feature in most_correlated:
+    if feature != 'SalePrice':
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=train_df, x=feature, y='SalePrice')
+        plt.title(f'Relationship between {feature} and SalePrice')
+        plt.show()
+
+# Result variables
+train_stats, eval_stats, train_missing, eval_missing, most_correlated
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                Id   MSSubClass  LotFrontage        LotArea  OverallQual  OverallCond    YearBuilt  YearRemodAdd   MasVnrArea   BsmtFinSF1   BsmtFinSF2    BsmtUnfSF  TotalBsmtSF    1stFlrSF     2ndFlrSF  LowQualFinSF   GrLivArea  BsmtFullBath  BsmtHalfBath     FullBath     HalfBath  BedroomAbvGr  KitchenAbvGr  TotRmsAbvGrd   Fireplaces  GarageYrBlt   GarageCars   GarageArea   WoodDeckSF  OpenPorchSF  EnclosedPorch    3SsnPorch  ScreenPorch     PoolArea       MiscVal       MoSold       YrSold      SalePrice
+ count  1168.000000  1168.000000   968.000000    1168.000000  1168.000000  1168.000000  1168.000000    1168.00000  1162.000000  1168.000000  1168.000000  1168.000000  1168.000000  1168.00000  1168.000000   1168.000000  1168.00000     1168.0000   1168.000000  1168.000000  1168.000000   1168.000000    1168.00000    1168.00000  1168.000000  1103.000000  1168.000000  1168.000000  1168.000000  1168.000000    1168.000000  1168.000000  1168.000000  1168.000000   1168.000000  1168.000000  1168.000000    1168.000000
+ mean    731.243151    57.380137    69.922521   10475.468322     6.098459     5.574486  1970.818493    1984.89726   103.981067   451.310788    48.506849   562.475171  1062.292808  1168.76113   346.226027      6.023973  1521.01113        0.4375      0.057363     1.565925     0.375856      2.867295       1.05137       6.52911     0.607021  1978.461469     1.774829   474.297945    94.683219    46.218322      24.055651     3.567637    13.094178     1.879281     45.148973     6.340753  2007.805651  180622.219178
+ ...            ...          ...          ...            ...          ...          ...          ...           ...          ...          ...          ...          ...          ...         ...          ...           ...         ...           ...           ...          ...          ...           ...           ...           ...          ...          ...          ...          ...          ...          ...            ...          ...          ...          ...           ...          ...          ...            ...
+ 75%    1102.250000    70.000000    80.000000   11588.000000     7.000000     6.000000  2000.000000    2004.00000   160.000000   721.000000     0.000000   808.000000  1304.000000  1405.50000   728.000000      0.000000  1776.75000        1.0000      0.000000     2.000000     1.000000      3.000000       1.00000       7.00000     1.000000  2002.000000     2.000000   576.000000   168.000000    68.250000       0.000000     0.000000     0.000000     0.000000      0.000000     8.000000  2009.000000  215000.000000
+ max    1460.000000   190.000000   313.000000  215245.000000    10.000000     9.000000  2010.000000    2010.00000  1600.000000  5644.000000  1474.000000  2336.000000  6110.000000  4692.00000  2065.000000    515.000000  5642.00000        3.0000      2.000000     3.000000     2.000000      8.000000       3.00000      14.00000     3.000000  2010.000000     4.000000  1418.000000   857.000000   523.000000     552.000000   508.000000   374.000000   648.000000  15500.000000    12.000000  2010.000000  755000.000000
+ 
+ [8 rows x 38 columns],
+                 Id  MSSubClass  LotFrontage        LotArea  OverallQual  OverallCond    YearBuilt  YearRemodAdd  MasVnrArea   BsmtFinSF1   BsmtFinSF2   BsmtUnfSF  TotalBsmtSF     1stFlrSF     2ndFlrSF  LowQualFinSF    GrLivArea  BsmtFullBath  BsmtHalfBath    FullBath    HalfBath  BedroomAbvGr  KitchenAbvGr  TotRmsAbvGrd  Fireplaces  GarageYrBlt  GarageCars   GarageArea  WoodDeckSF  OpenPorchSF  EnclosedPorch   3SsnPorch  ScreenPorch    PoolArea      MiscVal      MoSold       YrSold     SalePrice
+ count   292.000000  292.000000   233.000000     292.000000    292.00000   292.000000   292.000000    292.000000       290.0   292.000000   292.000000   292.00000   292.000000   292.000000   292.000000    292.000000   292.000000    292.000000    292.000000  292.000000  292.000000    292.000000    292.000000    292.000000  292.000000   276.000000  292.000000   292.000000  292.000000   292.000000     292.000000  292.000000   292.000000  292.000000   292.000000  292.000000   292.000000     292.00000
+ mean    727.527397   54.965753    70.579399   10682.267123      6.10274     5.578767  1973.065068   1984.739726       102.5   412.955479    38.719178   586.30137  1037.976027  1138.089041   350.058219      5.126712  1493.273973      0.376712      0.058219    1.561644    0.410959      2.863014      1.027397      6.472603    0.636986  1978.684783    1.736301   467.708904   92.489726    48.428082      13.547945    2.777397    22.928082    6.277397    36.849315    6.246575  2007.856164  182117.10274
+ ...            ...         ...          ...            ...          ...          ...          ...           ...         ...          ...          ...         ...          ...          ...          ...           ...          ...           ...           ...         ...         ...           ...           ...           ...         ...          ...         ...          ...         ...          ...            ...         ...          ...         ...          ...         ...          ...           ...
+ 75%    1053.750000   60.000000    80.000000   11651.250000      7.00000     6.000000  2002.000000   2004.000000       179.5   681.750000     0.000000   801.25000  1265.000000  1363.500000   729.500000      0.000000  1771.250000      1.000000      0.000000    2.000000    1.000000      3.000000      1.000000      7.000000    1.000000  2003.000000    2.000000   573.000000  161.250000    66.000000       0.000000    0.000000     0.000000    0.000000     0.000000    8.000000  2009.000000  210000.00000
+ max    1458.000000  190.000000   313.000000  159000.000000     10.00000     9.000000  2009.000000   2010.000000       921.0  1636.000000  1127.000000  1926.00000  2217.000000  2217.000000  1589.000000    572.000000  3608.000000      2.000000      2.000000    3.000000    2.000000      6.000000      2.000000     12.000000    2.000000  2009.000000    3.000000  1248.000000  586.000000   547.000000     318.000000  245.000000   480.000000  738.000000  2500.000000   12.000000  2010.000000  556581.00000
+ 
+ [8 rows x 38 columns],
+ Id               0
+ MSSubClass       0
+                 ..
+ SaleCondition    0
+ SalePrice        0
+ Length: 81, dtype: int64,
+ Id               0
+ MSSubClass       0
+                 ..
+ SaleCondition    0
+ SalePrice        0
+ Length: 81, dtype: int64,
+ ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea'])import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert preprocessed data back to DataFrames
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=preprocessor.get_feature_names_out())
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 46
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Convert preprocessed data back to DataFrames
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 51
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Ensure the shape of the preprocessed data matches the expected shape
+assert X_train_preprocessed.shape[1] == len(all_feature_names), f'Shape mismatch: {X_train_preprocessed.shape[1]} != {len(all_feature_names)}'
+
+# Convert preprocessed data back to DataFrames
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 54
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Ensure the shape of the preprocessed data matches the expected shape
+assert X_train_preprocessed.shape[1] == len(all_feature_names), f'Shape mismatch: {X_train_preprocessed.shape[1]} != {len(all_feature_names)}'
+
+# Convert preprocessed data back to DataFrames
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 54
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Print shapes for debugging
+print(f'Shape of X_train_preprocessed: {X_train_preprocessed.shape}')
+print(f'Shape of all_feature_names: {len(all_feature_names)}')
+
+# Ensure the shape of the preprocessed data matches the expected shape
+assert X_train_preprocessed.shape[1] == len(all_feature_names), f'Shape mismatch: {X_train_preprocessed.shape[1]} != {len(all_feature_names)}'
+
+# Convert preprocessed data back to DataFrames
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 58
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)
+
+Shape of X_train_preprocessed: (1168, 301)
+Shape of all_feature_names: 301
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Print shapes and types for debugging
+print(f'Shape of X_train_preprocessed: {X_train_preprocessed.shape}')
+print(f'Type of X_train_preprocessed: {type(X_train_preprocessed)}')
+print(f'Shape of all_feature_names: {len(all_feature_names)}')
+
+# Ensure the shape of the preprocessed data matches the expected shape
+assert X_train_preprocessed.shape[1] == len(all_feature_names), f'Shape mismatch: {X_train_preprocessed.shape[1]} != {len(all_feature_names)}'
+
+# Convert preprocessed data back to DataFrames
+if isinstance(X_train_preprocessed, scipy.sparse.csr_matrix):
+    X_train_preprocessed = X_train_preprocessed.toarray()
+    X_eval_preprocessed = X_eval_preprocessed.toarray()
+
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 59
+    if isinstance(X_train_preprocessed, scipy.sparse.csr_matrix):
+
+NameError: name 'scipy' is not defined
+
+Shape of X_train_preprocessed: (1168, 301)
+Type of X_train_preprocessed: <class 'scipy.sparse._csr.csr_matrix'>
+Shape of all_feature_names: 301
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import scipy.sparse
+
+# Load the train and eval datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv')
+
+# Separate features and target
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical variables
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the feature names
+numeric_feature_names = numeric_features
+categorical_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(input_features=categorical_features)
+all_feature_names = numeric_feature_names + list(categorical_feature_names)
+
+# Print shapes and types for debugging
+print(f'Shape of X_train_preprocessed: {X_train_preprocessed.shape}')
+print(f'Type of X_train_preprocessed: {type(X_train_preprocessed)}')
+print(f'Shape of all_feature_names: {len(all_feature_names)}')
+
+# Ensure the shape of the preprocessed data matches the expected shape
+assert X_train_preprocessed.shape[1] == len(all_feature_names), f'Shape mismatch: {X_train_preprocessed.shape[1]} != {len(all_feature_names)}'
+
+# Convert preprocessed data back to DataFrames
+if isinstance(X_train_preprocessed, scipy.sparse.csr_matrix):
+    X_train_preprocessed = X_train_preprocessed.toarray()
+    X_eval_preprocessed = X_eval_preprocessed.toarray()
+
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_feature_names)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_feature_names)
+
+# Result variables
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(            Id  MSSubClass  LotFrontage   LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  MasVnrArea  BsmtFinSF1  BsmtFinSF2  BsmtUnfSF  TotalBsmtSF  1stFlrSF  2ndFlrSF  LowQualFinSF  GrLivArea  BsmtFullBath  BsmtHalfBath  FullBath  HalfBath  BedroomAbvGr  KitchenAbvGr  TotRmsAbvGrd  Fireplaces  GarageYrBlt  GarageCars  GarageArea  WoodDeckSF  OpenPorchSF  EnclosedPorch  3SsnPorch  ScreenPorch  PoolArea   MiscVal    MoSold    YrSold  MSZoning_C (all)  MSZoning_FV  MSZoning_RH  ...  GarageQual_Po  GarageQual_TA  GarageQual_missing  GarageCond_Ex  GarageCond_Fa  GarageCond_Gd  GarageCond_Po  GarageCond_TA  GarageCond_missing  PavedDrive_N  PavedDrive_P  PavedDrive_Y  PoolQC_Ex  PoolQC_Fa  PoolQC_Gd  PoolQC_missing  Fence_GdPrv  Fence_GdWo  Fence_MnPrv  Fence_MnWw  Fence_missing  MiscFeature_Gar2  MiscFeature_Othr  MiscFeature_Shed  MiscFeature_missing  SaleType_COD  SaleType_CWD  SaleType_Con  SaleType_ConLD  SaleType_ConLI  SaleType_ConLw  SaleType_New  SaleType_Oth  SaleType_WD  SaleCondition_Abnorml  SaleCondition_AdjLand  SaleCondition_Alloca  SaleCondition_Family  SaleCondition_Normal  SaleCondition_Partial
+ 0    -1.409125   -0.878548     0.000000 -0.368268     1.376896    -0.520013   0.987083      0.827191    0.174582    1.194627    -0.29035  -0.673762     0.453749  0.322470 -0.793198     -0.125448  -0.428561      1.078984      -0.24287  0.791918 -0.754301     -1.067877     -0.224935     -0.332538   -0.950249     0.935979    0.301892   -0.015400    0.772142    -0.327420      -0.377120  -0.116888    -0.264644 -0.058235 -0.083201 -0.124423  0.896964               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ 1    -1.038702    0.061575     2.307459  0.522089     1.376896    -0.520013   1.150607      1.020654   -0.566954   -0.973738    -0.29035   1.158214     0.037033 -0.227488  1.131227     -0.125448   0.758017     -0.839209      -0.24287  0.791918  1.252587      0.163397     -0.224935      0.924433    0.615183     1.143619    0.301892    0.983912   -0.751247     0.073786      -0.377120  -0.116888    -0.264644 -0.058235 -0.083201  0.240718 -1.356055               0.0          0.0          0.0  ...            0.0            0.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           1.0           0.0          0.0                    0.0                    0.0                   0.0                   0.0                   0.0                    1.0
+ ...        ...         ...          ...       ...          ...          ...        ...           ...         ...         ...         ...        ...          ...       ...       ...           ...        ...           ...           ...       ...       ...           ...           ...           ...         ...          ...         ...         ...         ...          ...            ...        ...          ...       ...       ...       ...       ...               ...          ...          ...  ...            ...            ...                 ...            ...            ...            ...            ...            ...                 ...           ...           ...           ...        ...        ...        ...             ...          ...         ...          ...         ...            ...               ...               ...               ...                  ...           ...           ...           ...             ...             ...             ...           ...           ...          ...                    ...                    ...                   ...                   ...                   ...                    ...
+ 1166 -1.536531   -0.173456    -0.457208 -0.003606    -0.795388     0.385166  -1.989062     -0.188495   -0.566954   -0.973738    -0.29035  -0.274629    -1.379360 -1.233632  0.462261     -0.125448  -0.554265     -0.839209      -0.24287 -1.032461  1.252587     -1.067877     -0.224935     -0.961023   -0.950249    -0.517499    0.301892   -0.160161   -0.164107    -0.713196       1.629533  -0.116888    -0.264644 -0.058235 -0.083201 -0.489563  0.896964               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          1.0         0.0            0.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ 1167  0.145708    0.061575     1.017281 -0.056470     0.652801    -0.520013   0.823558      0.585361   -0.566954    0.886094    -0.29035  -0.689458     0.121263 -0.105838  1.236612     -0.125448   0.937052      1.078984      -0.24287  0.791918  1.252587      0.163397     -0.224935      0.924433    0.615183     0.769867    0.301892   -0.090115    0.676930     1.292837      -0.377120  -0.116888    -0.264644 -0.058235 -0.083201 -0.124423 -0.605049               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ 
+ [1168 rows x 301 columns],
+            Id  MSSubClass  LotFrontage   LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  MasVnrArea  BsmtFinSF1  BsmtFinSF2  BsmtUnfSF  TotalBsmtSF  1stFlrSF  2ndFlrSF  LowQualFinSF  GrLivArea  BsmtFullBath  BsmtHalfBath  FullBath  HalfBath  BedroomAbvGr  KitchenAbvGr  TotRmsAbvGrd  Fireplaces  GarageYrBlt  GarageCars  GarageArea  WoodDeckSF  OpenPorchSF  EnclosedPorch  3SsnPorch  ScreenPorch  PoolArea   MiscVal    MoSold    YrSold  MSZoning_C (all)  MSZoning_FV  MSZoning_RH  ...  GarageQual_Po  GarageQual_TA  GarageQual_missing  GarageCond_Ex  GarageCond_Fa  GarageCond_Gd  GarageCond_Po  GarageCond_TA  GarageCond_missing  PavedDrive_N  PavedDrive_P  PavedDrive_Y  PoolQC_Ex  PoolQC_Fa  PoolQC_Gd  PoolQC_missing  Fence_GdPrv  Fence_GdWo  Fence_MnPrv  Fence_MnWw  Fence_missing  MiscFeature_Gar2  MiscFeature_Othr  MiscFeature_Shed  MiscFeature_missing  SaleType_COD  SaleType_CWD  SaleType_Con  SaleType_ConLD  SaleType_ConLI  SaleType_ConLw  SaleType_New  SaleType_Oth  SaleType_WD  SaleCondition_Abnorml  SaleCondition_AdjLand  SaleCondition_Alloca  SaleCondition_Family  SaleCondition_Normal  SaleCondition_Partial
+ 0    1.665150   -0.878548    -0.457208 -0.149999    -1.519483     0.385166   0.005936     -0.672154   -0.566954    0.355330   -0.290350  -0.705154    -0.439531 -0.772377 -0.793198     -0.125448  -1.251356     -0.839209      -0.24287 -1.032461 -0.754301      0.163397     -0.224935     -0.961023   -0.950249    -0.185276    0.301892    0.250772   -0.751247    -0.713196       -0.37712  -0.116888    -0.264644 -0.058235 -0.083201 -0.489563 -0.605049               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         1.0          0.0         0.0            0.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ 1   -1.588438    0.061575     0.879048  0.118897     0.652801    -0.520013   1.085197      0.923923   -0.566954   -0.973738   -0.290350   0.667146    -0.448398 -0.782514  1.177047     -0.125448   0.378998     -0.839209      -0.24287  0.791918  1.252587      0.163397     -0.224935      0.295948   -0.950249     1.060563    0.301892    0.423550   -0.751247     0.366976       -0.37712  -0.116888    -0.264644 -0.058235 -0.083201  0.605858 -1.356055               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ ..        ...         ...          ...       ...          ...          ...        ...           ...         ...         ...         ...        ...          ...       ...       ...           ...        ...           ...           ...       ...       ...           ...           ...           ...         ...          ...         ...         ...         ...          ...            ...        ...          ...       ...       ...       ...       ...               ...          ...          ...  ...            ...            ...                 ...            ...            ...            ...            ...            ...                 ...           ...           ...           ...        ...        ...        ...             ...          ...         ...          ...         ...            ...               ...               ...               ...                  ...           ...           ...           ...             ...             ...             ...           ...           ...          ...                    ...                    ...                   ...                   ...                   ...                    ...
+ 290 -0.163371    0.061575    -0.825830  3.671381     1.376896     1.290346   0.758148      0.972289    2.311953    1.962725    0.787085  -1.063925     1.256150  1.310874  0.952531     -0.125448   1.765561      1.078984      -0.24287  0.791918  1.252587      1.394671     -0.224935      0.924433    0.615183     0.645283    1.642612    1.105324    3.350795     0.459562       -0.37712  -0.116888    -0.264644 -0.058235 -0.083201  0.240718  0.896964               0.0          0.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           0.0           0.0          1.0                    0.0                    0.0                   0.0                   0.0                   1.0                    0.0
+ 291  0.433553    2.411881    -1.839541 -0.759973    -0.071294    -0.520013   1.248722      1.165752   -0.152566   -0.339410   -0.290350  -0.548192    -0.998108 -1.411038  0.608883     -0.125448  -0.565693     -0.839209      -0.24287  0.791918  1.252587     -1.067877     -0.224935     -1.589508   -0.950249     1.268203    0.301892    0.250772   -0.751247     2.897663       -0.37712  -0.116888    -0.264644 -0.058235 -0.083201 -0.124423  0.896964               0.0          1.0          0.0  ...            0.0            1.0                 0.0            0.0            0.0            0.0            0.0            1.0                 0.0           0.0           0.0           1.0        0.0        0.0        0.0             1.0          0.0         0.0          0.0         0.0            1.0               0.0               0.0               0.0                  1.0           0.0           0.0           0.0             0.0             0.0             0.0           1.0           0.0          0.0                    0.0                    0.0                   0.0                   0.0                   0.0                    1.0
+ 
+ [292 rows x 301 columns],
+ 0       220000
+ 1       233230
+          ...  
+ 1166    110000
+ 1167    269790
+ Name: SalePrice, Length: 1168, dtype: int64,
+ 0      120500
+ 1      196500
+         ...  
+ 290    402000
+ 291    173733
+ Name: SalePrice, Length: 292, dtype: int64)import pandas as pd
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
+
+# Load the preprocessed train and eval datasets
+X_train_preprocessed_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train_preprocessed.csv')
+X_eval_preprocessed_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval_preprocessed.csv')
+y_train = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train_target.csv')['SalePrice']
+y_eval = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval_target.csv')['SalePrice']
+
+# Feature Engineering
+# Create new features
+X_train_preprocessed_df['TotalSF'] = X_train_preprocessed_df['1stFlrSF'] + X_train_preprocessed_df['2ndFlrSF'] + X_train_preprocessed_df['TotalBsmtSF']
+X_eval_preprocessed_df['TotalSF'] = X_eval_preprocessed_df['1stFlrSF'] + X_eval_preprocessed_df['2ndFlrSF'] + X_eval_preprocessed_df['TotalBsmtSF']
+
+X_train_preprocessed_df['TotalBathrooms'] = X_train_preprocessed_df['FullBath'] + X_train_preprocessed_df['HalfBath'] + X_train_preprocessed_df['BsmtFullBath'] + X_train_preprocessed_df['BsmtHalfBath']
+X_eval_preprocessed_df['TotalBathrooms'] = X_eval_preprocessed_df['FullBath'] + X_eval_preprocessed_df['HalfBath'] + X_eval_preprocessed_df['BsmtFullBath'] + X_eval_preprocessed_df['BsmtHalfBath']
+
+X_train_preprocessed_df['TotalPorchSF'] = X_train_preprocessed_df['OpenPorchSF'] + X_train_preprocessed_df['EnclosedPorch'] + X_train_preprocessed_df['3SsnPorch'] + X_train_preprocessed_df['ScreenPorch']
+X_eval_preprocessed_df['TotalPorchSF'] = X_eval_preprocessed_df['OpenPorchSF'] + X_eval_preprocessed_df['EnclosedPorch'] + X_eval_preprocessed_df['3SsnPorch'] + X_eval_preprocessed_df['ScreenPorch']
+
+# Feature Selection
+model = LinearRegression()
+rfe = RFE(model, n_features_to_select=20)
+fit = rfe.fit(X_train_preprocessed_df, y_train)
+selected_features = X_train_preprocessed_df.columns[fit.support_]
+
+# Select important features
+X_train_selected = X_train_preprocessed_df[selected_features]
+X_eval_selected = X_eval_preprocessed_df[selected_features]
+
+# Result variables
+X_train_selected, X_eval_selected, y_train, y_eval
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[11], line 6
+    X_train_preprocessed_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train_preprocessed.csv')
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1026 in read_csv
+    return _read(filepath_or_buffer, kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:620 in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1620 in __init__
+    self._engine = self._make_engine(f, self.engine)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1880 in _make_engine
+    self.handles = get_handle(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\common.py:873 in get_handle
+    handle = open(
+
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train_preprocessed.csv'
+
+import pandas as pd
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
+
+# Use the preprocessed DataFrames from the previous successful round
+X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval = X_train_preprocessed_df, X_eval_preprocessed_df, y_train, y_eval
+
+# Feature Engineering
+# Create new features
+X_train_preprocessed_df['TotalSF'] = X_train_preprocessed_df['1stFlrSF'] + X_train_preprocessed_df['2ndFlrSF'] + X_train_preprocessed_df['TotalBsmtSF']
+X_eval_preprocessed_df['TotalSF'] = X_eval_preprocessed_df['1stFlrSF'] + X_eval_preprocessed_df['2ndFlrSF'] + X_eval_preprocessed_df['TotalBsmtSF']
+
+X_train_preprocessed_df['TotalBathrooms'] = X_train_preprocessed_df['FullBath'] + X_train_preprocessed_df['HalfBath'] + X_train_preprocessed_df['BsmtFullBath'] + X_train_preprocessed_df['BsmtHalfBath']
+X_eval_preprocessed_df['TotalBathrooms'] = X_eval_preprocessed_df['FullBath'] + X_eval_preprocessed_df['HalfBath'] + X_eval_preprocessed_df['BsmtFullBath'] + X_eval_preprocessed_df['BsmtHalfBath']
+
+X_train_preprocessed_df['TotalPorchSF'] = X_train_preprocessed_df['OpenPorchSF'] + X_train_preprocessed_df['EnclosedPorch'] + X_train_preprocessed_df['3SsnPorch'] + X_train_preprocessed_df['ScreenPorch']
+X_eval_preprocessed_df['TotalPorchSF'] = X_eval_preprocessed_df['OpenPorchSF'] + X_eval_preprocessed_df['EnclosedPorch'] + X_eval_preprocessed_df['3SsnPorch'] + X_eval_preprocessed_df['ScreenPorch']
+
+# Feature Selection
+model = LinearRegression()
+rfe = RFE(model, n_features_to_select=20)
+fit = rfe.fit(X_train_preprocessed_df, y_train)
+selected_features = X_train_preprocessed_df.columns[fit.support_]
+
+# Select important features
+X_train_selected = X_train_preprocessed_df[selected_features]
+X_eval_selected = X_eval_preprocessed_df[selected_features]
+
+# Result variables
+X_train_selected, X_eval_selected, y_train, y_eval
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      PoolArea  MSZoning_C (all)  Neighborhood_NoRidge  Neighborhood_NridgHt  Neighborhood_StoneBr  Condition2_PosA  Condition2_PosN  RoofMatl_ClyTile  RoofMatl_Membran  RoofMatl_WdShngl  Exterior2nd_AsphShn  Foundation_Slab  BsmtQual_Ex  BsmtExposure_Gd  KitchenQual_Ex  PoolQC_Ex  PoolQC_Fa  PoolQC_Gd  PoolQC_missing  SaleType_Con
+ 0    -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          1.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 1    -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ ...        ...               ...                   ...                   ...                   ...              ...              ...               ...               ...               ...                  ...              ...          ...              ...             ...        ...        ...        ...             ...           ...
+ 1166 -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 1167 -0.058235               0.0                   1.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 
+ [1168 rows x 20 columns],
+      PoolArea  MSZoning_C (all)  Neighborhood_NoRidge  Neighborhood_NridgHt  Neighborhood_StoneBr  Condition2_PosA  Condition2_PosN  RoofMatl_ClyTile  RoofMatl_Membran  RoofMatl_WdShngl  Exterior2nd_AsphShn  Foundation_Slab  BsmtQual_Ex  BsmtExposure_Gd  KitchenQual_Ex  PoolQC_Ex  PoolQC_Fa  PoolQC_Gd  PoolQC_missing  SaleType_Con
+ 0   -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 1   -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ ..        ...               ...                   ...                   ...                   ...              ...              ...               ...               ...               ...                  ...              ...          ...              ...             ...        ...        ...        ...             ...           ...
+ 290 -0.058235               0.0                   1.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 291 -0.058235               0.0                   0.0                   0.0                   0.0              0.0              0.0               0.0               0.0               0.0                  0.0              0.0          0.0              0.0             0.0        0.0        0.0        0.0             1.0           0.0
+ 
+ [292 rows x 20 columns],
+ 0       220000
+ 1       233230
+          ...  
+ 1166    110000
+ 1167    269790
+ Name: SalePrice, Length: 1168, dtype: int64,
+ 0      120500
+ 1      196500
+         ...  
+ 290    402000
+ 291    173733
+ Name: SalePrice, Length: 292, dtype: int64)import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Use the preprocessed and selected DataFrames from the previous successful round
+X_train_selected, X_eval_selected, y_train, y_eval = X_train_selected, X_eval_selected, y_train, y_eval
+
+# Train a Random Forest Regressor
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train_selected, y_train)
+
+# Predict on the evaluation data
+y_pred = model.predict(X_eval_selected)
+
+# Calculate RMSE on the log-transformed values
+log_y_eval = np.log(y_eval)
+log_y_pred = np.log(y_pred)
+rmse = np.sqrt(mean_squared_error(log_y_eval, log_y_pred))
+
+# Result variables
+rmse, y_pred, y_eval
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.32105810434056586,
+ array([156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        180521.47585005, 156759.2637192 , 156759.2637192 , 197086.21855441,
+        113248.25922768, 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 299857.96832508, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 113248.25922768, 156759.2637192 ,
+        224092.07727494, 156759.2637192 , 156759.2637192 , 197086.21855441,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 113248.25922768,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        389308.65047619, 156759.2637192 , 156759.2637192 ,  75957.19399567,
+        197086.21855441, 156759.2637192 , 185012.05096756, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 197086.21855441, 156759.2637192 ,  75957.19399567,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 436617.1636951 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 209391.32647908,
+        210340.68904989, 156759.2637192 , 156759.2637192 , 125563.70738722,
+        156759.2637192 , 156759.2637192 , 197086.21855441, 197086.21855441,
+        156759.2637192 , 156759.2637192 , 197086.21855441, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        197086.21855441, 209391.32647908, 125563.70738722, 156759.2637192 ,
+        316172.00371408, 156759.2637192 , 197086.21855441, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        197086.21855441, 224060.77938346, 344732.9081932 , 156759.2637192 ,
+        156759.2637192 , 197086.21855441, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 344732.9081932 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        224060.77938346,  75957.19399567, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 209391.32647908, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 210340.68904989, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 197086.21855441, 156759.2637192 ,
+        315888.44191667, 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        344732.9081932 , 210340.68904989, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 197086.21855441, 113248.25922768,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        299507.98409546, 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        299507.98409546, 197086.21855441, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 224060.77938346, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 197086.21855441,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        344131.53081489, 156759.2637192 , 180521.47585005, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 344732.9081932 , 156759.2637192 , 224060.77938346,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 304317.70207625, 156759.2637192 ,
+        156759.2637192 , 224060.77938346, 293568.31819066, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 197086.21855441, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        315888.44191667, 156759.2637192 , 156759.2637192 , 299507.98409546,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        197086.21855441, 197086.21855441, 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        292004.6590613 , 156759.2637192 , 156759.2637192 , 388426.3760119 ,
+        156759.2637192 , 292004.6590613 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 197086.21855441, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        224092.07727494, 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 344732.9081932 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 197086.21855441,
+        156759.2637192 , 224060.77938346, 156759.2637192 , 156759.2637192 ,
+        243489.96761183, 156759.2637192 , 156759.2637192 , 113248.25922768,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        210340.68904989, 156759.2637192 , 156759.2637192 , 156759.2637192 ,
+        156759.2637192 , 344131.53081489, 156759.2637192 , 156759.2637192 ,
+        344732.9081932 , 156759.2637192 , 344131.53081489, 156759.2637192 ,
+        156759.2637192 , 156759.2637192 , 292004.6590613 , 156759.2637192 ]),
+ 0      120500
+ 1      196500
+         ...  
+ 290    402000
+ 291    173733
+ Name: SalePrice, Length: 292, dtype: int64)

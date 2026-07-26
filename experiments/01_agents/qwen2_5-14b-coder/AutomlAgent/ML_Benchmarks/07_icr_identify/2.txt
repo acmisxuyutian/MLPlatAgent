@@ -1,0 +1,187 @@
+######代码######
+
+import os
+import requests
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import SMOTE
+from scipy import stats
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+
+# Step 1: Retrieve or Collect the Dataset(s)
+def download_dataset(url, destination):
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    response = requests.get(url)
+    with open(destination, 'wb') as file:
+        file.write(response.content)
+    print(f"Dataset downloaded and saved to {destination}")
+
+# Step 2: Preprocess the Retrieved Dataset(s)
+def preprocess_data(dataset):
+    # Handle missing values using mean imputation
+    dataset.fillna(dataset.mean(), inplace=True)
+
+    # Detect and treat outliers using Z-score
+    z_scores = stats.zscore(dataset.select_dtypes(include=[np.number]))
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    dataset = dataset[filtered_entries]
+
+    # Normalize numerical features using Min-Max scaling
+    scaler = MinMaxScaler()
+    dataset[dataset.select_dtypes(include=[np.number]).columns] = scaler.fit_transform(dataset.select_dtypes(include=[np.number]))
+
+    # Encode the target variable 'Class' using one-hot encoding
+    encoder = OneHotEncoder(sparse=False)
+    target_encoded = encoder.fit_transform(dataset[['Class']])
+    dataset = pd.concat([dataset.drop('Class', axis=1), pd.DataFrame(target_encoded, columns=encoder.get_feature_names_out(['Class']))], axis=1)
+
+    # Discretize continuous features to create more interpretable bins
+    dataset['age_group'] = pd.cut(dataset['age'], bins=[0, 30, 60, 100], labels=['young', 'middle-aged', 'senior'])
+
+    # Prune features that do not contribute significantly to the model's performance
+    model = RandomForestClassifier()
+    model.fit(dataset.drop('Class_0', axis=1).drop('Class_1', axis=1).drop('Class_2', axis=1), dataset['Class_0'])
+    feature_importances = pd.Series(model.feature_importances_, index=dataset.drop('Class_0', axis=1).drop('Class_1', axis=1).drop('Class_2', axis=1).columns)
+    important_features = feature_importances[feature_importances > 0.01].index
+    dataset = dataset[important_features.tolist() + ['Class_0', 'Class_1', 'Class_2']]
+
+    # Check for Imbalance and Apply SMOTE
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(dataset.drop('Class_0', axis=1).drop('Class_1', axis=1).drop('Class_2', axis=1), dataset[['Class_0', 'Class_1', 'Class_2']])
+    dataset = pd.concat([pd.DataFrame(X_resampled, columns=dataset.drop('Class_0', axis=1).drop('Class_1', axis=1).drop('Class_2', axis=1).columns), pd.DataFrame(y_resampled, columns=['Class_0', 'Class_1', 'Class_2'])], axis=1)
+
+    return dataset
+
+# Step 3: Define the NLN Architecture
+class NLN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(NLN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, output_size)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = self.relu(out)
+        out = self.fc3(out)
+        out = self.softmax(out)
+        return out
+
+# Step 4: Train the Model
+def train_model(model, X_train, y_train, num_epochs=100):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values.argmax(axis=1), dtype=torch.long))
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Step 5: Evaluate the Model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.tensor(X_test.values, dtype=torch.float32))
+        _, predicted = torch.max(outputs.data, 1)
+        y_true = torch.tensor(y_test.values.argmax(axis=1), dtype=torch.long)
+        
+        performance_scores = {
+            'ACC': accuracy_score(y_true, predicted),
+            'F1': f1_score(y_true, predicted, average='weighted'),
+            'Precision': precision_score(y_true, predicted, average='weighted'),
+            'Recall': recall_score(y_true, predicted, average='weighted')
+        }
+        
+        print("Confusion Matrix:")
+        print(confusion_matrix(y_true, predicted))
+        
+    return performance_scores
+
+# Step 6: Save the Model
+def save_model(model, model_save_path):
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    url = 'https://example.com/path/to/ICR_Identify.csv'  # Replace with the actual URL
+    destination = './data/ICR_Identify.csv'
+    download_dataset(url, destination)
+    dataset = pd.read_csv(destination)
+
+    # Step 2: Create a train-valid-test split of the data
+    dataset = preprocess_data(dataset)
+    X = dataset.drop('Class_0', axis=1).drop('Class_1', axis=1).drop('Class_2', axis=1)
+    y = dataset[['Class_0', 'Class_1', 'Class_2']]
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    # Step 3: Define required model
+    input_size = X_train.shape[1]
+    hidden_size = 128
+    output_size = 3
+    model = NLN(input_size, hidden_size, output_size)
+
+    # Step 4: Train the model
+    model = train_model(model, X_train, y_train)
+
+    # Step 5: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6: Save the model
+    model_save_path = './agent_workspace/trained_models/nln_model.pth'
+    save_model(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 155, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 127, in main
+    dataset = pd.read_csv(destination)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2061, in pandas._libs.parsers.raise_parser_error
+pandas.errors.ParserError: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+

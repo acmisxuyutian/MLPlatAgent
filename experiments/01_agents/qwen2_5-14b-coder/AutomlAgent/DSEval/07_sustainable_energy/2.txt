@@ -1,0 +1,172 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_squared_error
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data loading and preprocessing
+def load_and_preprocess_data():
+    # Load datasets
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/test.csv')
+
+    # Exclude 'Entity' and 'Year' columns if they exist
+    if 'Entity' in train_df.columns:
+        train_df = train_df.drop(columns=['Entity'])
+    if 'Year' in train_df.columns:
+        train_df = train_df.drop(columns=['Year'])
+    if 'Entity' in test_df.columns:
+        test_df = test_df.drop(columns=['Entity'])
+    if 'Year' in test_df.columns:
+        test_df = test_df.drop(columns=['Year'])
+
+    # Separate features and target variable
+    X_train = train_df.drop(columns=['Renewable energy share in the total final energy consumption (%)'])
+    y_train = train_df['Renewable energy share in the total final energy consumption (%)']
+    X_test = test_df.drop(columns=['Renewable energy share in the total final energy consumption (%)'])
+    y_test = test_df['Renewable energy share in the total final energy consumption (%)']
+
+    # Handle missing values, outliers, and skewed data
+    # Example: Impute missing values with mean
+    X_train = X_train.fillna(X_train.mean())
+    X_test = X_test.fillna(X_test.mean())
+
+    # Example: Detect and handle outliers using Z-score
+    z_scores = np.abs((X_train - X_train.mean()) / X_train.std())
+    X_train = X_train[(z_scores < 3).all(axis=1)]
+
+    # Example: Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    return X_train_scaled, y_train, X_test_scaled, y_test, scaler
+
+# Model training and evaluation
+def train_and_evaluate_model(X_train_scaled, y_train, X_test_scaled, y_test, scaler):
+    # Split the training data into training and validation sets
+    X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train_scaled, y_train, test_size=0.2, random_state=42)
+
+    # Train the Ridge Regression model
+    ridge_model = Ridge(alpha=0.5)
+    ridge_model.fit(X_train_split, y_train_split)
+
+    # Evaluate the model on the validation set
+    y_val_pred = ridge_model.predict(X_val_split)
+    rmse_val = np.sqrt(mean_squared_error(y_val_split, y_val_pred))
+    print(f'Validation RMSE: {rmse_val}')
+
+    # Check for multicollinearity using VIF
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = X_train.columns
+    vif_data["VIF"] = [variance_inflation_factor(X_train.values, i) for i in range(len(X_train.columns))]
+    print(vif_data)
+
+    # Make predictions on the test set
+    y_test_pred = ridge_model.predict(X_test_scaled)
+
+    # Evaluate the model on the test set
+    rmse_test = np.sqrt(mean_squared_error(y_test, y_test_pred))
+    print(f'Test RMSE: {rmse_test}')
+
+    return ridge_model, scaler, rmse_test
+
+# Save the trained model and scaler
+def save_model_and_scaler(model, scaler, model_save_path, scaler_save_path):
+    # Save the trained model
+    joblib.dump(model, model_save_path)
+    print(f"Model saved to {model_save_path}")
+
+    # Save the scaler
+    joblib.dump(scaler, scaler_save_path)
+    print(f"Scaler saved to {scaler_save_path}")
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    X_train_scaled, y_train, X_test_scaled, y_test, scaler = load_and_preprocess_data()
+
+    # Step 2. Train the model and evaluate it
+    model, scaler, rmse_test = train_and_evaluate_model(X_train_scaled, y_train, X_test_scaled, y_test, scaler)
+
+    # Step 3. Save the trained model and scaler
+    model_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/ridge_regression_model.pkl'
+    scaler_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/scaler.pkl'
+    save_model_and_scaler(model, scaler, model_save_path, scaler_save_path)
+
+    # Return model's performance scores
+    performance_scores = {
+        "RMSE": rmse_test
+    }
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 122, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 105, in main
+    X_train_scaled, y_train, X_test_scaled, y_test, scaler = load_and_preprocess_data()
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 45, in load_and_preprocess_data
+    X_train = X_train.fillna(X_train.mean())
+                             ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 12420, in mean
+    return self._stat_function(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 12377, in _stat_function
+    return self._reduce(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+          ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/blocks.py", line 404, in reduce
+    result = func(self.values)
+             ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 719, in nanmean
+    the_sum = values.sum(axis, dtype=dtype_sum)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/numpy/core/_methods.py", line 49, in _sum
+    return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can only concatenate str (not "int") to str

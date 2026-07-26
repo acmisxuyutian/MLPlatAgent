@@ -1,0 +1,365 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查分类变量
+print(train_data.dtypes)
+
+# 假设 'target' 是目标变量，其他是特征
+X_train = train_data.drop('target', axis=1)
+y_train = train_data['target']
+X_test = test_data.drop('target', axis=1)
+y_test = test_data['target']
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_test[column] = le.transform(X_test[column])
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+y_val_pred = model.predict_proba(X_val)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_val = roc_auc_score(y_val, y_val_pred)
+print(f'Validation AUC-ROC: {auc_roc_val}')
+
+# 预测测试集
+y_test_pred = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc_test = roc_auc_score(y_test, y_test_pred)
+print(f'Test AUC-ROC: {auc_roc_test}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_050dc50e2708c22271a7cfd09a15c62a2336c85f60bdf6ced153ff0fbf897b9f.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import os
+import pandas as pd
+
+# 文件路径
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+# 检查文件是否存在
+print(f'Train file exists: {os.path.exists(train_path)}')
+print(f'Test file exists: {os.path.exists(test_path)}')
+
+# 读取训练集和测试集
+if os.path.exists(train_path) and os.path.exists(test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+else:
+    print("One or both files do not exist. Please check the file paths.")
+
+# 检查缺失值
+if 'train_data' in locals() and 'test_data' in locals():
+    print(train_data.isnull().sum())
+    print(test_data.isnull().sum())
+
+    # 假设缺失值较少，使用均值填充
+    train_data.fillna(train_data.mean(), inplace=True)
+    test_data.fillna(test_data.mean(), inplace=True)
+
+    # 检查分类变量
+    print(train_data.dtypes)
+
+    # 假设 'target' 是目标变量，其他是特征
+    X_train = train_data.drop('target', axis=1)
+    y_train = train_data['target']
+    X_test = test_data.drop('target', axis=1)
+    y_test = test_data['target']
+
+    # 编码分类变量
+    from sklearn.preprocessing import LabelEncoder
+
+    for column in X_train.select_dtypes(include=['object']).columns:
+        le = LabelEncoder()
+        X_train[column] = le.fit_transform(X_train[column])
+        X_test[column] = le.transform(X_test[column])
+else:
+    print("Data not loaded. Please check the file paths.")
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+if 'X_train' in locals() and 'y_train' in locals():
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+else:
+    print("Data not split. Please check the data loading and preprocessing steps.")
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+if 'X_train' in locals() and 'y_train' in locals():
+    model = RandomForestClassifier(random_state=42)
+
+    # 训练模型
+    model.fit(X_train, y_train)
+else:
+    print("Model not trained. Please check the data loading and preprocessing steps.")
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+if 'model' in locals() and 'X_val' in locals() and 'y_val' in locals():
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+
+    # 计算 AUC-ROC
+    auc_roc_val = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+else:
+    print("Model not evaluated. Please check the model training step.")
+
+# 预测测试集
+if 'model' in locals() and 'X_test' in locals() and 'y_test' in locals():
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+
+    # 计算 AUC-ROC
+    auc_roc_test = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+else:
+    print("Test AUC-ROC not calculated. Please check the model training and evaluation steps.")
+
+
+执行结果：
+Train file exists: True
+Test file exists: True
+Data not loaded. Please check the file paths.
+Data not split. Please check the data loading and preprocessing steps.
+Model not trained. Please check the data loading and preprocessing steps.
+Model not evaluated. Please check the model training step.
+Test AUC-ROC not calculated. Please check the model training and evaluation steps.
+
+生成的代码：
+import os
+import pandas as pd
+
+# 文件路径
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+# 检查文件是否存在
+print(f'Train file exists: {os.path.exists(train_path)}')
+print(f'Test file exists: {os.path.exists(test_path)}')
+
+# 读取训练集和测试集
+if os.path.exists(train_path) and os.path.exists(test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+else:
+    print("One or both files do not exist. Please check the file paths.")
+
+# 打印文件的前几行
+if 'train_data' in locals() and 'test_data' in locals():
+    print("Train data head:")
+    print(train_data.head())
+    print("Test data head:")
+    print(test_data.head())
+else:
+    print("Data not loaded. Please check the file paths.")
+
+# 检查列名
+if 'train_data' in locals() and 'test_data' in locals():
+    print("Train data columns:")
+    print(train_data.columns)
+    print("Test data columns:")
+    print(test_data.columns)
+else:
+    print("Data not loaded. Please check the file paths.")
+
+# 检查缺失值
+if 'train_data' in locals() and 'test_data' in locals():
+    print(train_data.isnull().sum())
+    print(test_data.isnull().sum())
+
+    # 假设缺失值较少，使用均值填充
+    train_data.fillna(train_data.mean(), inplace=True)
+    test_data.fillna(test_data.mean(), inplace=True)
+
+    # 检查分类变量
+    print(train_data.dtypes)
+
+    # 假设 'target' 是目标变量，其他是特征
+    X_train = train_data.drop('target', axis=1)
+    y_train = train_data['target']
+    X_test = test_data.drop('target', axis=1)
+    y_test = test_data['target']
+
+    # 编码分类变量
+    from sklearn.preprocessing import LabelEncoder
+
+    for column in X_train.select_dtypes(include=['object']).columns:
+        le = LabelEncoder()
+        X_train[column] = le.fit_transform(X_train[column])
+        X_test[column] = le.transform(X_test[column])
+else:
+    print("Data not loaded. Please check the file paths.")
+
+from sklearn.model_selection import train_test_split
+
+# 将训练集划分为训练集和验证集
+if 'X_train' in locals() and 'y_train' in locals():
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+else:
+    print("Data not split. Please check the data loading and preprocessing steps.")
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+if 'X_train' in locals() and 'y_train' in locals():
+    model = RandomForestClassifier(random_state=42)
+
+    # 训练模型
+    model.fit(X_train, y_train)
+else:
+    print("Model not trained. Please check the data loading and preprocessing steps.")
+
+from sklearn.metrics import roc_auc_score
+
+# 预测验证集
+if 'model' in locals() and 'X_val' in locals() and 'y_val' in locals():
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+
+    # 计算 AUC-ROC
+    auc_roc_val = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {auc_roc_val}')
+else:
+    print("Model not evaluated. Please check the model training step.")
+
+# 预测测试集
+if 'model' in locals() and 'X_test' in locals() and 'y_test' in locals():
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+
+    # 计算 AUC-ROC
+    auc_roc_test = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {auc_roc_test}')
+else:
+    print("Test AUC-ROC not calculated. Please check the model training and evaluation steps.")
+
+
+执行结果：
+Train file exists: True
+Test file exists: True
+Train data head:
+    id  gravity    ph  osmo  cond  urea   calc  target
+0  192    1.012  5.77   461  17.4   195   1.40       0
+1  234    1.017  5.71   704  24.5   270   3.46       0
+2    5    1.025  6.90   947  28.4   395   2.64       1
+3   45    1.008  5.98   779  17.8   418   6.99       1
+4  245    1.031  5.24   703  23.6   364  12.68       1
+Test data head:
+    id  gravity    ph  osmo  cond  urea  calc  target
+0  358    1.025  6.03   956  27.6   473  9.39       1
+1  350    1.021  5.09   874  29.0   382  6.99       1
+2  373    1.021  5.21   725  21.4   443  3.53       1
+3  399    1.017  6.56   559  15.8   317  5.38       1
+4  369    1.011  6.79   364  15.5   159  2.64       0
+Data not loaded. Please check the file paths.
+Data not loaded. Please check the file paths.
+Data not split. Please check the data loading and preprocessing steps.
+Model not trained. Please check the data loading and preprocessing steps.
+Model not evaluated. Please check the model training step.
+Test AUC-ROC not calculated. Please check the model training and evaluation steps.

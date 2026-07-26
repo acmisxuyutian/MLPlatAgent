@@ -1,0 +1,195 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.utils.data as data
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(X, y):
+    # Split the dataset
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+
+    # Scale the features
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+    X_test = scaler.transform(X_test)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=100):
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+        print(f'Validation Loss: {val_loss/len(val_loader):.4f}')
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    correct = 0
+    total = 0
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+
+    accuracy = correct / total
+    f1 = f1_score(y_true, y_pred, average='weighted')
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    wine = load_wine()
+    X, y = wine.data, wine.target
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(X, y)
+
+    # Convert datasets to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+    # Create data loaders
+    train_dataset = data.TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    val_dataset = data.TensorDataset(X_val_tensor, y_val_tensor)
+    val_loader = data.DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    test_dataset = data.TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    class WineClassifier(nn.Module):
+        def __init__(self):
+            super(WineClassifier, self).__init__()
+            self.fc1 = nn.Linear(13, 64)
+            self.fc2 = nn.Linear(64, 64)
+            self.fc3 = nn.Linear(64, 3)
+
+        def forward(self, x):
+            x = torch.relu(self.fc1(x))
+            x = torch.relu(self.fc2(x))
+            x = self.fc3(x)
+            return x
+
+    model = WineClassifier()
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+
+    model = train_model(model, train_loader, val_loader, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/wine_classifier_model.pth')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 152, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

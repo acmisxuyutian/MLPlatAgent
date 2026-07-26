@@ -1,0 +1,181 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, f_classif
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import optuna
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Handle missing values
+    train_data.fillna(train_data.mean(numeric_only=True), inplace=True)
+    test_data.fillna(test_data.mean(numeric_only=True), inplace=True)
+
+    # Normalize/Standardize features
+    scaler = StandardScaler()
+    train_data_scaled = scaler.fit_transform(train_data.drop('monster_type', axis=1))
+    test_data_scaled = scaler.transform(test_data.drop('monster_type', axis=1))
+
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse_output=False)
+    train_data_encoded = encoder.fit_transform(train_data.select_dtypes(exclude=[np.number]))
+    test_data_encoded = encoder.transform(test_data.select_dtypes(exclude=[np.number]))
+
+    # Combine scaled and encoded features
+    train_data_final = np.hstack((train_data_scaled, train_data_encoded))
+    test_data_final = np.hstack((test_data_scaled, test_data_encoded))
+
+    # Identify important features
+    selector = SelectKBest(score_func=f_classif, k=10)
+    train_data_selected = selector.fit_transform(train_data_final, train_data['monster_type'])
+    test_data_selected = selector.transform(test_data_final)
+
+    # Handle class imbalance
+    smote = SMOTE()
+    train_data_resampled, train_labels_resampled = smote.fit_resample(train_data_selected, train_data['monster_type'])
+
+    return train_data_resampled, train_labels_resampled, test_data_selected, test_data['monster_type']
+
+# Define the Neural Network Model
+class MonsterClassifier(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(MonsterClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_size, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.fc4 = nn.Linear(256, num_classes)
+        self.relu = nn.Tanh()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Train the model
+def train_model(model, train_data, train_labels, epochs=50, batch_size=32, learning_rate=1e-3):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+
+    train_data_tensor = torch.tensor(train_data, dtype=torch.float32)
+    train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
+
+    for epoch in range(epochs):
+        model.train()
+        for i in range(0, len(train_data), batch_size):
+            inputs = train_data_tensor[i:i+batch_size]
+            labels = train_labels_tensor[i:i+batch_size]
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_data, test_labels):
+    model.eval()
+    test_data_tensor = torch.tensor(test_data, dtype=torch.float32)
+    test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
+
+    with torch.no_grad():
+        outputs = model(test_data_tensor)
+        _, predicted = torch.max(outputs.data, 1)
+        y_true = test_labels_tensor.numpy()
+        y_pred = predicted.numpy()
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted')
+    }
+
+    return performance_scores
+
+# Optimize the model's hyperparameters using Optuna
+def objective(trial):
+    # Define hyperparameters to tune
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-4, 1e-1)
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
+    num_units = trial.suggest_int('num_units', 32, 256)
+
+    # Build the model with the suggested hyperparameters
+    model = MonsterClassifier(input_size=train_data_resampled.shape[1], num_classes=num_classes)
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+
+    # Train the model
+    model = train_model(model, train_data_resampled, train_labels_resampled, epochs=50, batch_size=batch_size, learning_rate=learning_rate)
+
+    # Evaluate the model
+    val_accuracy = evaluate_model(model, test_data_selected, test_labels)['ACC']
+    trial.set_user_attr('model', model)
+    return val_accuracy
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+    test_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_data, valid_data, train_labels, valid_labels = train_test_split(train_data.drop('monster_type', axis=1), train_data['monster_type'], test_size=0.3, random_state=SEED)
+    valid_data, test_data, valid_labels, test_labels = train_test_split(valid_data, valid_labels, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    global train_data_resampled, train_labels_resampled, test_data_selected, test_labels
+    train_data_resampled, train_labels_resampled, test_data_selected, test_labels = preprocess_data(train_data, test_data)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    global num_classes
+    num_classes = len(train_data['monster_type'].unique())
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    best_model = study.best_trial.user_attrs['model']
+    model_performance = evaluate_model(best_model, test_data_selected, test_labels)
+
+    # Save the model
+    model_path = "./agent_workspace/trained_models/monster_classifier.pth"
+    torch.save(best_model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 145
+    global train_data_resampled, train_labels_resampled, test_data_selected, test_labels
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: name 'test_labels' is assigned to before global declaration

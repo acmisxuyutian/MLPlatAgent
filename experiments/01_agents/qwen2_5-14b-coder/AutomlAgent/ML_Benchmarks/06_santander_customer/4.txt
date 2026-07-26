@@ -1,0 +1,242 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.preprocessing import PolynomialFeatures
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, eval_df):
+    # Check if 'target' column exists
+    if 'target' not in train_df.columns or 'target' not in eval_df.columns:
+        raise ValueError("The dataset does not contain a 'target' column.")
+
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+
+    # Define preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    # Define preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Apply preprocessing
+    X_train = preprocessor.fit_transform(train_df.drop('target', axis=1))
+    y_train = train_df['target']
+
+    X_eval = preprocessor.transform(eval_df.drop('target', axis=1))
+    y_eval = eval_df['target']
+
+    # Create polynomial features
+    poly = PolynomialFeatures(degree=2)
+    X_train_poly = poly.fit_transform(X_train)
+    X_eval_poly = poly.transform(X_eval)
+
+    # Combine original features with polynomial features
+    X_train = np.hstack((X_train, X_train_poly))
+    X_eval = np.hstack((X_eval, X_eval_poly))
+
+    # Split the training set into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=SEED)
+
+    # Further split the validation set into validation and test sets
+    X_val, X_test, y_val, y_test = train_test_split(X_val, y_val, test_size=0.5, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the model architecture
+class DNN(nn.Module):
+    def __init__(self, input_size):
+        super(DNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100):
+    # Convert datasets to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+
+    # Define the loss function and optimizer
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    best_auc = 0
+    best_model = None
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        loss = criterion(outputs, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val_tensor)
+            val_loss = criterion(val_outputs, y_val_tensor)
+            val_auc = roc_auc_score(y_val, val_outputs.numpy())
+
+        if val_auc > best_auc:
+            best_auc = val_auc
+            best_model = model.state_dict()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}, Val AUC: {val_auc:.4f}')
+
+    # Load the best model
+    model.load_state_dict(best_model)
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    # Convert test set to PyTorch tensors
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    # Evaluate the model
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test_tensor)
+        test_auc = roc_auc_score(y_test, test_outputs.numpy())
+
+    print(f'Test AUC: {test_auc:.4f}')
+    return test_auc
+
+# Save the model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_train.csv'
+    eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_eval.csv'
+
+    # Load the datasets
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(train_df, eval_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = DNN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/santander_customer_model.pth'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'target'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_indexing.py", line 443, in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'target'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 190, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 167, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(train_df, eval_df)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 51, in preprocess_data
+    X_train = preprocessor.fit_transform(train_df.drop('target', axis=1))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/compose/_column_transformer.py", line 988, in fit_transform
+    self._validate_column_callables(X)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/compose/_column_transformer.py", line 541, in _validate_column_callables
+    transformer_to_input_indices[name] = _get_column_indices(X, columns)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_indexing.py", line 451, in _get_column_indices
+    raise ValueError("A given column is not a column of the dataframe") from e
+ValueError: A given column is not a column of the dataframe

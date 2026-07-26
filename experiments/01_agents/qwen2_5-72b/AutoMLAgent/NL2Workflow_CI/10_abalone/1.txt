@@ -1,0 +1,170 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import xgboost as xgb
+from sklearn.metrics import mean_squared_log_error
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/test.csv'
+
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    print("Inspecting the training data:")
+    print(train_df.head())
+    print(train_df.info())
+    print(train_df.describe())
+
+    if 'Sex' in train_df.columns:
+        categorical_columns = ['Sex']
+        train_df = pd.get_dummies(train_df, columns=categorical_columns)
+        test_df = pd.get_dummies(test_df, columns=categorical_columns)
+    else:
+        print("Warning: 'Sex' column not found in the dataset.")
+
+    numerical_columns = train_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    scaler = StandardScaler()
+    train_df[numerical_columns] = scaler.fit_transform(train_df[numerical_columns])
+    test_df[numerical_columns] = scaler.transform(test_df[numerical_columns])
+
+    if 'Rings' in train_df.columns and 'Rings' in test_df.columns:
+        X_train = train_df.drop(columns=['Rings'])
+        y_train = train_df['Rings']
+
+        X_test = test_df.drop(columns=['Rings'])
+        y_test = test_df['Rings']
+
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+    else:
+        raise KeyError("The 'Rings' column is missing in the dataset.")
+
+    return X_train, X_val, y_train, y_val, X_test, y_test
+
+# Model Training
+def train_model(X_train, y_train):
+    model = xgb.XGBRegressor(
+        n_estimators=300,
+        max_depth=7,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    y_test_pred = model.predict(X_test)
+
+    # Ensure predictions and actual values are non-negative for MSLE
+    y_val_pred = np.maximum(y_val_pred, 0)
+    y_test_pred = np.maximum(y_test_pred, 0)
+    y_val = np.maximum(y_val, 0)
+    y_test = np.maximum(y_test, 0)
+
+    rmlse_val = np.sqrt(mean_squared_log_error(y_val, y_val_pred))
+    print(f'Validation RMLSE: {rmlse_val}')
+
+    rmlse_test = np.sqrt(mean_squared_log_error(y_test, y_test_pred))
+    print(f'Test RMLSE: {rmlse_test}')
+
+    performance_scores = {
+        'Validation RMLSE': rmlse_val,
+        'Test RMLSE': rmlse_test
+    }
+
+    return performance_scores
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main Function
+def main():
+    # Step 1. Retrieve or load a dataset from the specified source
+    train_df, test_df = load_data()
+
+    # Step 2. Preprocess the data
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4. Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 5. Save the trained model
+    model_path = r'./agent_workspace/trained_models/abalone/xgboost_model.pkl'
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Inspecting the training data:
+      id Sex  Length  ...  Whole weight.2  Shell weight  Rings
+0  43718   M   0.650  ...          0.3020         0.360     10
+1  45247   F   0.670  ...          0.3455         0.385     11
+2  71393   M   0.605  ...          0.2470         0.285      9
+3  51688   M   0.680  ...          0.3060         0.440     11
+4  40681   I   0.295  ...          0.0190         0.038      5
+
+[5 rows x 10 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 72492 entries, 0 to 72491
+Data columns (total 10 columns):
+ #   Column          Non-Null Count  Dtype  
+---  ------          --------------  -----  
+ 0   id              72492 non-null  int64  
+ 1   Sex             72492 non-null  object 
+ 2   Length          72492 non-null  float64
+ 3   Diameter        72492 non-null  float64
+ 4   Height          72492 non-null  float64
+ 5   Whole weight    72492 non-null  float64
+ 6   Whole weight.1  72492 non-null  float64
+ 7   Whole weight.2  72492 non-null  float64
+ 8   Shell weight    72492 non-null  float64
+ 9   Rings           72492 non-null  int64  
+dtypes: float64(7), int64(2), object(1)
+memory usage: 5.5+ MB
+None
+                 id        Length  ...  Shell weight         Rings
+count  72492.000000  72492.000000  ...  72492.000000  72492.000000
+mean   45346.810489      0.517118  ...      0.225920      9.697111
+std    26217.980752      0.118091  ...      0.130134      3.168972
+min        0.000000      0.075000  ...      0.001500      1.000000
+25%    22590.750000      0.445000  ...      0.120000      8.000000
+50%    45371.500000      0.540000  ...      0.225000      9.000000
+75%    68080.250000      0.600000  ...      0.305000     11.000000
+max    90613.000000      0.815000  ...      1.005000     29.000000
+
+[8 rows x 9 columns]
+Validation RMLSE: 0.2563518218172076
+Test RMLSE: 0.2574310158943684
+Model Performance on Test Set: {'Validation RMLSE': 0.2563518218172076, 'Test RMLSE': 0.2574310158943684}

@@ -1,0 +1,147 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 查看数据的前几行
+print(train_df.head())
+
+# 检查数据的基本信息
+print(train_df.info())
+
+# 检查缺失值
+print(train_df.isnull().sum())
+
+
+执行结果：
+      id Sex  Length  ...  Viscera_Weight  Shell_Weight  Age
+0  20612   M  1.6125  ...        6.265239      7.059025    9
+1   2935   F  1.5250  ...        7.002326      8.930093   10
+2  73847   M  1.5000  ...        6.166016      8.079607   12
+3  46445   M  1.1250  ...        2.891649      3.685435   10
+4  66755   I  0.8625  ...        0.737087      1.275727    6
+
+[5 rows x 10 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 59240 entries, 0 to 59239
+Data columns (total 10 columns):
+ #   Column          Non-Null Count  Dtype  
+---  ------          --------------  -----  
+ 0   id              59240 non-null  int64  
+ 1   Sex             59240 non-null  object 
+ 2   Length          59240 non-null  float64
+ 3   Diameter        59240 non-null  float64
+ 4   Height          59240 non-null  float64
+ 5   Weight          59240 non-null  float64
+ 6   Shucked_Weight  59240 non-null  float64
+ 7   Viscera_Weight  59240 non-null  float64
+ 8   Shell_Weight    59240 non-null  float64
+ 9   Age             59240 non-null  int64  
+dtypes: float64(7), int64(2), object(1)
+memory usage: 4.5+ MB
+None
+id                0
+Sex               0
+Length            0
+Diameter          0
+Height            0
+Weight            0
+Shucked_Weight    0
+Viscera_Weight    0
+Shell_Weight      0
+Age               0
+dtype: int64
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# 对分类变量进行编码
+label_encoder = LabelEncoder()
+train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['id', 'Age'])
+y = train_df['Age']
+
+# 将数据集分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据集的形状
+print("X_train shape:", X_train.shape)
+print("X_test shape:", X_test.shape)
+print("y_train shape:", y_train.shape)
+print("y_test shape:", y_test.shape)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_0de3b5dd26d9949954193de0cd41d19b8fc4cb536fbe85ea612fd8e1c35df9d6.py", line 6, in <module>
+    train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 对分类变量进行编码
+label_encoder = LabelEncoder()
+train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['id', 'Age'])
+y = train_df['Age']
+
+# 将数据集分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据集的形状
+print("X_train shape:", X_train.shape)
+print("X_test shape:", X_test.shape)
+print("y_train shape:", y_train.shape)
+print("y_test shape:", y_test.shape)
+
+
+执行结果：
+X_train shape: (47392, 8)
+X_test shape: (11848, 8)
+y_train shape: (47392,)
+y_test shape: (11848,)
+
+生成的代码：
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 设置图形大小
+plt.figure(figsize=(12, 8))
+
+# 绘制目标变量的分布
+sns.histplot(y_train, kde=True)
+plt.title('Distribution of Age')
+plt.xlabel('Age')
+plt.ylabel('Frequency')
+plt.show()
+
+# 绘制特征之间的相关性矩阵
+correlation_matrix = X_train.corr()
+plt.figure(figsize=(12, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix of Features')
+plt.show()
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_097d634531e04eb5c464f00e10b82083dc09c6d032a6d99af5df9b662b41bc19.py", line 8, in <module>
+    sns.histplot(y_train, kde=True)
+NameError: name 'y_train' is not defined

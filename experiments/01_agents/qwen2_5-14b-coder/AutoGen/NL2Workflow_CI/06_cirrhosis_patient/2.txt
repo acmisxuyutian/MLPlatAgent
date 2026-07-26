@@ -1,0 +1,395 @@
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import log_loss
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据集的基本信息
+print(train_df.head())
+print(test_df.head())
+
+# 数据预处理
+# 假设目标变量是 'status'，我们需要将其编码为二进制
+label_encoder = LabelEncoder()
+train_df['status'] = label_encoder.fit_transform(train_df['status'])
+
+# 处理缺失值（简单地用中位数填充数值型变量，用众数填充分类型变量）
+for column in train_df.columns:
+    if train_df[column].dtype == 'object':
+        train_df[column].fillna(train_df[column].mode()[0], inplace=True)
+    else:
+        train_df[column].fillna(train_df[column].median(), inplace=True)
+
+# 划分训练集和验证集
+X = train_df.drop('status', axis=1)
+y = train_df['status']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 训练模型
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# 评估模型
+y_val_pred = model.predict_proba(X_val)
+val_logloss = log_loss(y_val, y_val_pred)
+print(f'Validation Log Loss: {val_logloss}')
+
+# 准备测试集
+for column in test_df.columns:
+    if test_df[column].dtype == 'object':
+        test_df[column].fillna(test_df[column].mode()[0], inplace=True)
+    else:
+        test_df[column].fillna(test_df[column].median(), inplace=True)
+
+# 预测测试集
+test_df['status'] = label_encoder.transform(test_df['status'])
+X_test = test_df.drop('status', axis=1)
+y_test = test_df['status']
+y_test_pred = model.predict_proba(X_test)
+
+# 计算测试集的logloss
+test_logloss = log_loss(y_test, y_test_pred)
+print(f'Test Log Loss: {test_logloss}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'status'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_c49a71f94a915c15fb16ee13ca2ca5bf44dc5ad445aca190bd94f7b13d030fa0.py", line 21, in <module>
+    train_df['status'] = label_encoder.fit_transform(train_df['status'])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'status'
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  6703    1153          Placebo  14772  ...     236.0         9.9   3.0     CL
+1  5815    1447          Placebo  14754  ...     306.0         9.5   2.0      C
+2  3429    2891          Placebo  14899  ...     322.0         9.5   2.0      C
+3  2405     334  D-penicillamine  22369  ...     156.0        11.0   2.0      C
+4  1410    3820          Placebo  20597  ...     119.0        11.7   4.0      D
+
+[5 rows x 20 columns]
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  3467     971  D-penicillamine  20555  ...     265.0         9.8   3.0      C
+1   465    1810  D-penicillamine  20555  ...     341.0        10.6   4.0      C
+2   453    2176          Placebo  17263  ...     223.0         9.9   3.0      C
+3  4913    1462          Placebo  23331  ...     284.0        10.5   3.0      D
+4  5907    1216          Placebo  19994  ...     256.0         9.5   1.0      C
+
+[5 rows x 20 columns]
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import log_loss
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据集的基本信息
+print(train_df.head())
+print(test_df.head())
+
+# 数据预处理
+# 假设目标变量是 'Status'，我们需要将其编码为二进制
+label_encoder = LabelEncoder()
+train_df['Status'] = label_encoder.fit_transform(train_df['Status'])
+
+# 处理缺失值（简单地用中位数填充数值型变量，用众数填充分类型变量）
+for column in train_df.columns:
+    if train_df[column].dtype == 'object':
+        train_df[column].fillna(train_df[column].mode()[0], inplace=True)
+    else:
+        train_df[column].fillna(train_df[column].median(), inplace=True)
+
+# 划分训练集和验证集
+X = train_df.drop('Status', axis=1)
+y = train_df['Status']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 训练模型
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# 评估模型
+y_val_pred = model.predict_proba(X_val)
+val_logloss = log_loss(y_val, y_val_pred)
+print(f'Validation Log Loss: {val_logloss}')
+
+# 准备测试集
+for column in test_df.columns:
+    if test_df[column].dtype == 'object':
+        test_df[column].fillna(test_df[column].mode()[0], inplace=True)
+    else:
+        test_df[column].fillna(test_df[column].median(), inplace=True)
+
+# 预测测试集
+test_df['Status'] = label_encoder.transform(test_df['Status'])
+X_test = test_df.drop('Status', axis=1)
+y_test = test_df['Status']
+y_test_pred = model.predict_proba(X_test)
+
+# 计算测试集的logloss
+test_logloss = log_loss(y_test, y_test_pred)
+print(f'Test Log Loss: {test_logloss}')
+
+
+执行结果：
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:26: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].mode()[0], inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:26: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].mode()[0], inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py:28: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  train_df[column].fillna(train_df[column].median(), inplace=True)
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_42ac0d4258c59e1aa53da3e2890b6f724b2570882ab9d61fe53dfa1ecd2b6ad4.py", line 37, in <module>
+    model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\ensemble\_forest.py", line 360, in fit
+    X, y = validate_data(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Placebo'
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  6703    1153          Placebo  14772  ...     236.0         9.9   3.0     CL
+1  5815    1447          Placebo  14754  ...     306.0         9.5   2.0      C
+2  3429    2891          Placebo  14899  ...     322.0         9.5   2.0      C
+3  2405     334  D-penicillamine  22369  ...     156.0        11.0   2.0      C
+4  1410    3820          Placebo  20597  ...     119.0        11.7   4.0      D
+
+[5 rows x 20 columns]
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  3467     971  D-penicillamine  20555  ...     265.0         9.8   3.0      C
+1   465    1810  D-penicillamine  20555  ...     341.0        10.6   4.0      C
+2   453    2176          Placebo  17263  ...     223.0         9.9   3.0      C
+3  4913    1462          Placebo  23331  ...     284.0        10.5   3.0      D
+4  5907    1216          Placebo  19994  ...     256.0         9.5   1.0      C
+
+[5 rows x 20 columns]
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.metrics import log_loss
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# 加载数据集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据集的基本信息
+print(train_df.head())
+print(test_df.head())
+
+# 数据预处理
+# 假设目标变量是 'Status'，我们需要将其编码为二进制
+label_encoder = LabelEncoder()
+train_df['Status'] = label_encoder.fit_transform(train_df['Status'])
+
+# 划分训练集和验证集
+X = train_df.drop('Status', axis=1)
+y = train_df['Status']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 定义分类变量和数值变量
+categorical_cols = X.select_dtypes(include=['object']).columns
+numerical_cols = X.select_dtypes(exclude=['object']).columns
+
+# 创建预处理管道
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', 'passthrough', numerical_cols),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
+    ])
+
+# 创建模型管道
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(random_state=42))
+])
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 评估模型
+y_val_pred = model.predict_proba(X_val)
+val_logloss = log_loss(y_val, y_val_pred)
+print(f'Validation Log Loss: {val_logloss}')
+
+# 准备测试集
+test_df['Status'] = label_encoder.transform(test_df['Status'])
+X_test = test_df.drop('Status', axis=1)
+y_test = test_df['Status']
+y_test_pred = model.predict_proba(X_test)
+
+# 计算测试集的logloss
+test_logloss = log_loss(y_test, y_test_pred)
+print(f'Test Log Loss: {test_logloss}')
+
+
+执行结果：
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  6703    1153          Placebo  14772  ...     236.0         9.9   3.0     CL
+1  5815    1447          Placebo  14754  ...     306.0         9.5   2.0      C
+2  3429    2891          Placebo  14899  ...     322.0         9.5   2.0      C
+3  2405     334  D-penicillamine  22369  ...     156.0        11.0   2.0      C
+4  1410    3820          Placebo  20597  ...     119.0        11.7   4.0      D
+
+[5 rows x 20 columns]
+     id  N_Days             Drug    Age  ... Platelets Prothrombin Stage Status
+0  3467     971  D-penicillamine  20555  ...     265.0         9.8   3.0      C
+1   465    1810  D-penicillamine  20555  ...     341.0        10.6   4.0      C
+2   453    2176          Placebo  17263  ...     223.0         9.9   3.0      C
+3  4913    1462          Placebo  23331  ...     284.0        10.5   3.0      D
+4  5907    1216          Placebo  19994  ...     256.0         9.5   1.0      C
+
+[5 rows x 20 columns]
+Validation Log Loss: 0.6417877882684302
+Test Log Loss: 0.5151713884198406

@@ -1,0 +1,166 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Separate numerical and categorical columns
+    numerical_cols = df.select_dtypes(include=[np.number]).columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+
+    # Impute numerical columns with mean
+    df[numerical_cols] = df[numerical_cols].fillna(df[numerical_cols].mean())
+
+    # Impute categorical columns with mode
+    for col in categorical_cols:
+        df[col] = df[col].fillna(df[col].mode()[0])
+
+    # Encode categorical variables using one-hot encoding
+    df = pd.get_dummies(df, columns=['monster_type'])
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+    return df
+
+def train_model(model, X_train, y_train, X_val, y_val, early_stopping_patience=5):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    early_stopping_counter = 0
+    best_val_loss = float('inf')
+
+    for epoch in range(100):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values.argmax(axis=1), dtype=torch.long))
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+            val_loss = criterion(val_outputs, torch.tensor(y_val.values.argmax(axis=1), dtype=torch.long))
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/monster_classifier.pth')
+        else:
+            early_stopping_counter += 1
+
+        if early_stopping_counter >= early_stopping_patience:
+            print(f"Early stopping at epoch {epoch}")
+            break
+
+        print(f'Epoch {epoch+1}, Loss: {loss.item()}, Val Loss: {val_loss.item()}')
+
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(X_test.values, dtype=torch.float32))
+        _, predicted = torch.max(test_outputs.data, 1)
+        y_true = torch.tensor(y_test.values.argmax(axis=1), dtype=torch.long)
+        accuracy = accuracy_score(y_true, predicted)
+        f1 = f1_score(y_true, predicted, average='weighted')
+
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X = df.drop(columns=['monster_type_ghost', 'monster_type_zombie', 'monster_type_fairy'])
+    y = df[['monster_type_ghost', 'monster_type_zombie', 'monster_type_fairy']]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data = preprocess_data(df)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = MonsterClassifier(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+class MonsterClassifier(nn.Module):
+    def __init__(self, input_size):
+        super(MonsterClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, 128)
+        self.fc5 = nn.Linear(128, 3)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.relu(self.fc4(x))
+        x = self.softmax(self.fc5(x))
+        return x
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 141, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 99, in main
+    X = df.drop(columns=['monster_type_ghost', 'monster_type_zombie', 'monster_type_fairy'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['monster_type_ghost', 'monster_type_zombie', 'monster_type_fairy'] not found in axis"

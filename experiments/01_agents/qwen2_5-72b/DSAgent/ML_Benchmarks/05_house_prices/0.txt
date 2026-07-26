@@ -1,0 +1,573 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LightGBM model with default hyperparameters
+    model = LGBMRegressor()
+    model.fit(X_train, np.log1p(y_train))
+    return model
+
+
+def predict(model, X):
+    # Make predictions using the trained model
+    y_pred = model.predict(X)
+    return np.expm1(y_pred)
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    # should fill out the train_model function
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics_for_regression and print the results
+    # should fill out the predict function
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 45, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 24, in train_model
+    model.fit(X_train, np.log1p(y_train))
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 895, in fit
+    super().fit(X, y, sample_weight=sample_weight, init_score=init_score,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 748, in fit
+    self._Booster = train(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/engine.py", line 271, in train
+    booster = Booster(params=params, train_set=train_set)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 2605, in __init__
+    train_set.construct()
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1815, in construct
+    self._lazy_init(self.data, label=self.label,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1474, in _lazy_init
+    data, feature_name, categorical_feature, self.pandas_categorical = _data_from_pandas(data,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 594, in _data_from_pandas
+    raise ValueError("DataFrame.dtypes for data must be int, float or bool.\n"
+ValueError: DataFrame.dtypes for data must be int, float or bool.
+Did not expect the data types in the following fields: MSZoning, Street, Alley, LotShape, LandContour, Utilities, LotConfig, LandSlope, Neighborhood, Condition1, Condition2, BldgType, HouseStyle, RoofStyle, RoofMatl, Exterior1st, Exterior2nd, MasVnrType, ExterQual, ExterCond, Foundation, BsmtQual, BsmtCond, BsmtExposure, BsmtFinType1, BsmtFinType2, Heating, HeatingQC, CentralAir, Electrical, KitchenQual, Functional, FireplaceQu, GarageType, GarageFinish, GarageQual, GarageCond, PavedDrive, PoolQC, Fence, MiscFeature, SaleType, SaleCondition
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LightGBM model with default hyperparameters
+    model = LGBMRegressor()
+    model.fit(X_train, np.log1p(y_train))
+    return model
+
+
+def predict(model, X):
+    # Make predictions using the trained model
+    y_pred = model.predict(X)
+    return np.expm1(y_pred)
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # Apply one-hot encoding to categorical features
+    X = pd.get_dummies(X)
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    X_test = pd.get_dummies(X_test)
+
+    # Ensure the test set has the same columns as the training set
+    X_test = X_test.reindex(columns=X.columns, fill_value=0)
+
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 51, in <module>
+    score = compute_metrics(y_valid, y_valid_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 17, in compute_metrics
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 194, in wrapper
+    params = func_sig.bind(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/inspect.py", line 3177, in bind
+    return self._bind(args, kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/inspect.py", line 3166, in _bind
+    raise TypeError(
+TypeError: got an unexpected keyword argument 'squared'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LightGBM model with default hyperparameters
+    model = LGBMRegressor()
+    model.fit(X_train, np.log1p(y_train))
+    return model
+
+
+def predict(model, X):
+    # Make predictions using the trained model
+    y_pred = model.predict(X)
+    return np.expm1(y_pred)
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # Apply one-hot encoding to categorical features
+    X = pd.get_dummies(X)
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    X_test = pd.get_dummies(X_test)
+
+    # Ensure the test set has the same columns as the training set
+    X_test = X_test.reindex(columns=X.columns, fill_value=0)
+
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 51, in <module>
+    score = compute_metrics(y_valid, y_valid_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 17, in compute_metrics
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 194, in wrapper
+    params = func_sig.bind(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/inspect.py", line 3177, in bind
+    return self._bind(args, kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/inspect.py", line 3166, in _bind
+    raise TypeError(
+TypeError: got an unexpected keyword argument 'squared'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+import lightgbm as lgb
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Transform the target variable to its logarithm
+    y_train_log = np.log1p(y_train)
+    y_valid_log = np.log1p(y_valid)
+
+    # Initialize the LightGBM regressor with default hyperparameters
+    model = lgb.LGBMRegressor()
+
+    # Fit the model to the training data
+    model.fit(X_train, y_train_log, eval_set=[(X_valid, y_valid_log)], eval_metric='rmse', early_stopping_rounds=10)
+
+    return model
+
+
+def predict(model, X):
+    # Predict the model
+    y_pred_log = model.predict(X)
+    # Transform the predictions back to their original scale
+    y_pred = np.expm1(y_pred_log)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py:726: UserWarning: 'early_stopping_rounds' argument is deprecated and will be removed in a future release of LightGBM. Pass 'early_stopping()' callback via 'callbacks' argument instead.
+  _log_warning("'early_stopping_rounds' argument is deprecated and will be removed in a future release of LightGBM. "
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 53, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 30, in train_model
+    model.fit(X_train, y_train_log, eval_set=[(X_valid, y_valid_log)], eval_metric='rmse', early_stopping_rounds=10)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 895, in fit
+    super().fit(X, y, sample_weight=sample_weight, init_score=init_score,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 748, in fit
+    self._Booster = train(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/engine.py", line 271, in train
+    booster = Booster(params=params, train_set=train_set)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 2605, in __init__
+    train_set.construct()
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1815, in construct
+    self._lazy_init(self.data, label=self.label,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1474, in _lazy_init
+    data, feature_name, categorical_feature, self.pandas_categorical = _data_from_pandas(data,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 594, in _data_from_pandas
+    raise ValueError("DataFrame.dtypes for data must be int, float or bool.\n"
+ValueError: DataFrame.dtypes for data must be int, float or bool.
+Did not expect the data types in the following fields: MSZoning, Street, Alley, LotShape, LandContour, Utilities, LotConfig, LandSlope, Neighborhood, Condition1, Condition2, BldgType, HouseStyle, RoofStyle, RoofMatl, Exterior1st, Exterior2nd, MasVnrType, ExterQual, ExterCond, Foundation, BsmtQual, BsmtCond, BsmtExposure, BsmtFinType1, BsmtFinType2, Heating, HeatingQC, CentralAir, Electrical, KitchenQual, Functional, FireplaceQu, GarageType, GarageFinish, GarageQual, GarageCond, PavedDrive, PoolQC, Fence, MiscFeature, SaleType, SaleCondition
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+import lightgbm as lgb
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def preprocess_data(X):
+    # Identify categorical columns
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    # Initialize OneHotEncoder
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    # Fit and transform the categorical columns
+    X_encoded = encoder.fit_transform(X[categorical_cols])
+    # Convert the encoded data to a DataFrame
+    X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+    # Drop the original categorical columns
+    X_numeric = X.drop(categorical_cols, axis=1)
+    # Concatenate the numeric and encoded data
+    X_processed = pd.concat([X_numeric, X_encoded_df], axis=1)
+    return X_processed
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Transform the target variable to its logarithm
+    y_train_log = np.log1p(y_train)
+    y_valid_log = np.log1p(y_valid)
+
+    # Initialize the LightGBM regressor with default hyperparameters
+    model = lgb.LGBMRegressor()
+
+    # Fit the model to the training data
+    model.fit(
+        X_train, y_train_log,
+        eval_set=[(X_valid, y_valid_log)],
+        eval_metric='rmse',
+        callbacks=[lgb.early_stopping(stopping_rounds=10)]
+    )
+
+    return model
+
+
+def predict(model, X):
+    # Predict the model
+    y_pred_log = model.predict(X)
+    # Transform the predictions back to their original scale
+    y_pred = np.expm1(y_pred_log)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+    X_train = preprocess_data(X_train)
+    X_valid = preprocess_data(X_valid)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 73, in <module>
+    X_train = preprocess_data(X_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 26, in preprocess_data
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+import lightgbm as lgb
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = mean_squared_error(y_test, y_test_pred, squared=False)
+    return score
+
+
+def preprocess_data(X):
+    # Identify categorical columns
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    # Initialize OneHotEncoder
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+    # Fit and transform the categorical columns
+    X_encoded = encoder.fit_transform(X[categorical_cols])
+    # Convert the encoded data to a DataFrame
+    X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+    # Drop the original categorical columns
+    X_numeric = X.drop(categorical_cols, axis=1)
+    # Concatenate the numeric and encoded data
+    X_processed = pd.concat([X_numeric, X_encoded_df], axis=1)
+    return X_processed
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Transform the target variable to its logarithm
+    y_train_log = np.log1p(y_train)
+    y_valid_log = np.log1p(y_valid)
+
+    # Initialize the LightGBM regressor with default hyperparameters
+    model = lgb.LGBMRegressor()
+
+    # Fit the model to the training data
+    model.fit(
+        X_train, y_train_log,
+        eval_set=[(X_valid, y_valid_log)],
+        eval_metric='rmse',
+        callbacks=[lgb.early_stopping(stopping_rounds=10)]
+    )
+
+    return model
+
+
+def predict(model, X):
+    # Predict the model
+    y_pred_log = model.predict(X)
+    # Transform the predictions back to their original scale
+    y_pred = np.expm1(y_pred_log)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['SalePrice'], axis=1)
+    y = data_df['SalePrice'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+    X_train = preprocess_data(X_train)
+    X_valid = preprocess_data(X_valid)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmse on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['SalePrice'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+[LightGBM] [Fatal] Length of label is not same with #data
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 77, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250829-153718/05_house_prices/train.py", line 47, in train_model
+    model.fit(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 895, in fit
+    super().fit(X, y, sample_weight=sample_weight, init_score=init_score,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 748, in fit
+    self._Booster = train(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/engine.py", line 271, in train
+    booster = Booster(params=params, train_set=train_set)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 2605, in __init__
+    train_set.construct()
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1815, in construct
+    self._lazy_init(self.data, label=self.label,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1557, in _lazy_init
+    self.set_label(label)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 2164, in set_label
+    self.set_field('label', label)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1993, in set_field
+    _safe_call(_LIB.LGBM_DatasetSetField(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 125, in _safe_call
+    raise LightGBMError(_LIB.LGBM_GetLastError().decode('utf-8'))
+lightgbm.basic.LightGBMError: Length of label is not same with #data
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 136, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

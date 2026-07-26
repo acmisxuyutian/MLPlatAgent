@@ -1,0 +1,131 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.metrics import accuracy_score, f1_score
+import xgboost as xgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Initial Data Exploration
+    print("Missing values:\n", df.isnull().sum())
+    print("Data types:\n", df.dtypes)
+
+    # Identify target variable and features
+    target_variable = 'health_status'
+    if target_variable not in df.columns:
+        raise ValueError(f"Column '{target_variable}' not found in the dataset. Please check the dataset and update the target variable name if necessary.")
+    
+    X = df.drop(target_variable, axis=1)
+    y = df[target_variable]
+
+    # Handle Missing Values
+    numerical_features = X.select_dtypes(include=[np.number]).columns
+    categorical_features = X.select_dtypes(include=[object, 'category']).columns
+
+    for feature in numerical_features:
+        X[feature].fillna(X[feature].mean(), inplace=True)
+
+    for feature in categorical_features:
+        X[feature].fillna(X[feature].mode()[0], inplace=True)
+
+    # Encode Categorical Variables
+    low_cardinality_features = [col for col in categorical_features if X[col].nunique() < 10]
+    high_cardinality_features = [col for col in categorical_features if X[col].nunique() >= 10]
+
+    X = pd.get_dummies(X, columns=low_cardinality_features, drop_first=True)
+
+    label_encoder = LabelEncoder()
+    for feature in high_cardinality_features:
+        X[feature] = label_encoder.fit_transform(X[feature])
+
+    # Scale Numerical Features
+    scaler = StandardScaler()
+    X[numerical_features] = scaler.fit_transform(X[numerical_features])
+
+    return X, y
+
+def train_model(X_train, y_train, hyperparameters):
+    model = xgb.XGBClassifier(**hyperparameters)
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    f1_val = f1_score(y_val, y_val_pred)
+    print(f'Validation F1 Score: {f1_val}')
+    return f1_val
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X, y = preprocess_data(df)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_X_train, processed_y_train = preprocess_data(pd.concat([X_train, y_train], axis=1))
+    processed_X_val, processed_y_val = preprocess_data(pd.concat([X_val, y_val], axis=1))
+    processed_X_test, processed_y_test = preprocess_data(pd.concat([X_test, y_test], axis=1))
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    hyperparameters = {
+        'n_estimators': 100,
+        'max_depth': 6,
+        'learning_rate': 0.1,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8
+    }
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(processed_X_train, processed_y_train, hyperparameters)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, processed_X_val, processed_y_val)
+
+    # Step 7. Evaluate the model on the test set
+    y_test_pred = model.predict(processed_X_test)
+    f1_test = f1_score(processed_y_test, y_test_pred)
+    print(f'Test F1 Score: {f1_test}')
+
+    # Step 8. Save the trained model for deployment
+    model_save_path = './agent_workspace/trained_models/xgboost_horse_health_model.pkl'
+    joblib.dump(model, model_save_path)
+    print(f'Model saved to {model_save_path}')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 115, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 77, in main
+    X, y = preprocess_data(df)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 27, in preprocess_data
+    raise ValueError(f"Column '{target_variable}' not found in the dataset. Please check the dataset and update the target variable name if necessary.")
+ValueError: Column 'health_status' not found in the dataset. Please check the dataset and update the target variable name if necessary.

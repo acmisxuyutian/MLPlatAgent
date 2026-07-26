@@ -1,0 +1,131 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Calculate 'YearsInCompany' for both training and test datasets
+    train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+    test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+    # Identify categorical columns
+    categorical_cols = train_data.select_dtypes(include=['object', 'category']).columns
+
+    # One-hot encode categorical columns for both training and test datasets
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first'), categorical_cols)
+        ],
+        remainder='passthrough'
+    )
+
+    # Fit the preprocessor on the training data and transform both training and test data
+    X_train = preprocessor.fit_transform(train_data.drop('LeaveOrNot', axis=1))
+    X_test = preprocessor.transform(test_data.drop('LeaveOrNot', axis=1))
+
+    # Split the training dataset into training (70%) and validation (20%) sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train, train_data['LeaveOrNot'], test_size=0.2, random_state=SEED)
+
+    return X_train, X_val, y_train, y_val, X_test, test_data['LeaveOrNot']
+
+def train_model(X_train, y_train, X_val, y_val):
+    # Initialize the RandomForestClassifier
+    rf_classifier = RandomForestClassifier(random_state=SEED)
+
+    # Define the parameter grid
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20, None],
+        'min_samples_split': [2, 5]
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(estimator=rf_classifier, param_grid=param_grid, cv=3, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best parameters
+    best_params = grid_search.best_params_
+
+    # Initialize the RandomForestClassifier with the best parameters
+    best_rf_classifier = RandomForestClassifier(**best_params, random_state=SEED)
+
+    # Train the model
+    best_rf_classifier.fit(X_train, y_train)
+
+    return best_rf_classifier
+
+def evaluate_model(model, X_test, y_test):
+    # Make predictions on the test dataset
+    y_test_pred = model.predict(X_test)
+    y_test_prob = model.predict_proba(X_test)[:, 1]
+
+    # Compute AUC-ROC
+    auc_roc = roc_auc_score(y_test, y_test_prob)
+
+    # Compute confusion matrix
+    cm = confusion_matrix(y_test, y_test_pred)
+
+    # Return performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': cm
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/train.csv')
+    test_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_data, test_data)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the trained model to the specified directory
+    model_save_path = './agent_workspace/trained_models/random_forest_employee_retention.pkl'
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'AUC-ROC': 0.8989326387824932, 'Confusion Matrix': array([[590,  20],
+       [106, 215]])}

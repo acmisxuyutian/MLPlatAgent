@@ -1,0 +1,85 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the dataset
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+df = pd.read_csv(file_path)
+
+# Feature selection
+features = df.drop(columns=['Exited'])  # Assuming 'Exited' is the target variable
+target = df['Exited']
+
+# Identify categorical and numerical columns
+categorical_cols = features.select_dtypes(include=['object', 'category']).columns.tolist()
+numerical_cols = features.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
+# Preprocessing pipelines
+numeric_transformer = Pipeline(steps=[
+    ('scaler', StandardScaler())
+])
+categorical_transformer = Pipeline(steps=[
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ]
+)
+
+# Apply preprocessing
+X_train, X_val, y_train, y_val = train_test_split(features, target, test_size=0.2, random_state=42)
+preprocessed_data = preprocessor.fit_transform(X_train)
+
+preprocessed_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+<Compressed Sparse Row sparse matrix of dtype 'float64'
+	with 1373073 stored elements and shape (105621, 2685)>from sklearn.model_selection import train_test_split
+
+# Split the preprocessed data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(preprocessed_data, y_train, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(<Compressed Sparse Row sparse matrix of dtype 'float64'
+ 	with 1098448 stored elements and shape (84496, 2685)>,
+ <Compressed Sparse Row sparse matrix of dtype 'float64'
+ 	with 274625 stored elements and shape (21125, 2685)>,
+ 1436      0
+ 58645     0
+          ..
+ 5343      1
+ 125275    1
+ Name: Exited, Length: 84496, dtype: int64,
+ 108208    0
+ 97620     0
+          ..
+ 41345     1
+ 69910     0
+ Name: Exited, Length: 21125, dtype: int64)from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Train the model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Predict probabilities on the validation set
+y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc = roc_auc_score(y_val, y_val_pred_proba)
+
+auc_roc, model
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8251887078492779, LogisticRegression(max_iter=1000))

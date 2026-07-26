@@ -1,0 +1,117 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Identify one-hot encoded columns excluding 'Disease'
+    one_hot_columns = [col for col in train_data.columns if col.startswith('one_hot_') and col != 'one_hot_Disease']
+    
+    # Apply one-hot encoding
+    encoder = OneHotEncoder(drop='first')
+    train_encoded = encoder.fit_transform(train_data[one_hot_columns])
+    test_encoded = encoder.transform(test_data[one_hot_columns])
+    
+    # Select top 5 features using mutual information
+    selector = SelectKBest(mutual_info_classif, k=5)
+    X_train_selected = selector.fit_transform(train_encoded, train_data['outcome variable'])
+    X_test_selected = selector.transform(test_encoded)
+    
+    return train_encoded, X_train_selected, test_encoded, X_test_selected
+
+def train_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    performance_scores = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred),
+        'Recall': recall_score(y_test, y_pred)
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv')
+    test_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv')
+    
+    # Step 2. Preprocess the data
+    train_encoded, X_train_selected, test_encoded, X_test_selected = preprocess_data(train_data, test_data)
+    
+    # Step 3. Define required models
+    model1 = LogisticRegression(C=1, solver='liblinear')
+    model2 = LogisticRegression(C=1, solver='liblinear')
+    
+    # Step 4. Train the models
+    model1 = train_model(model1, train_encoded, train_data['outcome variable'])
+    model2 = train_model(model2, X_train_selected, train_data['outcome variable'])
+    
+    # Step 5. Evaluate the models
+    model1_performance = evaluate_model(model1, test_encoded, test_data['outcome variable'])
+    model2_performance = evaluate_model(model2, X_test_selected, test_data['outcome variable'])
+    
+    # Step 6. Save the trained models
+    model1_path = './agent_workspace/trained_models/logistic_regression_model1.pkl'
+    model2_path = './agent_workspace/trained_models/logistic_regression_model2.pkl'
+    
+    joblib.dump(model1, model1_path)
+    joblib.dump(model2, model2_path)
+    
+    return model1_performance, model2_performance
+
+if __name__ == "__main__":
+    model1_performance, model2_performance = main()
+    print("Model 1 Performance on Test Set:", model1_performance)
+    print("Model 2 Performance on Test Set:", model2_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'outcome variable'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 82, in <module>
+    model1_performance, model2_performance = main()
+                                             ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 58, in main
+    train_encoded, X_train_selected, test_encoded, X_test_selected = preprocess_data(train_data, test_data)
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 29, in preprocess_data
+    X_train_selected = selector.fit_transform(train_encoded, train_data['outcome variable'])
+                                                             ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'outcome variable'

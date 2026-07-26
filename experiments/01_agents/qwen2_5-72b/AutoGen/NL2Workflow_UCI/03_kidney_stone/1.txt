@@ -1,0 +1,93 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 读取训练数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 查看数据的基本信息
+print(train_df.head())
+print(train_df.info())
+print(train_df.describe())
+
+
+执行结果：
+    id  gravity    ph  osmo  cond  urea   calc  target
+0  192    1.012  5.77   461  17.4   195   1.40       0
+1  234    1.017  5.71   704  24.5   270   3.46       0
+2    5    1.025  6.90   947  28.4   395   2.64       1
+3   45    1.008  5.98   779  17.8   418   6.99       1
+4  245    1.031  5.24   703  23.6   364  12.68       1
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 331 entries, 0 to 330
+Data columns (total 8 columns):
+ #   Column   Non-Null Count  Dtype  
+---  ------   --------------  -----  
+ 0   id       331 non-null    int64  
+ 1   gravity  331 non-null    float64
+ 2   ph       331 non-null    float64
+ 3   osmo     331 non-null    int64  
+ 4   cond     331 non-null    float64
+ 5   urea     331 non-null    int64  
+ 6   calc     331 non-null    float64
+ 7   target   331 non-null    int64  
+dtypes: float64(4), int64(4)
+memory usage: 20.8 KB
+None
+               id     gravity          ph  ...        urea        calc      target
+count  331.000000  331.000000  331.000000  ...  331.000000  331.000000  331.000000
+mean   210.528701    1.018142    5.945921  ...  281.755287    4.060967    0.441088
+std    117.388586    0.006595    0.647881  ...  134.351542    3.155523    0.497269
+min      1.000000    1.005000    4.760000  ...   10.000000    0.170000    0.000000
+25%    112.500000    1.013000    5.530000  ...  178.000000    1.505000    0.000000
+50%    213.000000    1.018000    5.730000  ...  282.000000    3.100000    0.000000
+75%    309.500000    1.022000    6.280000  ...  385.000000    5.640000    1.000000
+max    413.000000    1.040000    7.940000  ...  620.000000   14.340000    1.000000
+
+[8 rows x 8 columns]
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 读取训练数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 去除 id 列
+train_df = train_df.drop(columns=['id'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['target'])
+y = train_df['target']
+
+# 划分数据集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 数据标准化
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 选择模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+AUC-ROC: 0.801693404634581

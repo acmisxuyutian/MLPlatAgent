@@ -1,0 +1,137 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFE
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+import xgboost as xgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+
+# Data retrieval and loading
+def load_dataset(url, column_names):
+    df = pd.read_csv(url, header=None, names=column_names)
+    return df
+
+# Data preprocessing
+def preprocess_data(df):
+    # Separate features and target variable
+    X = df.drop("Class", axis=1)
+    y = df["Class"]
+
+    # Normalize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Handle missing values
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    X_scaled.fillna(X_scaled.mean(), inplace=True)
+
+    # Feature selection using RFE
+    estimator = RandomForestClassifier()
+    selector = RFE(estimator, n_features_to_select=10, step=1)
+    selector = selector.fit(X_scaled, y)
+    X_selected = X_scaled.loc[:, selector.support_]
+
+    # Update the dataset
+    df_preprocessed = pd.concat([X_selected, y], axis=1)
+    return df_preprocessed, scaler, X_selected.columns
+
+# Data splitting
+def split_data(X, y, test_size=0.2, stratify=None, random_state=42):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=stratify, random_state=random_state)
+    return X_train, X_test, y_train, y_test
+
+# Model training
+def train_model(X_train, y_train, n_estimators=300, max_depth=5, learning_rate=0.1, subsample=0.7, random_state=42):
+    # Adjust class labels to start from 0
+    y_train_adjusted = y_train - 1
+    xgb_model = xgb.XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate, subsample=subsample, random_state=random_state)
+    xgb_model.fit(X_train, y_train_adjusted)
+    return xgb_model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    y_test_adjusted = y_test - 1
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test_adjusted, y_pred)
+    precision = precision_score(y_test_adjusted, y_pred, average='weighted')
+    recall = recall_score(y_test_adjusted, y_pred, average='weighted')
+    f1 = f1_score(y_test_adjusted, y_pred, average='weighted')
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-Score': f1
+    }
+    return performance_scores, classification_report(y_test_adjusted, y_pred)
+
+# Model saving
+def save_model(model, scaler, selected_features, model_path, scaler_path, selected_features_path):
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+    joblib.dump(selected_features, selected_features_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Define the URL and column names
+    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+    column_names = ["Class", "Alcohol", "Malic acid", "Ash", "Alcalinity of ash", "Magnesium", "Total phenols", "Flavanoids", "Nonflavanoid phenols", "Proanthocyanins", "Color intensity", "Hue", "OD280/OD315 of diluted wines", "Proline"]
+
+    # Step 1: Retrieve and load the dataset
+    df = load_dataset(url, column_names)
+
+    # Step 2: Preprocess the dataset
+    df_preprocessed, scaler, selected_features = preprocess_data(df)
+
+    # Step 3: Split the dataset
+    X = df_preprocessed.drop("Class", axis=1)
+    y = df_preprocessed["Class"]
+    X_train, X_test, y_train, y_test = split_data(X, y, test_size=0.2, stratify=y, random_state=42)
+
+    # Step 4: Train the model
+    model = train_model(X_train, y_train, n_estimators=300, max_depth=5, learning_rate=0.1, subsample=0.7, random_state=42)
+
+    # Step 5: Evaluate the model
+    performance_scores, classification_report_str = evaluate_model(model, X_test, y_test)
+
+    # Step 6: Save the model and preprocessing artifacts
+    model_path = "./agent_workspace/trained_models/xgb_wine_model.pkl"
+    scaler_path = "./agent_workspace/trained_models/scaler.pkl"
+    selected_features_path = "./agent_workspace/trained_models/selected_features.pkl"
+    save_model(model, scaler, selected_features, model_path, scaler_path, selected_features_path)
+
+    return performance_scores, classification_report_str
+
+if __name__ == "__main__":
+    performance_scores, classification_report_str = main()
+    print("Model Performance on Test Set:", performance_scores)
+    print("Classification Report:\n", classification_report_str)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'Accuracy': 1.0, 'Precision': 1.0, 'Recall': 1.0, 'F1-Score': 1.0}
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00        12
+           1       1.00      1.00      1.00        14
+           2       1.00      1.00      1.00        10
+
+    accuracy                           1.00        36
+   macro avg       1.00      1.00      1.00        36
+weighted avg       1.00      1.00      1.00        36
+

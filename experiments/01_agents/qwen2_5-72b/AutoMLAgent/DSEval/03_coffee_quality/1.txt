@@ -1,0 +1,137 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import mean_squared_error
+import joblib
+import random
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval
+def load_datasets():
+    """
+    Load the training and test datasets from the specified paths.
+    """
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv')
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    """
+    Clean and prepare the data for modeling.
+    """
+    # Drop duplicate rows
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+
+    # Drop unnecessary columns
+    columns_to_drop = [
+        'ID', 'ICO Number', 'Owner', 'Region', 'Certification Contact', 'Certification Address', 'Farm Name', 'Lot Number',
+        'Mill', 'Producer', 'Company', 'Expiration', 'Harvest Year', 'Number of Bags', 'Bag Weight',
+        'In-Country Partner', 'Country of Origin', 'Processing Method', 'Grading Date', 'Variety', 'Status', 'Defects',
+        'Uniformity', 'Clean Cup', 'Sweetness', 'Certification Body'
+    ]
+    # Check if 'Unnamed: 0' exists in the columns
+    if 'Unnamed: 0' in train_df.columns:
+        columns_to_drop.append('Unnamed: 0')
+    if 'Unnamed: 0' in test_df.columns:
+        columns_to_drop.append('Unnamed: 0')
+
+    train_df = train_df.drop(columns=columns_to_drop)
+    test_df = test_df.drop(columns=columns_to_drop)
+
+    # One-hot encode the 'Color' column
+    train_df = pd.get_dummies(train_df, columns=['Color'])
+    test_df = pd.get_dummies(test_df, columns=['Color'])
+
+    return train_df, test_df
+
+# Model training
+def train_model(X_train, y_train):
+    """
+    Train a RandomForestRegressor on the training set.
+    """
+    # Initialize the RandomForestRegressor
+    model = RandomForestRegressor(random_state=SEED)
+
+    # Define the hyperparameter grid for Random Search
+    param_distributions = {
+        'n_estimators': [50, 100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['auto', 'sqrt', 'log2']
+    }
+
+    # Perform Random Search with 5-fold cross-validation
+    random_search = RandomizedSearchCV(
+        model, param_distributions, n_iter=100, cv=5, scoring='neg_mean_squared_error', random_state=SEED, n_jobs=-1
+    )
+    random_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = random_search.best_estimator_
+
+    return best_model, random_search.best_params_
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluate the model's performance on the test set.
+    """
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+    # Step 1: Load the datasets
+    train_df, test_df = load_datasets()
+
+    # Step 2: Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Split the data into features and target
+    X_train = train_df.drop(columns=['Total Cup Points'])
+    y_train = train_df['Total Cup Points']
+    X_test = test_df.drop(columns=['Total Cup Points'])
+    y_test = test_df['Total Cup Points']
+
+    # Step 4: Train the model
+    best_model, best_params = train_model(X_train, y_train)
+    print(f'Best Hyperparameters: {best_params}')
+
+    # Step 5: Evaluate the model
+    mse = evaluate_model(best_model, X_test, y_test)
+    print(f'Mean Squared Error: {mse}')
+
+    # Step 6: Save the model
+    model_path = './agent_workspace/trained_models/coffee_quality_random_forest_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(best_model, model_path)
+    print(f'Model saved to {model_path}')
+
+    return mse
+
+if __name__ == "__main__":
+    mse = main()
+    print("Model Performance on Test Set:", mse)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Best Hyperparameters: {'n_estimators': 300, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'log2', 'max_depth': None}
+Mean Squared Error: 0.08379359650794051
+Model saved to ./agent_workspace/trained_models/coffee_quality_random_forest_model.pkl
+Model Performance on Test Set: 0.08379359650794051

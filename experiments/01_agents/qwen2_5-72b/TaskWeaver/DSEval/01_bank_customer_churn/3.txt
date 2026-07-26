@@ -1,0 +1,179 @@
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Drop unnecessary columns
+train_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+test_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+
+# Apply one-hot encoding
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[['Geography', 'Card Type']]).toarray()
+encoded_test = encoder.transform(test_df[['Geography', 'Card Type']]).toarray()
+
+# Create new DataFrames with encoded features
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+
+# Concatenate the original DataFrames with the encoded features
+train_df = pd.concat([train_df, encoded_train_df], axis=1)
+test_df = pd.concat([test_df, encoded_test_df], axis=1)
+
+# Drop the original categorical columns
+train_df.drop(columns=['Geography', 'Card Type'], inplace=True)
+test_df.drop(columns=['Geography', 'Card Type'], inplace=True)
+
+# Split the train dataset into features and labels
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+
+# Train an XGBoost model
+model = XGBClassifier()
+model.fit(X_train, y_train)
+
+# Make predictions on the test dataset
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute the AUC-ROC score
+auc_roc_score = roc_auc_score(y_test, predictions)
+
+# Result variables
+X_train, y_train, X_test, y_test, predictions, auc_roc_score
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:407 in pandas_feature_info
+    new_feature_types.append(_pandas_dtype_mapper[dtype.name])
+
+KeyError: 'object'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 39
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:729 in inner_f
+    return func(**kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:1663 in fit
+    train_dmatrix, evals = _wrap_evaluation_matrices(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:628 in _wrap_evaluation_matrices
+    train_dmatrix = create_dmatrix(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\sklearn.py:1137 in _create_dmatrix
+    return QuantileDMatrix(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:729 in inner_f
+    return func(**kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:1614 in __init__
+    self._init(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:1678 in _init
+    it.reraise()
+
+  File D:\LLM-Driven_AI-Studio\MLAg
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Drop unnecessary columns
+train_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+test_df.drop(columns=['CustomerId', 'Complain', 'Surname'], inplace=True)
+
+# Apply one-hot encoding
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[['Geography', 'Card Type']]).toarray()
+encoded_test = encoder.transform(test_df[['Geography', 'Card Type']]).toarray()
+
+# Create new DataFrames with encoded features
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+
+# Concatenate the original DataFrames with the encoded features
+train_df = pd.concat([train_df, encoded_train_df], axis=1)
+test_df = pd.concat([test_df, encoded_test_df], axis=1)
+
+# Drop the original categorical columns
+train_df.drop(columns=['Geography', 'Card Type'], inplace=True)
+test_df.drop(columns=['Geography', 'Card Type'], inplace=True)
+
+# Convert any remaining 'object' type columns to numeric
+for col in train_df.select_dtypes(include=['object']).columns:
+    train_df[col] = pd.to_numeric(train_df[col], errors='coerce')
+    test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+
+# Split the train dataset into features and labels
+X_train = train_df.drop(columns=['Exited'])
+y_train = train_df['Exited']
+
+# Train an XGBoost model
+model = XGBClassifier()
+model.fit(X_train, y_train)
+
+# Make predictions on the test dataset
+X_test = test_df.drop(columns=['Exited'])
+y_test = test_df['Exited']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute the AUC-ROC score
+auc_roc_score = roc_auc_score(y_test, predictions)
+
+# Result variables
+X_train, y_train, X_test, y_test, predictions, auc_roc_score
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      RowNumber  CreditScore  Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          9255          686     NaN   32       6       0.00              2          1               1        179093.26                   2           510               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 1          1562          632     NaN   42       4  119624.60              2          1               1        195978.86                   4           959               0.0                1.0              0.0                0.0             0.0                 1.0               0.0
+ ...         ...          ...     ...  ...     ...        ...            ...        ...             ...              ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 7998        861          667     NaN   43       8  190227.46              1          1               0         97508.04                   3           680               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 7999       7271          697     NaN   51       1  147910.30              1          1               1         53581.14                   4           639               0.0                1.0              0.0                1.0             0.0                 0.0               0.0
+ 
+ [8000 rows x 19 columns],
+ 0       0
+ 1       0
+        ..
+ 7998    1
+ 7999    0
+ Name: Exited, Length: 8000, dtype: int64,
+       RowNumber  CreditScore  Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          6253          596     NaN   32       3   96709.07              2          0               0         41788.37                   1           709               0.0                1.0              0.0                0.0             1.0                 0.0               0.0
+ 1          4685          623     NaN   43       1       0.00              2          1               1        146379.30                   2           508               1.0                0.0              0.0                0.0             0.0                 0.0               1.0
+ ...         ...          ...     ...  ...     ...        ...            ...        ...             ...              ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 1998       1096          692     NaN   29       4       0.00              1          1               0         76755.99                   3           686               1.0                0.0              0.0                0.0             0.0                 1.0               0.0
+ 1999       6930          628     NaN   39       1  115341.19              1          1               1        107674.30                   4           887               0.0                1.0              0.0                0.0             0.0                 0.0               1.0
+ 
+ [2000 rows x 19 columns],
+ 0       0
+ 1       0
+        ..
+ 1998    1
+ 1999    1
+ Name: Exited, Length: 2000, dtype: int64,
+ array([0.00673441, 0.03527663, 0.05344176, ..., 0.72319335, 0.07021137,
+        0.4665416 ], dtype=float32),
+ 0.8420491773427641)

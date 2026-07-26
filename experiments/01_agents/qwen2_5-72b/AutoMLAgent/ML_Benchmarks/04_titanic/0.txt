@@ -1,0 +1,374 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(train_path, eval_path):
+    train_df = pd.read_csv(train_path)
+    eval_df = pd.read_csv(eval_path)
+    return train_df, eval_df
+
+# Data Preprocessing
+def preprocess_data(train_df, eval_df):
+    numerical_features = ['Age', 'Fare']
+    categorical_features = ['Pclass', 'Sex', 'Embarked']
+
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', StandardScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    X_train = train_df.drop(columns=['Survived'])
+    y_train = train_df['Survived']
+    X_eval = eval_df.drop(columns=['Survived'])
+    y_eval = eval_df['Survived']
+
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_eval_processed = preprocessor.transform(X_eval)
+
+    return X_train_processed, y_train, X_eval_processed, y_eval, preprocessor
+
+# Exploratory Data Analysis (EDA)
+def exploratory_data_analysis(train_df):
+    print("Survival Distribution:")
+    print(train_df['Survived'].value_counts(normalize=True))
+
+    print("\nCorrelation Matrix:")
+    print(train_df.select_dtypes(include=[np.number]).corr())
+
+    print("\nNumerical Feature Summary:")
+    print(train_df[['Age', 'Fare']].describe())
+
+    print("\nCategorical Feature Counts:")
+    for feature in ['Pclass', 'Sex', 'Embarked']:
+        print(f"\n{feature} Counts:")
+        print(train_df[feature].value_counts())
+
+    print("\nMissing Values:")
+    print(train_df.isnull().sum())
+
+# Define the FNN model
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, dropout_rate):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.fc4 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout_rate)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Train the model
+def train_model(model, train_loader, eval_loader, criterion, optimizer, num_epochs):
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+
+        # Evaluation
+        model.eval()
+        with torch.no_grad():
+            eval_outputs = model(eval_loader.dataset.tensors[0])
+            eval_loss = criterion(eval_outputs, eval_loader.dataset.tensors[1])
+            eval_predictions = (eval_outputs > 0.5).float()
+            accuracy = (eval_predictions == eval_loader.dataset.tensors[1]).float().mean().item()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Eval Loss: {eval_loss.item():.4f}, Accuracy: {accuracy:.4f}')
+
+# Evaluate the model
+def evaluate_model(model, eval_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for batch_X, batch_y in eval_loader:
+            outputs = model(batch_X)
+            predictions = (outputs > 0.5).float()
+            y_true.extend(batch_y.numpy())
+            y_pred.extend(predictions.numpy())
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    performance_scores = {
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1 Score': f1_score(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/04_titanic/split_train.csv'
+    eval_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/04_titanic/split_eval.csv'
+
+    # Load data
+    train_df, eval_df = load_data(train_path, eval_path)
+
+    # Exploratory Data Analysis
+    exploratory_data_analysis(train_df)
+
+    # Preprocess data
+    X_train_processed, y_train, X_eval_processed, y_eval, preprocessor = preprocess_data(train_df, eval_df)
+
+    # Convert processed data to tensors
+    X_train_tensor = torch.tensor(X_train_processed, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)
+    X_eval_tensor = torch.tensor(X_eval_processed, dtype=torch.float32)
+    y_eval_tensor = torch.tensor(y_eval.values, dtype=torch.float32).unsqueeze(1)
+
+    # Create data loaders
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    eval_dataset = TensorDataset(X_eval_tensor, y_eval_tensor)
+    eval_loader = DataLoader(eval_dataset, batch_size=32, shuffle=False)
+
+    # Initialize the model, loss function, and optimizer
+    input_size = X_train_processed.shape[1]
+    hidden_size = 100
+    output_size = 1
+    dropout_rate = 0.2
+    learning_rate = 0.001
+    l2_reg = 0.0001
+
+    model = FNN(input_size, hidden_size, output_size, dropout_rate)
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=l2_reg)
+
+    # Train the model
+    num_epochs = 100
+    train_model(model, train_loader, eval_loader, criterion, optimizer, num_epochs)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, eval_loader)
+    print("Model Performance on Evaluation Set:", model_performance)
+
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/fnn_model.pth"
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    torch.save(model.state_dict(), model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Survival Distribution:
+Survived
+0    0.625
+1    0.375
+Name: proportion, dtype: float64
+
+Correlation Matrix:
+             PassengerId  Survived    Pclass  ...     SibSp     Parch      Fare
+PassengerId     1.000000 -0.006590 -0.009775  ... -0.042658 -0.003128  0.009199
+Survived       -0.006590  1.000000 -0.341891  ... -0.017146  0.072944  0.265238
+Pclass         -0.009775 -0.341891  1.000000  ...  0.083377  0.009470 -0.540431
+Age             0.036994 -0.073678 -0.361967  ... -0.318225 -0.215383  0.080200
+SibSp          -0.042658 -0.017146  0.083377  ...  1.000000  0.446711  0.157932
+Parch          -0.003128  0.072944  0.009470  ...  0.446711  1.000000  0.226316
+Fare            0.009199  0.265238 -0.540431  ...  0.157932  0.226316  1.000000
+
+[7 rows x 7 columns]
+
+Numerical Feature Summary:
+              Age        Fare
+count  567.000000  712.000000
+mean    30.164462   33.271810
+std     14.624534   52.523112
+min      0.420000    0.000000
+25%     21.000000    7.925000
+50%     29.000000   14.458300
+75%     39.000000   31.275000
+max     74.000000  512.329200
+
+Categorical Feature Counts:
+
+Pclass Counts:
+Pclass
+3    385
+1    181
+2    146
+Name: count, dtype: int64
+
+Sex Counts:
+Sex
+male      467
+female    245
+Name: count, dtype: int64
+
+Embarked Counts:
+Embarked
+S    517
+C    135
+Q     58
+Name: count, dtype: int64
+
+Missing Values:
+PassengerId      0
+Survived         0
+Pclass           0
+Name             0
+Sex              0
+Age            145
+SibSp            0
+Parch            0
+Ticket           0
+Fare             0
+Cabin          538
+Embarked         2
+dtype: int64
+Epoch [1/100], Loss: 0.5738, Eval Loss: 0.6080, Accuracy: 0.6257
+Epoch [2/100], Loss: 0.5273, Eval Loss: 0.4797, Accuracy: 0.7877
+Epoch [3/100], Loss: 0.3346, Eval Loss: 0.4686, Accuracy: 0.7989
+Epoch [4/100], Loss: 0.7279, Eval Loss: 0.4527, Accuracy: 0.8045
+Epoch [5/100], Loss: 0.6127, Eval Loss: 0.4469, Accuracy: 0.8045
+Epoch [6/100], Loss: 0.4653, Eval Loss: 0.4419, Accuracy: 0.8101
+Epoch [7/100], Loss: 0.3667, Eval Loss: 0.4343, Accuracy: 0.8101
+Epoch [8/100], Loss: 0.2452, Eval Loss: 0.4557, Accuracy: 0.7933
+Epoch [9/100], Loss: 0.4931, Eval Loss: 0.4377, Accuracy: 0.7933
+Epoch [10/100], Loss: 0.3814, Eval Loss: 0.4351, Accuracy: 0.8101
+Epoch [11/100], Loss: 0.2425, Eval Loss: 0.4326, Accuracy: 0.7989
+Epoch [12/100], Loss: 0.8203, Eval Loss: 0.4359, Accuracy: 0.7989
+Epoch [13/100], Loss: 0.4821, Eval Loss: 0.4260, Accuracy: 0.7989
+Epoch [14/100], Loss: 0.4376, Eval Loss: 0.4273, Accuracy: 0.8101
+Epoch [15/100], Loss: 0.2247, Eval Loss: 0.4338, Accuracy: 0.7933
+Epoch [16/100], Loss: 0.2492, Eval Loss: 0.4315, Accuracy: 0.7989
+Epoch [17/100], Loss: 0.3778, Eval Loss: 0.4357, Accuracy: 0.7989
+Epoch [18/100], Loss: 0.4980, Eval Loss: 0.4342, Accuracy: 0.8212
+Epoch [19/100], Loss: 0.9067, Eval Loss: 0.4260, Accuracy: 0.7989
+Epoch [20/100], Loss: 0.4548, Eval Loss: 0.4323, Accuracy: 0.7989
+Epoch [21/100], Loss: 0.3604, Eval Loss: 0.4315, Accuracy: 0.8268
+Epoch [22/100], Loss: 0.1531, Eval Loss: 0.4364, Accuracy: 0.7989
+Epoch [23/100], Loss: 0.1434, Eval Loss: 0.4245, Accuracy: 0.8156
+Epoch [24/100], Loss: 0.4808, Eval Loss: 0.4329, Accuracy: 0.7989
+Epoch [25/100], Loss: 0.5855, Eval Loss: 0.4332, Accuracy: 0.7989
+Epoch [26/100], Loss: 0.3781, Eval Loss: 0.4272, Accuracy: 0.8268
+Epoch [27/100], Loss: 0.6142, Eval Loss: 0.4336, Accuracy: 0.8101
+Epoch [28/100], Loss: 0.2154, Eval Loss: 0.4308, Accuracy: 0.7989
+Epoch [29/100], Loss: 0.3925, Eval Loss: 0.4304, Accuracy: 0.7989
+Epoch [30/100], Loss: 0.3078, Eval Loss: 0.4235, Accuracy: 0.8268
+Epoch [31/100], Loss: 0.5386, Eval Loss: 0.4432, Accuracy: 0.7989
+Epoch [32/100], Loss: 0.6421, Eval Loss: 0.4261, Accuracy: 0.7989
+Epoch [33/100], Loss: 0.2700, Eval Loss: 0.4247, Accuracy: 0.8156
+Epoch [34/100], Loss: 0.7590, Eval Loss: 0.4330, Accuracy: 0.8045
+Epoch [35/100], Loss: 1.0028, Eval Loss: 0.4305, Accuracy: 0.7989
+Epoch [36/100], Loss: 0.4060, Eval Loss: 0.4264, Accuracy: 0.8156
+Epoch [37/100], Loss: 0.3126, Eval Loss: 0.4377, Accuracy: 0.8045
+Epoch [38/100], Loss: 0.3515, Eval Loss: 0.4385, Accuracy: 0.7933
+Epoch [39/100], Loss: 0.3599, Eval Loss: 0.4285, Accuracy: 0.8045
+Epoch [40/100], Loss: 0.2645, Eval Loss: 0.4335, Accuracy: 0.8101
+Epoch [41/100], Loss: 0.6934, Eval Loss: 0.4376, Accuracy: 0.8212
+Epoch [42/100], Loss: 0.9056, Eval Loss: 0.4359, Accuracy: 0.8045
+Epoch [43/100], Loss: 0.1409, Eval Loss: 0.4354, Accuracy: 0.8101
+Epoch [44/100], Loss: 0.3382, Eval Loss: 0.4300, Accuracy: 0.8156
+Epoch [45/100], Loss: 0.4451, Eval Loss: 0.4314, Accuracy: 0.8101
+Epoch [46/100], Loss: 0.2183, Eval Loss: 0.4393, Accuracy: 0.8101
+Epoch [47/100], Loss: 0.2419, Eval Loss: 0.4349, Accuracy: 0.8101
+Epoch [48/100], Loss: 0.6520, Eval Loss: 0.4322, Accuracy: 0.8101
+Epoch [49/100], Loss: 0.3896, Eval Loss: 0.4277, Accuracy: 0.8045
+Epoch [50/100], Loss: 0.2942, Eval Loss: 0.4372, Accuracy: 0.8156
+Epoch [51/100], Loss: 0.7832, Eval Loss: 0.4349, Accuracy: 0.8212
+Epoch [52/100], Loss: 0.4957, Eval Loss: 0.4343, Accuracy: 0.8156
+Epoch [53/100], Loss: 0.3120, Eval Loss: 0.4382, Accuracy: 0.7989
+Epoch [54/100], Loss: 0.5238, Eval Loss: 0.4356, Accuracy: 0.8156
+Epoch [55/100], Loss: 0.1175, Eval Loss: 0.4275, Accuracy: 0.8101
+Epoch [56/100], Loss: 0.8616, Eval Loss: 0.4338, Accuracy: 0.8101
+Epoch [57/100], Loss: 0.2192, Eval Loss: 0.4377, Accuracy: 0.8101
+Epoch [58/100], Loss: 0.1795, Eval Loss: 0.4298, Accuracy: 0.8045
+Epoch [59/100], Loss: 0.1607, Eval Loss: 0.4272, Accuracy: 0.8101
+Epoch [60/100], Loss: 0.5243, Eval Loss: 0.4361, Accuracy: 0.8045
+Epoch [61/100], Loss: 0.3823, Eval Loss: 0.4332, Accuracy: 0.8045
+Epoch [62/100], Loss: 0.2266, Eval Loss: 0.4378, Accuracy: 0.8101
+Epoch [63/100], Loss: 0.2586, Eval Loss: 0.4453, Accuracy: 0.8101
+Epoch [64/100], Loss: 0.3791, Eval Loss: 0.4477, Accuracy: 0.8045
+Epoch [65/100], Loss: 0.4344, Eval Loss: 0.4498, Accuracy: 0.8045
+Epoch [66/100], Loss: 0.5501, Eval Loss: 0.4409, Accuracy: 0.8045
+Epoch [67/100], Loss: 0.3460, Eval Loss: 0.4468, Accuracy: 0.8156
+Epoch [68/100], Loss: 0.4126, Eval Loss: 0.4536, Accuracy: 0.7989
+Epoch [69/100], Loss: 0.1275, Eval Loss: 0.4424, Accuracy: 0.8045
+Epoch [70/100], Loss: 0.5077, Eval Loss: 0.4578, Accuracy: 0.8156
+Epoch [71/100], Loss: 0.1276, Eval Loss: 0.4397, Accuracy: 0.8045
+Epoch [72/100], Loss: 0.3598, Eval Loss: 0.4431, Accuracy: 0.8101
+Epoch [73/100], Loss: 0.1094, Eval Loss: 0.4436, Accuracy: 0.7989
+Epoch [74/100], Loss: 0.4204, Eval Loss: 0.4391, Accuracy: 0.8045
+Epoch [75/100], Loss: 0.5180, Eval Loss: 0.4522, Accuracy: 0.8045
+Epoch [76/100], Loss: 0.1120, Eval Loss: 0.4496, Accuracy: 0.8045
+Epoch [77/100], Loss: 0.4094, Eval Loss: 0.4572, Accuracy: 0.8045
+Epoch [78/100], Loss: 0.2685, Eval Loss: 0.4490, Accuracy: 0.8045
+Epoch [79/100], Loss: 0.2616, Eval Loss: 0.4612, Accuracy: 0.8101
+Epoch [80/100], Loss: 0.3529, Eval Loss: 0.4466, Accuracy: 0.8045
+Epoch [81/100], Loss: 0.2037, Eval Loss: 0.4492, Accuracy: 0.8156
+Epoch [82/100], Loss: 0.3266, Eval Loss: 0.4549, Accuracy: 0.8101
+Epoch [83/100], Loss: 0.0933, Eval Loss: 0.4673, Accuracy: 0.8101
+Epoch [84/100], Loss: 0.2451, Eval Loss: 0.4539, Accuracy: 0.8101
+Epoch [85/100], Loss: 0.3312, Eval Loss: 0.4684, Accuracy: 0.7989
+Epoch [86/100], Loss: 0.0746, Eval Loss: 0.4454, Accuracy: 0.7989
+Epoch [87/100], Loss: 0.2567, Eval Loss: 0.4583, Accuracy: 0.7989
+Epoch [88/100], Loss: 0.2044, Eval Loss: 0.4638, Accuracy: 0.7989
+Epoch [89/100], Loss: 0.4135, Eval Loss: 0.4681, Accuracy: 0.7989
+Epoch [90/100], Loss: 0.3703, Eval Loss: 0.4635, Accuracy: 0.7933
+Epoch [91/100], Loss: 0.8447, Eval Loss: 0.4604, Accuracy: 0.7933
+Epoch [92/100], Loss: 0.3058, Eval Loss: 0.4462, Accuracy: 0.8212
+Epoch [93/100], Loss: 0.3033, Eval Loss: 0.4571, Accuracy: 0.8045
+Epoch [94/100], Loss: 0.1907, Eval Loss: 0.4670, Accuracy: 0.7933
+Epoch [95/100], Loss: 0.2582, Eval Loss: 0.4644, Accuracy: 0.8045
+Epoch [96/100], Loss: 0.2755, Eval Loss: 0.4606, Accuracy: 0.7989
+Epoch [97/100], Loss: 0.1173, Eval Loss: 0.4757, Accuracy: 0.7933
+Epoch [98/100], Loss: 0.3109, Eval Loss: 0.4544, Accuracy: 0.8101
+Epoch [99/100], Loss: 0.2619, Eval Loss: 0.4654, Accuracy: 0.8045
+Epoch [100/100], Loss: 0.1267, Eval Loss: 0.4587, Accuracy: 0.8101
+Model Performance on Evaluation Set: {'Accuracy': 0.8100558659217877, 'Precision': 0.8596491228070176, 'Recall': 0.6533333333333333, 'F1 Score': 0.7424242424242424}
+Model Performance on Test Set: {'Accuracy': 0.8100558659217877, 'Precision': 0.8596491228070176, 'Recall': 0.6533333333333333, 'F1 Score': 0.7424242424242424}

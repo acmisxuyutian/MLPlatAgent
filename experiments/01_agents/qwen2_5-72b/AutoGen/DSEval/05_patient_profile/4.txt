@@ -1,0 +1,99 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Display the first few rows of the training data
+print(train_df.head())
+
+
+执行结果：
+                     Disease Fever  ... Cholesterol Level Outcome Variable
+0                Ebola Virus   Yes  ...            Normal         Positive
+1  Conjunctivitis (Pink Eye)    No  ...              High         Positive
+2               Pancreatitis    No  ...              High         Positive
+3               Pancreatitis   Yes  ...            Normal         Negative
+4            Hyperthyroidism   Yes  ...            Normal         Negative
+
+[5 rows x 10 columns]
+
+生成的代码：
+# Identify categorical columns (excluding 'Disease' and 'Outcome Variable')
+categorical_columns = [col for col in train_df.columns if train_df[col].dtype == 'object' and col not in ['Disease', 'Outcome Variable']]
+
+# Perform one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+
+# Display the first few rows of the encoded training data
+print(train_df_encoded.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f35613be64419448f5febed1d831d4b80dfc9c6b62b4dec4e9decffa03b1f296.py", line 2, in <module>
+    categorical_columns = [col for col in train_df.columns if train_df[col].dtype == 'object' and col not in ['Disease', 'Outcome Variable']]
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\05_patient_profile\\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Identify categorical columns (excluding 'Disease' and 'Outcome Variable')
+categorical_columns = [col for col in train_df.columns if train_df[col].dtype == 'object' and col not in ['Disease', 'Outcome Variable']]
+
+# Perform one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+
+# Display the first few rows of the encoded training data
+print(train_df_encoded.head())
+
+
+执行结果：
+                     Disease  ...  Cholesterol Level_Normal
+0                Ebola Virus  ...                      True
+1  Conjunctivitis (Pink Eye)  ...                     False
+2               Pancreatitis  ...                     False
+3               Pancreatitis  ...                      True
+4            Hyperthyroidism  ...                      True
+
+[5 rows x 12 columns]
+
+生成的代码：
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+
+# Separate features and target variable
+X_train = train_df_encoded.drop(columns=['Disease', 'Outcome Variable'])
+y_train = train_df_encoded['Outcome Variable'].map({'Positive': 1, 'Negative': 0})
+
+# Initialize the logistic regression model
+logreg = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model and select 5 features
+rfe = RFE(estimator=logreg, n_features_to_select=5, step=1)
+rfe.fit(X_train, y_train)
+
+# Get the selected features
+selected_features = X_train.columns[rfe.support_]
+print("Selected Features:", selected_features)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_d0bed8d8a7892c4a065ea74d47f7be52e66e18f420876869390ce8812d43bef4.py", line 5, in <module>
+    X_train = train_df_encoded.drop(columns=['Disease', 'Outcome Variable'])
+NameError: name 'train_df_encoded' is not defined

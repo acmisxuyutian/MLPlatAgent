@@ -1,0 +1,176 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the training data
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train.csv')
+
+# Drop duplicate rows
+train_data = train_data.drop_duplicates()
+
+# Save the cleaned training data
+train_data.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_cleaned.csv', index=False)
+
+# Load the cleaned training data
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_cleaned.csv')
+
+# Perform one-hot encoding
+train_data_encoded = pd.get_dummies(train_data, columns=['gender', 'smoking_history'])
+
+# Save the encoded training data
+train_data_encoded.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv', index=False)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+
+# Load the encoded training data
+train_data_encoded = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv')
+
+# Separate features and target
+X_train = train_data_encoded.drop('diabetes', axis=1)
+y_train = train_data_encoded['diabetes']
+
+# Build a random forest classifier
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+
+# Get feature importances
+importances = rf.feature_importances_
+feature_names = X_train.columns
+
+# Create a DataFrame for feature importances
+feature_importances = pd.DataFrame({'feature': feature_names, 'importance': importances})
+
+# Rank the features by importance
+feature_importances = feature_importances.sort_values(by='importance', ascending=False)
+
+# Save the feature importances
+feature_importances.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/feature_importances.csv', index=False)
+
+# Load the encoded training data
+train_data_encoded = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv')
+
+# Separate features and target
+X_train = train_data_encoded.drop('diabetes', axis=1)
+y_train = train_data_encoded['diabetes']
+
+# Build and fit the random forest classifier
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+
+# Load the test data
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/test.csv')
+
+# Drop duplicate rows from the test data
+test_data = test_data.drop_duplicates()
+
+# Perform one-hot encoding on the test data
+test_data_encoded = pd.get_dummies(test_data, columns=['gender', 'smoking_history'])
+
+# Ensure the test data has the same columns as the training data
+missing_cols = set(X_train.columns) - set(test_data_encoded.columns)
+for c in missing_cols:
+    test_data_encoded[c] = 0
+
+# Reorder columns to match the training data
+test_data_encoded = test_data_encoded[X_train.columns]
+
+# Make predictions
+y_pred = rf.predict(test_data_encoded)
+
+from sklearn.metrics import roc_auc_score
+
+# Compute the area under the ROC curve
+y_pred_proba = rf.predict_proba(test_data_encoded)[:, 1]
+roc_auc = roc_auc_score(test_data['diabetes'], y_pred_proba)
+
+print(f'Area under ROC curve: {roc_auc}')
+
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Compute the confusion matrix
+cm = confusion_matrix(test_data['diabetes'], y_pred)
+
+# Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['No Diabetes', 'Diabetes'], yticklabels=['No Diabetes', 'Diabetes'])
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_2a2262c151f090850adb318702053cc2f6003ecf2f8a30e8c70374e91bbc5acd.py", line 2, in <module>
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_cleaned.csv')
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn.metrics import roc_auc_score, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Drop duplicate rows from the dataset
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train.csv')
+train_data = train_data.drop_duplicates()
+train_data.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_cleaned.csv', index=False)
+
+# 2. Perform one-hot encoding on the "gender" and "smoking_history" columns
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_cleaned.csv')
+train_data_encoded = pd.get_dummies(train_data, columns=['gender', 'smoking_history'])
+train_data_encoded.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv', index=False)
+
+# 3. Rank the most important features
+train_data_encoded = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv')
+X_train = train_data_encoded.drop('diabetes', axis=1)
+y_train = train_data_encoded['diabetes']
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+importances = rf.feature_importances_
+feature_names = X_train.columns
+feature_importances = pd.DataFrame({'feature': feature_names, 'importance': importances})
+feature_importances = feature_importances.sort_values(by='importance', ascending=False)
+feature_importances.to_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/feature_importances.csv', index=False)
+
+# 4. Build a random forest classifier to predict diabetes using all features. Fit the model on the training set.
+train_data_encoded = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train_encoded.csv')
+X_train = train_data_encoded.drop('diabetes', axis=1)
+y_train = train_data_encoded['diabetes']
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+
+# 5. Make predictions on the test set
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/test.csv')
+test_data = test_data.drop_duplicates()
+test_data_encoded = pd.get_dummies(test_data, columns=['gender', 'smoking_history'])
+missing_cols = set(X_train.columns) - set(test_data_encoded.columns)
+for c in missing_cols:
+    test_data_encoded[c] = 0
+test_data_encoded = test_data_encoded[X_train.columns]
+y_pred = rf.predict(test_data_encoded)
+
+# 6. Compute area under ROC curve
+y_pred_proba = rf.predict_proba(test_data_encoded)[:, 1]
+roc_auc = roc_auc_score(test_data['diabetes'], y_pred_proba)
+print(f'Area under ROC curve: {roc_auc}')
+
+# 7. Show the confusion matrix
+cm = confusion_matrix(test_data['diabetes'], y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['No Diabetes', 'Diabetes'], yticklabels=['No Diabetes', 'Diabetes'])
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+
+执行结果：
+Area under ROC curve: 0.9605355070919468

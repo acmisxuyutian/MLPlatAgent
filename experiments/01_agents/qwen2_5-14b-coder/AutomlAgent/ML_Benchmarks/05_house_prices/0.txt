@@ -1,0 +1,232 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initial setup
+def load_data(train_path, eval_path):
+    train_data = pd.read_csv(train_path)
+    eval_data = pd.read_csv(eval_path)
+    return train_data, eval_data
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, eval_data):
+    # Separate features and target
+    X_train = train_data.drop('SalePrice', axis=1)
+    y_train = train_data['SalePrice']
+    X_eval = eval_data.drop('SalePrice', axis=1)
+    y_eval = eval_data['SalePrice']
+
+    # Identify numerical and categorical columns
+    numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = X_train.select_dtypes(include=['object']).columns
+
+    # Preprocessing pipeline
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Fit and transform the training data
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_eval_processed = preprocessor.transform(X_eval)
+
+    return X_train_processed, y_train, X_eval_processed, y_eval
+
+# Data augmentation
+def augment_data(X_train_processed, y_train):
+    smote = SMOTE(random_state=42)
+    X_train_processed, y_train = smote.fit_resample(X_train_processed, y_train)
+    return X_train_processed, y_train
+
+# Feature augmentation
+def feature_augmentation(train_data, eval_data):
+    train_data['TotalSF'] = train_data['TotalBsmtSF'] + train_data['GrLivArea']
+    eval_data['TotalSF'] = eval_data['TotalBsmtSF'] + eval_data['GrLivArea']
+    return train_data, eval_data
+
+# Noise addition
+def add_noise(X_train_processed):
+    noise = np.random.normal(0, 0.01, X_train_processed.shape)
+    X_train_processed += noise
+    return X_train_processed
+
+# Model definition
+class HousePricePredictor(nn.Module):
+    def __init__(self, input_size):
+        super(HousePricePredictor, self).__init__()
+        self.fc1 = nn.Linear(input_size, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.fc4 = nn.Linear(256, 1)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+# Model training
+def train_model(model, X_train_tensor, y_train_tensor, X_eval_tensor, y_eval_tensor, epochs=100, batch_size=32):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+
+    for epoch in range(epochs):
+        model.train()
+        for i in range(0, len(X_train_tensor), batch_size):
+            inputs = X_train_tensor[i:i+batch_size]
+            targets = y_train_tensor[i:i+batch_size]
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        # Evaluation
+        model.eval()
+        with torch.no_grad():
+            eval_outputs = model(X_eval_tensor)
+            eval_loss = criterion(eval_outputs, y_eval_tensor)
+            print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}, Eval Loss: {eval_loss.item():.4f}')
+
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_eval_tensor, y_eval_tensor, y_eval):
+    model.eval()
+    with torch.no_grad():
+        eval_outputs = model(X_eval_tensor)
+        eval_loss = mean_squared_error(np.log1p(y_eval), eval_outputs.numpy())
+        eval_mae = mean_absolute_error(np.log1p(y_eval), eval_outputs.numpy())
+        eval_r2 = r2_score(np.log1p(y_eval), eval_outputs.numpy())
+
+    performance_scores = {
+        "RMSE": np.sqrt(eval_loss),
+        "MAE": eval_mae,
+        "R-squared": eval_r2
+    }
+
+    return performance_scores
+
+# Main function
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/05_house_prices/split_train.csv'
+    eval_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/05_house_prices/split_eval.csv'
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data, eval_data = load_data(train_path, eval_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    # For simplicity, we will use the entire eval_data as the test set and a portion of train_data as the validation set.
+    train_data, valid_data = train_test_split(train_data, test_size=0.2, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_data, valid_data = feature_augmentation(train_data, valid_data)
+    eval_data, _ = feature_augmentation(eval_data, eval_data)
+
+    X_train_processed, y_train, X_valid_processed, y_valid = preprocess_data(train_data, valid_data)
+    X_eval_processed, y_eval, _, _ = preprocess_data(eval_data, eval_data)
+
+    # Step 4. Data augmentation
+    X_train_processed, y_train = augment_data(X_train_processed, y_train)
+    X_train_processed = add_noise(X_train_processed)
+
+    # Step 5. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_processed.shape[1]
+    model = HousePricePredictor(input_size)
+
+    # Step 6. train the retrieved/loaded model using the defined "train_model" function
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train_processed, dtype=torch.float32)
+    y_train_tensor = torch.tensor(np.log1p(y_train.values), dtype=torch.float32).view(-1, 1)
+    X_eval_tensor = torch.tensor(X_eval_processed, dtype=torch.float32)
+    y_eval_tensor = torch.tensor(np.log1p(y_eval.values), dtype=torch.float32).view(-1, 1)
+
+    model = train_model(model, X_train_tensor, y_train_tensor, X_eval_tensor, y_eval_tensor)
+
+    # Step 7. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_eval_tensor, y_eval_tensor, y_eval)
+
+    # Step 8. Save the trained model
+    model_path = './agent_workspace/trained_models/house_price_model.pt'
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/multiclass.py:213: UserWarning:
+
+The number of unique classes is greater than 50% of the number of samples. `y` could represent a regression problem, not a classification problem.
+
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/utils/_validation.py:174: UserWarning:
+
+The number of unique classes is greater than 50% of the number of samples. `y` could represent a regression problem, not a classification problem.
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 193, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 166, in main
+    X_train_processed, y_train = augment_data(X_train_processed, y_train)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 67, in augment_data
+    X_train_processed, y_train = smote.fit_resample(X_train_processed, y_train)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/base.py", line 202, in fit_resample
+    return super().fit_resample(X, y, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/base.py", line 105, in fit_resample
+    output = self._fit_resample(X, y, **params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/over_sampling/_smote/base.py", line 359, in _fit_resample
+    nns = self.nn_k_.kneighbors(X_class, return_distance=False)[:, 1:]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/neighbors/_base.py", line 854, in kneighbors
+    raise ValueError(
+ValueError: Expected n_neighbors <= n_samples_fit, but n_neighbors = 6, n_samples_fit = 1, n_samples = 1

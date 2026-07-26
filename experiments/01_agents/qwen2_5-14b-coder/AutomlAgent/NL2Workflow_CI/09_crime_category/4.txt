@@ -1,0 +1,178 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+import torch
+from pytorch_tabnet.tab_model import TabNetClassifier
+import optuna
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Handle Missing Values
+    num_imputer = SimpleImputer(strategy='mean')
+    cat_imputer = SimpleImputer(strategy='most_frequent')
+    
+    num_cols = train_data.select_dtypes(include=['int64', 'float64']).columns
+    cat_cols = train_data.select_dtypes(include=['object']).columns
+    
+    train_data[num_cols] = num_imputer.fit_transform(train_data[num_cols])
+    test_data[num_cols] = num_imputer.transform(test_data[num_cols])
+    
+    train_data[cat_cols] = cat_imputer.fit_transform(train_data[cat_cols])
+    test_data[cat_cols] = cat_imputer.transform(test_data[cat_cols])
+    
+    # Encode Categorical Variables
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    train_encoded = encoder.fit_transform(train_data[cat_cols])
+    test_encoded = encoder.transform(test_data[cat_cols])
+    
+    train_data = pd.concat([train_data[num_cols], pd.DataFrame(train_encoded)], axis=1)
+    test_data = pd.concat([test_data[num_cols], pd.DataFrame(test_encoded)], axis=1)
+    
+    # Normalize Numerical Features
+    scaler = MinMaxScaler()
+    train_data[num_cols] = scaler.fit_transform(train_data[num_cols])
+    test_data[num_cols] = scaler.transform(test_data[num_cols])
+    
+    # Extract Temporal Features
+    if 'date' in train_data.columns:
+        train_data['date'] = pd.to_datetime(train_data['date'])
+        train_data['day_of_week'] = train_data['date'].dt.dayofweek
+        train_data['hour_of_day'] = train_data['date'].dt.hour
+        train_data['month'] = train_data['date'].dt.month
+        
+        test_data['date'] = pd.to_datetime(test_data['date'])
+        test_data['day_of_week'] = test_data['date'].dt.dayofweek
+        test_data['hour_of_day'] = test_data['date'].dt.hour
+        test_data['month'] = test_data['date'].dt.month
+        
+        train_data.drop(columns=['date'], inplace=True)
+        test_data.drop(columns=['date'], inplace=True)
+    
+    # Split features and target
+    X_train = train_data.drop(columns=['crime_category'])
+    y_train = train_data['crime_category']
+    X_test = test_data.drop(columns=['crime_category'])
+    y_test = test_data['crime_category']
+    
+    return X_train, y_train, X_test, y_test
+
+def train_model(X_train, y_train, X_val, y_val):
+    def objective(trial):
+        n_d = trial.suggest_int('n_d', 10, 16)
+        n_a = trial.suggest_int('n_a', 10, 16)
+        n_steps = trial.suggest_int('n_steps', 4, 10)
+        gamma = trial.suggest_float('gamma', 1.0, 2.0)
+        lambda_sparse = trial.suggest_float('lambda_sparse', 0.0, 0.01)
+
+        model = TabNetClassifier(
+            n_d=n_d,
+            n_a=n_a,
+            n_steps=n_steps,
+            gamma=gamma,
+            lambda_sparse=lambda_sparse,
+            optimizer_fn=torch.optim.Adam,
+            optimizer_params=dict(lr=2e-3),
+            mask_type='entmax',
+            scheduler_params=dict(step_size=50, gamma=0.9),
+            scheduler_fn=torch.optim.lr_scheduler.StepLR,
+            seed=SEED
+        )
+
+        model.fit(X_train.values, y_train.values, eval_set=[(X_val.values, y_val.values)], patience=5)
+        val_loss = model.history['val_loss'][-1]
+        return val_loss
+
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=50)
+    
+    best_params = study.best_params
+    best_model = TabNetClassifier(
+        n_d=best_params['n_d'],
+        n_a=best_params['n_a'],
+        n_steps=best_params['n_steps'],
+        gamma=best_params['gamma'],
+        lambda_sparse=best_params['lambda_sparse'],
+        optimizer_fn=torch.optim.Adam,
+        optimizer_params=dict(lr=2e-3),
+        mask_type='entmax',
+        scheduler_params=dict(step_size=50, gamma=0.9),
+        scheduler_fn=torch.optim.lr_scheduler.StepLR,
+        seed=SEED
+    )
+    
+    best_model.fit(X_train.values, y_train.values, eval_set=[(X_val.values, y_val.values)], patience=5)
+    
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    predictions = model.predict_proba(X_test.values)
+    logloss_value = log_loss(y_test, predictions)
+    performance_scores = {
+        'Logloss': logloss_value
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv')
+    test_data = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop(columns=['crime_category']), train_data['crime_category'], test_size=0.3, random_state=SEED)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 153, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 135, in main
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop(columns=['crime_category']), train_data['crime_category'], test_size=0.3, random_state=SEED)
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['crime_category'] not found in axis"

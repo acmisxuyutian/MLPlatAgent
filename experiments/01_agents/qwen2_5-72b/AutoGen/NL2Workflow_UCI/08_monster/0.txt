@@ -1,0 +1,113 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# 查看数据的前几行
+print(train_data.head())
+
+
+执行结果：
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+
+生成的代码：
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 编码 'color' 列
+color_encoder = LabelEncoder()
+train_data['color'] = color_encoder.fit_transform(train_data['color'])
+
+# 编码 'type' 列
+type_encoder = LabelEncoder()
+train_data['type'] = type_encoder.fit_transform(train_data['type'])
+
+# 查看处理后的数据
+print(train_data.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_6978b8601a417fb29dbc5b24cba7609c438e0942809e62367a98a50d09659b32.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 编码分类变量
+# 编码 'color' 列
+color_encoder = LabelEncoder()
+train_data['color'] = color_encoder.fit_transform(train_data['color'])
+
+# 编码 'type' 列
+type_encoder = LabelEncoder()
+train_data['type'] = type_encoder.fit_transform(train_data['type'])
+
+# 查看处理后的数据
+print(train_data.head())
+
+
+执行结果：
+id               0
+bone_length      0
+rotting_flesh    0
+hair_length      0
+color            0
+type             0
+dtype: int64
+    id  bone_length  rotting_flesh  hair_length  color  type
+0  472     0.681615       0.529227     0.625242      5     1
+1  170     0.480836       0.407930     0.539005      3     2
+2  189     0.375197       0.742953     0.320764      2     0
+3  861     0.626017       0.172182     0.408422      2     1
+4   30     0.250770       0.246258     0.554654      0     0
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# 分离特征和目标变量
+X = train_data.drop(columns=['id', 'type'])
+y = train_data['type']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 训练模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 预测
+y_pred = model.predict(X_test)
+
+# 计算准确率
+accuracy = accuracy_score(y_test, y_pred)
+print(f'模型在测试集上的准确率: {accuracy:.4f}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_10d51621132df826c5508bfde8335e73f8c3d0601170c3ab19601a2ec80ae7a5.py", line 6, in <module>
+    X = train_data.drop(columns=['id', 'type'])
+NameError: name 'train_data' is not defined

@@ -1,0 +1,104 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicate rows
+    train_df.drop_duplicates(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+    
+    # Drop specified columns
+    columns_to_drop = [
+        'ID', 'ICO Number', 'Owner', 'Region', 'Certification Contact', 'Certification Address', 'Farm Name', 'Lot Number', 'Mill', 'Producer', 'Company', 'Expiration', 'Harvest Year', 'Number of Bags', 'Bag Weight', 'In-Country Partner', 'Country of Origin', 'Processing Method', 'Grading Date', 'Variety', 'Status', 'Defects', 'Uniformity', 'Clean Cup', 'Sweetness', 'Certification Body'
+    ]
+    # Check if 'Unnamed: 0' exists in the columns before dropping
+    if 'Unnamed: 0' in train_df.columns:
+        columns_to_drop.append('Unnamed: 0')
+    
+    train_df.drop(columns=columns_to_drop, inplace=True, errors='ignore')
+    test_df.drop(columns=columns_to_drop, inplace=True, errors='ignore')
+    
+    # Apply one-hot encoding to the 'Color' column
+    train_df = pd.get_dummies(train_df, columns=['Color'])
+    test_df = pd.get_dummies(test_df, columns=['Color'])
+    
+    return train_df, test_df
+
+# Model Training
+def train_model(X_train, y_train):
+    model = RandomForestRegressor(random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    print(f'Mean Squared Error: {mse}')
+    return mse
+
+# Model Saving and Loading
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Define paths
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+    model_path = './agent_workspace/trained_models/coffee_quality_random_forest.pkl'
+    
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    
+    # Load data
+    train_df, test_df = load_data(train_path, test_path)
+    
+    # Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Split data into features and target
+    X_train = train_df.drop(columns=['Total Cup Points'])
+    y_train = train_df['Total Cup Points']
+    X_test = test_df.drop(columns=['Total Cup Points'])
+    y_test = test_df['Total Cup Points']
+    
+    # Train model
+    model = train_model(X_train, y_train)
+    
+    # Evaluate model
+    mse = evaluate_model(model, X_test, y_test)
+    
+    # Save model
+    save_model(model, model_path)
+    
+    return mse
+
+if __name__ == "__main__":
+    mse = main()
+    print(f"Model Performance on Test Set: Mean Squared Error = {mse}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Mean Squared Error: 0.1226600688095224
+Model Performance on Test Set: Mean Squared Error = 0.1226600688095224

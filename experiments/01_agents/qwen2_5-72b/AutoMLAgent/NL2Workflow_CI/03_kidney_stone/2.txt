@@ -1,0 +1,141 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import roc_auc_score
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    if 'label' not in train_df.columns:
+        raise ValueError("The 'label' column is missing in the training dataset.")
+    if 'label' not in test_df.columns:
+        raise ValueError("The 'label' column is missing in the test dataset.")
+    
+    # Data Splitting
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop(columns=['label']), train_df['label'], test_size=0.2, random_state=SEED
+    )
+    
+    # Data Cleaning
+    imputer = SimpleImputer(strategy='mean')
+    X_train = imputer.fit_transform(X_train)
+    X_val = imputer.transform(X_val)
+    X_test = imputer.transform(test_df.drop(columns=['label']))
+    
+    # Feature Scaling
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+    X_test = scaler.transform(X_test)
+    
+    # Feature Engineering
+    poly = PolynomialFeatures(degree=2, interaction_only=True)
+    X_train = poly.fit_transform(X_train)
+    X_val = poly.transform(X_val)
+    X_test = poly.transform(X_test)
+    
+    return X_train, X_val, y_train, y_val, X_test, test_df['label']
+
+# Data Augmentation
+def apply_smote(X_train, y_train):
+    smote = SMOTE(random_state=SEED)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+    return X_train, y_train
+
+# Model Training and Optimization
+def train_model(X_train, y_train):
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 1.0],
+        'colsample_bytree': [0.8, 1.0]
+    }
+    
+    xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+    grid_search = GridSearchCV(xgb, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    val_auc = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {val_auc}')
+    
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    test_auc = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {test_auc}')
+    
+    return test_auc
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+    model_path = r'./agent_workspace/trained_models/kidney_stone_xgboost_model.pkl'
+    
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Preprocess data
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_df, test_df)
+    
+    # Apply SMOTE
+    X_train, y_train = apply_smote(X_train, y_train)
+    
+    # Train model
+    model = train_model(X_train, y_train)
+    
+    # Evaluate model
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Save model
+    save_model(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 125, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 108, in main
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_df, test_df)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 29, in preprocess_data
+    raise ValueError("The 'label' column is missing in the training dataset.")
+ValueError: The 'label' column is missing in the training dataset.

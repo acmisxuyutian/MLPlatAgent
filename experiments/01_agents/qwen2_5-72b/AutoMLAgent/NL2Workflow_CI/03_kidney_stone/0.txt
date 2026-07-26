@@ -1,0 +1,126 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Split the data into features and target
+    X_train = train_df.drop(columns=['target'])
+    y_train = train_df['target']
+    X_test = test_df.drop(columns=['target'])
+    y_test = test_df['target']
+
+    # Handle missing values
+    numerical_features = X_train.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = X_train.select_dtypes(include=['category', 'object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    if not numerical_features.empty:
+        X_train[numerical_features] = numerical_imputer.fit_transform(X_train[numerical_features])
+        X_test[numerical_features] = numerical_imputer.transform(X_test[numerical_features])
+
+    if not categorical_features.empty:
+        X_train[categorical_features] = categorical_imputer.fit_transform(X_train[categorical_features])
+        X_test[categorical_features] = categorical_imputer.transform(X_test[categorical_features])
+
+    # Feature scaling
+    if not numerical_features.empty:
+        scaler = StandardScaler()
+        X_train[numerical_features] = scaler.fit_transform(X_train[numerical_features])
+        X_test[numerical_features] = scaler.transform(X_test[numerical_features])
+
+    # One-hot encoding for categorical features
+    if not categorical_features.empty:
+        encoder = OneHotEncoder(handle_unknown='ignore')
+        X_train_encoded = encoder.fit_transform(X_train[categorical_features])
+        X_test_encoded = encoder.transform(X_test[categorical_features])
+
+        X_train = pd.concat([X_train.drop(columns=categorical_features), pd.DataFrame(X_train_encoded.toarray(), columns=encoder.get_feature_names_out(categorical_features))], axis=1)
+        X_test = pd.concat([X_test.drop(columns=categorical_features), pd.DataFrame(X_test_encoded.toarray(), columns=encoder.get_feature_names_out(categorical_features))], axis=1)
+
+    # Data augmentation (optional)
+    smote = SMOTE(random_state=SEED)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    # Split the training data into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training
+def train_model(X_train, y_train):
+    param_grid = {
+        'n_estimators': [50, 100, 200, 300],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 5, 10],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    gb_model = GradientBoostingClassifier(random_state=SEED)
+    grid_search = GridSearchCV(gb_model, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_gb_model = grid_search.best_estimator_
+    return best_gb_model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    return auc_roc
+
+# Main function to orchestrate the pipeline
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+    # Step 1: Load the datasets
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Step 2: Preprocess the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4: Evaluate the model
+    auc_roc = evaluate_model(model, X_test, y_test)
+    print(f'AUC-ROC Score: {auc_roc}')
+
+    # Step 5: Save the model
+    model_path = r'./agent_workspace/trained_models/kidney_stone_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return auc_roc
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+AUC-ROC Score: 0.7701754385964912
+Model Performance on Test Set: 0.7701754385964912

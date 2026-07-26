@@ -1,0 +1,151 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_log_error, mean_absolute_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from flask import Flask, request, jsonify
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Handle missing values
+    dataset.fillna(dataset.mean(), inplace=True)
+    
+    # Encode categorical variables
+    categorical_features = dataset.select_dtypes(include=['object']).columns
+    numerical_features = dataset.select_dtypes(include=['float64', 'int64']).columns
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_features),
+            ('cat', OneHotEncoder(), categorical_features)
+        ])
+    
+    processed_data = preprocessor.fit_transform(dataset)
+    return processed_data
+
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train.float())
+        loss = criterion(torch.log(outputs + 1), torch.log(y_train.float() + 1))
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(X_test.float())
+        y_pred = outputs.numpy().flatten()
+    
+    rmsle = mean_squared_log_error(y_test, y_pred, squared=False)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    
+    performance_scores = {
+        'RMSLE': rmsle,
+        'MAE': mae,
+        'R-squared': r2
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X = dataset.drop('media_cost', axis=1)
+    y = dataset['media_cost']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.67, random_state=SEED)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train_processed = preprocess_data(X_train)
+    X_val_processed = preprocess_data(X_val)
+    X_test_processed = preprocess_data(X_test)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_processed.shape[1]
+    model = SimpleFNN(input_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, torch.tensor(X_train_processed, dtype=torch.float), torch.tensor(y_train.values, dtype=torch.float), 
+                        torch.tensor(X_val_processed, dtype=torch.float), torch.tensor(y_val.values, dtype=torch.float))
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, torch.tensor(X_test_processed, dtype=torch.float), y_test.values)
+    
+    # Step 7. Save the model
+    torch.save(model.state_dict(), './agent_workspace/trained_models/media_campaign_cost_model.pth')
+    
+    return model_performance
+
+# Define the model architecture
+class SimpleFNN(nn.Module):
+    def __init__(self, input_size):
+        super(SimpleFNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 1)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+# Set up an API endpoint
+app = Flask(__name__)
+
+# Load the model
+input_size = X_train.shape[1]  # Placeholder for input size
+model = SimpleFNN(input_size)
+model.load_state_dict(torch.load('./agent_workspace/trained_models/media_campaign_cost_model.pth'))
+model.eval()
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.json
+    input_data = np.array(data['features'])
+    input_tensor = torch.tensor(input_data, dtype=torch.float)
+    with torch.no_grad():
+        output = model(input_tensor)
+    return jsonify({'prediction': output.item()})
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+    app.run(host='0.0.0.0', port=5000)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 124, in <module>
+    input_size = X_train.shape[1]  # Placeholder for input size
+                 ^^^^^^^
+NameError: name 'X_train' is not defined

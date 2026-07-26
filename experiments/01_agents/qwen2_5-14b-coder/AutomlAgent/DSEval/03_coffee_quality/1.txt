@@ -1,0 +1,125 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initial setup
+def load_data():
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Drop duplicates
+    train_df.drop_duplicates(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+    
+    # Column removal
+    columns_to_drop = [
+        'ID', 'ICO Number', 'Owner', 'Region', 'Certification Contact', 
+        'Certification Address', 'Farm Name', 'Lot Number', 'Mill', 
+        'ICO Number', 'Producer', 'Company', 'Expiration', 'Harvest Year', 
+        'Unnamed: 0', 'Number of Bags', 'Bag Weight', 'In-Country Partner', 
+        'Country of Origin', 'Processing Method', 'Grading Date', 'Variety', 
+        'Status', 'Defects', 'Uniformity', 'Clean Cup', 'Sweetness', 
+        'Certification Body'
+    ]
+    
+    # Ensure columns exist before dropping
+    train_df.drop(columns=[col for col in columns_to_drop if col in train_df.columns], inplace=True)
+    test_df.drop(columns=[col for col in columns_to_drop if col in test_df.columns], inplace=True)
+    
+    # One-Hot Encoding
+    train_df = pd.get_dummies(train_df, columns=['Color'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['Color'], drop_first=True)
+    
+    # Ensure test_df has the same columns as train_df after one-hot encoding
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    
+    test_df = test_df[train_df.columns]
+    
+    return train_df, test_df
+
+# Model training
+def train_model(train_df):
+    # Initialize the model
+    rf = RandomForestRegressor(random_state=42)
+    
+    # Define hyperparameter grid
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20],
+        'min_samples_split': [2, 5]
+    }
+    
+    # Perform hyperparameter tuning
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=3, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(train_df.drop(columns=['Total Cup Points']), train_df['Total Cup Points'])
+    
+    # Train the model
+    best_rf = grid_search.best_estimator_
+    best_rf.fit(train_df.drop(columns=['Total Cup Points']), train_df['Total Cup Points'])
+    
+    return best_rf
+
+# Model evaluation
+def evaluate_model(model, test_df):
+    predictions = model.predict(test_df.drop(columns=['Total Cup Points']))
+    mse = mean_squared_error(test_df['Total Cup Points'], predictions)
+    performance_scores = {
+        'MSE': mse
+    }
+    return performance_scores
+
+# Model deployment
+def save_model(model, preprocessing_columns):
+    model_path = './agent_workspace/trained_models/coffee_quality_rf_model.joblib'
+    joblib.dump(model, model_path)
+    
+    preprocessing_path = './agent_workspace/trained_models/coffee_quality_preprocessing.joblib'
+    joblib.dump(preprocessing_columns, preprocessing_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    train_df, test_df = load_data()
+    
+    # Step 2: Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3: Train the model
+    model = train_model(train_df)
+    
+    # Step 4: Evaluate the model
+    model_performance = evaluate_model(model, test_df)
+    
+    # Step 5: Save the model and preprocessing pipeline
+    save_model(model, train_df.columns)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'MSE': 0.11821832161984243}

@@ -1,0 +1,209 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Function to retrieve the dataset
+def retrieve_dataset():
+    # Ensure the directory exists
+    os.makedirs('/local/data/bank_customer_churn/', exist_ok=True)
+    # Download the dataset
+    os.system('wget -O /local/data/bank_customer_churn/train.csv http://r/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+    # Load the dataset
+    df = pd.read_csv('/local/data/bank_customer_churn/train.csv')
+    return df
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+    
+    # Remove duplicate records
+    df_cleaned = df_imputed.drop_duplicates()
+    
+    # Feature engineering
+    df_cleaned['avg_transaction_freq'] = df_cleaned['total_transactions'] / df_cleaned['account_tenure']
+    df_cleaned['total_transaction_amount'] = df_cleaned['transaction_amount'].sum()
+    df_cleaned['engagement_metric'] = df_cleaned['login_frequency'] * df_cleaned['service_usage']
+    
+    # Normalize features
+    scaler = MinMaxScaler()
+    df_normalized = pd.DataFrame(scaler.fit_transform(df_cleaned.drop('churn', axis=1)), columns=df_cleaned.drop('churn', axis=1).columns)
+    df_normalized['churn'] = df_cleaned['churn']
+    
+    # Check class distribution
+    from collections import Counter
+    print(Counter(df_normalized['churn']))
+    
+    # Apply SMOTE if necessary
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(df_normalized.drop('churn', axis=1), df_normalized['churn'])
+    df_resampled = pd.DataFrame(X_resampled, columns=df_normalized.drop('churn', axis=1).columns)
+    df_resampled['churn'] = y_resampled
+    
+    return df_resampled
+
+# Define the model
+class ChurnPredictor(nn.Module):
+    def __init__(self, input_size):
+        super(ChurnPredictor, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, num_epochs=100):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+        
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets.view(-1, 1))
+                val_loss += loss.item()
+            val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss:.4f}')
+    
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        y_pred = []
+        y_true = []
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            y_pred.extend(outputs.numpy())
+            y_true.extend(targets.numpy())
+    
+    y_pred = np.array(y_pred).flatten()
+    y_true = np.array(y_true).flatten()
+    
+    performance_scores = {
+        'ACC': accuracy_score(y_true, (y_pred > 0.5).astype(int)),
+        'F1': f1_score(y_true, (y_pred > 0.5).astype(int)),
+        'AUC-ROC': roc_auc_score(y_true, y_pred)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = retrieve_dataset()
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = dataset.drop('churn', axis=1)
+    y = dataset['churn']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data = preprocess_data(dataset)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = processed_data.drop('churn', axis=1).shape[1]
+    model = ChurnPredictor(input_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    model = train_model(model, train_loader, val_loader)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+--2025-09-08 23:37:22--  http://r/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv
+Resolving r (r)... failed: Name or service not known.
+wget: unable to resolve host address ‘r’
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 173, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    dataset = retrieve_dataset()
+              ^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 32, in retrieve_dataset
+    df = pd.read_csv('/local/data/bank_customer_churn/train.csv')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1898, in _make_engine
+    return mapping[engine](f, **self.options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 93, in __init__
+    self._reader = parsers.TextReader(src, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 581, in pandas._libs.parsers.TextReader.__cinit__
+pandas.errors.EmptyDataError: No columns to parse from file

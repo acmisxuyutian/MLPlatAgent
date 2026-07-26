@@ -1,0 +1,192 @@
+######代码######
+
+# The following code is for "tabular regression" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_log_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(abalone_df):
+    # Data Exploration
+    print(abalone_df.head())
+    print(abalone_df.info())
+    print(abalone_df.describe())
+
+    # Feature Selection
+    correlation_matrix = abalone_df.corr()
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+    plt.show()
+
+    selected_features = ['Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight', 'Shell weight']
+
+    # Handle Categorical Data
+    label_encoder = LabelEncoder()
+    abalone_df['Sex'] = label_encoder.fit_transform(abalone_df['Sex'])
+
+    # Normalization
+    scaler = StandardScaler()
+    features = abalone_df[selected_features]
+    target = abalone_df['Age']
+    features_scaled = scaler.fit_transform(features)
+
+    # Data Splitting
+    X_train, X_temp, y_train, y_temp = train_test_split(features_scaled, target, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, 1)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(torch.log(outputs + 1), torch.log(targets + 1))
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                val_loss += criterion(torch.log(outputs + 1), torch.log(targets + 1)).item()
+
+        val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation Loss: {val_loss:.4f}')
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    predictions = []
+    true_values = []
+
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            predictions.extend(outputs.numpy().flatten())
+            true_values.extend(targets.numpy().flatten())
+
+    rmlse = mean_squared_log_error(true_values, predictions, squared=False)
+    performance_scores = {
+        'RMLSE': rmlse
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_url = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    abalone_df = pd.read_csv(dataset_url)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(abalone_df)
+
+    # Convert datasets to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoaders
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=20, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=20, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=20, shuffle=False)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in preprocess_data function
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = FNN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 100
+    model = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the trained model
+    model_path = './agent_workspace/trained_models/abalone_age_prediction_model.pth'
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 163, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 119, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(abalone_df)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 30, in preprocess_data
+    correlation_matrix = abalone_df.corr()
+                         ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11049, in corr
+    mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 1993, in to_numpy
+    result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 1694, in as_array
+    arr = self._interleave(dtype=dtype, na_value=na_value)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 1753, in _interleave
+    result[rl.indexer] = arr
+    ~~~~~~^^^^^^^^^^^^
+ValueError: could not convert string to float: 'M'

@@ -1,0 +1,147 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+import torch
+from pytorch_tabnet.tab_model import TabNetClassifier
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_dataset(dataset_path):
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"Dataset not found at {dataset_path}")
+    df = pd.read_csv(dataset_path)
+    if 'monster_type' not in df.columns:
+        raise ValueError("Target column 'monster_type' is missing in the dataset.")
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    numerical_features = ['bone_length', 'rotting_flesh']
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    label_encoder = LabelEncoder()
+    df['monster_type'] = label_encoder.fit_transform(df['monster_type'])
+    df = pd.get_dummies(df, columns=['soul_presence'])
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    df[['soul_presence_0', 'soul_presence_1']] = categorical_imputer.fit_transform(df[['soul_presence_0', 'soul_presence_1']])
+
+    return df
+
+# Data Augmentation
+def augment_data(df):
+    X = df.drop(columns=['monster_type'])
+    y = df['monster_type']
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    df_resampled = pd.concat([X_resampled, y_resampled], axis=1)
+    return df_resampled
+
+# Extract and Understand the Underlying Characteristics of the Dataset
+def extract_dataset_characteristics(df_resampled):
+    numerical_features = ['bone_length', 'rotting_flesh']
+    summary_stats = df_resampled[numerical_features].describe()
+    print("Summary Statistics:\n", summary_stats)
+
+    class_distribution = df_resampled['monster_type'].value_counts(normalize=True)
+    print("Class Distribution:\n", class_distribution)
+
+    correlation_matrix = df_resampled.corr()
+    print("Correlation Matrix:\n", correlation_matrix)
+
+    X_train, X_test, y_train, y_test = train_test_split(df_resampled.drop(columns=['monster_type']), df_resampled['monster_type'], test_size=0.2, random_state=42)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+    feature_importances = model.feature_importances_
+    print("Feature Importances:\n", feature_importances)
+
+# Model Training
+def train_model(X_train, y_train, X_val, y_val):
+    model = TabNetClassifier()
+    model.fit(
+        X_train=X_train, y_train=y_train,
+        eval_set=[(X_train, y_train), (X_val, y_val)],
+        eval_name=['train', 'valid'],
+        eval_metric=['accuracy']
+    )
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, average='weighted')
+    confusion = confusion_matrix(y_test, y_pred)
+    performance_scores = {
+        'Accuracy': accuracy,
+        'F1 Score': f1,
+        'Confusion Matrix': confusion
+    }
+    print("Model Performance on Test Set:", performance_scores)
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Load the dataset
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    df = load_dataset(dataset_path)
+
+    # Preprocess the data
+    df = preprocess_data(df)
+
+    # Augment the data
+    df_resampled = augment_data(df)
+
+    # Extract dataset characteristics
+    extract_dataset_characteristics(df_resampled)
+
+    # Prepare the data for training
+    X_resampled = df_resampled.drop(columns=['monster_type'])
+    y_resampled = df_resampled['monster_type']
+
+    # Split the data into train, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    # Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the model
+    model.save_model('./agent_workspace/trained_models/tabnet_model')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 131, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 100, in main
+    df = load_dataset(dataset_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 24, in load_dataset
+    raise ValueError("Target column 'monster_type' is missing in the dataset.")
+ValueError: Target column 'monster_type' is missing in the dataset.

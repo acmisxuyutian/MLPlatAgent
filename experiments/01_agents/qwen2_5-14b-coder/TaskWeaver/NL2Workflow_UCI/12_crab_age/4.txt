@@ -1,0 +1,132 @@
+import pandas as pd
+
+def load_and_inspect_data(file_path):
+    df = pd.read_csv(file_path)
+    print(df.head())
+    print("Columns:", df.columns.tolist())
+    return df
+
+df = load_and_inspect_data(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+          id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+0      20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+1       2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+...      ...  ..     ...       ...     ...        ...             ...             ...           ...  ...
+59238    860   M  1.5000    1.1750  0.4375  37.747359       12.190285        8.221355     10.616888   15
+59239  15795   I  0.4375    0.3375  0.2375   0.864660        0.311845        0.212621      0.283495    6
+
+[59240 rows x 10 columns]import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the training data
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+df = pd.read_csv(file_path)
+
+# Identify categorical and numerical columns
+categorical_cols = df.select_dtypes(include=['object']).columns
+numerical_cols = df.select_dtypes(exclude=['object']).columns.drop('Age')
+
+target_col = 'Age'
+
+# Preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('scaler', StandardScaler())
+])
+
+# Preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ])
+
+# Split the data into training and testing sets
+X = df.drop(columns=[target_col])
+y = df[target_col]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Preprocess the data
+preprocessed_X_train = preprocessor.fit_transform(X_train)
+preprocessed_X_test = preprocessor.transform(X_test)
+
+# Store the preprocessed data and target variables
+X_train_preprocessed = preprocessed_X_train
+X_test_preprocessed = preprocessed_X_test
+y_train_preprocessed = y_train
+y_test_preprocessed = y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+26164     5
+32999    11
+         ..
+39654     9
+51513    24
+Name: Age, Length: 11848, dtype: int64import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# Load the training data
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+df = pd.read_csv(file_path)
+
+# Identify categorical and numerical columns
+categorical_cols = df.select_dtypes(include=['object']).columns
+numerical_cols = df.select_dtypes(exclude=['object']).columns.drop('Age')
+
+target_col = 'Age'
+
+# Preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('scaler', StandardScaler())
+])
+
+# Preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ])
+
+# Split the data into training and testing sets
+X = df.drop(columns=[target_col])
+y = df[target_col]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Preprocess the data
+preprocessed_X_train = preprocessor.fit_transform(X_train)
+preprocessed_X_test = preprocessor.transform(X_test)
+
+# Train a Random Forest Regressor model
+model = RandomForestRegressor(random_state=42)
+model.fit(preprocessed_X_train, y_train)
+
+# Evaluate the model's performance on the test set using MAE
+y_pred = model.predict(preprocessed_X_test)
+mae = mean_absolute_error(y_test, y_pred)
+
+# Report the MAE to the user
+mae
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+1.4370687035786631

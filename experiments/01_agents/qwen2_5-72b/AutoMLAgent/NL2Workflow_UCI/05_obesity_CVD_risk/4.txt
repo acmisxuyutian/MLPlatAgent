@@ -1,0 +1,222 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# 1. Data Retrieval and Collection
+def load_data():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+    df = pd.read_csv(data_path)
+    return df
+
+# 2. Data Preprocessing
+def preprocess_data(df):
+    # Data Inspection
+    print(df.head())
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Handling Missing Values
+    for column in df.select_dtypes(include=['float64', 'int64']).columns:
+        df[column] = df[column].fillna(df[column].mean())
+
+    for column in df.select_dtypes(include=['object']).columns:
+        df[column] = df[column].fillna(df[column].mode()[0])
+
+    # Encoding Categorical Variables
+    df = pd.get_dummies(df, drop_first=True)
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    numerical_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    return df
+
+# 3. Data Augmentation
+def augment_data(df):
+    if 'obesity_risk_level' not in df.columns:
+        raise KeyError("Column 'obesity_risk_level' not found in the DataFrame")
+
+    X = df.drop(columns=['obesity_risk_level'])
+    y = df['obesity_risk_level']
+
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    df_resampled = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='obesity_risk_level')], axis=1)
+    return df_resampled
+
+# 4. Feature Selection
+def select_features(df_resampled):
+    model = RandomForestClassifier()
+    model.fit(df_resampled.drop(columns=['obesity_risk_level']), df_resampled['obesity_risk_level'])
+
+    feature_importances = pd.Series(model.feature_importances_, index=df_resampled.drop(columns=['obesity_risk_level']).columns)
+    feature_importances = feature_importances.sort_values(ascending=False)
+
+    top_features = feature_importances.index[:10]  # Select top 10 features
+    X_selected = df_resampled[top_features]
+    y_selected = df_resampled['obesity_risk_level']
+
+    return X_selected, y_selected
+
+# 5. Model Initialization and Training
+def train_model(X_train, y_train, X_val, y_val):
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
+
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    class FNN(nn.Module):
+        def __init__(self, input_size, hidden_sizes, output_size):
+            super(FNN, self).__init__()
+            self.fc1 = nn.Linear(input_size, hidden_sizes[0])
+            self.fc2 = nn.Linear(hidden_sizes[0], hidden_sizes[1])
+            self.fc3 = nn.Linear(hidden_sizes[1], hidden_sizes[2])
+            self.fc4 = nn.Linear(hidden_sizes[2], output_size)
+            self.relu = nn.ReLU()
+            self.softmax = nn.Softmax(dim=1)
+
+        def forward(self, x):
+            x = self.relu(self.fc1(x))
+            x = self.relu(self.fc2(x))
+            x = self.relu(self.fc3(x))
+            x = self.softmax(self.fc4(x))
+            return x
+
+    input_size = X_train.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = 3
+    model = FNN(input_size, hidden_sizes, output_size)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    num_epochs = 50
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0
+            correct = 0
+            total = 0
+            for batch_X, batch_y in val_loader:
+                outputs = model(batch_X)
+                loss = criterion(outputs, batch_y)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                total += batch_y.size(0)
+                correct += (predicted == batch_y).sum().item()
+
+            val_loss /= len(val_loader)
+            accuracy = correct / total
+            print(f'Epoch [{epoch+1}/{num_epochs}], Validation Loss: {val_loss:.4f}, Accuracy: {accuracy:.4f}')
+
+    return model
+
+# 6. Model Evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        y_true = []
+        y_pred = []
+        for batch_X, batch_y in test_loader:
+            outputs = model(batch_X)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(batch_y.numpy())
+            y_pred.extend(predicted.numpy())
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted')
+    }
+    return performance_scores
+
+# 7. Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+# 8. Main Function to Orchestrate the Pipeline
+def main():
+    # Step 1. Load the dataset
+    df = load_data()
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Augment the data
+    df_resampled = augment_data(df)
+
+    # Step 4. Select features
+    X_selected, y_selected = select_features(df_resampled)
+
+    # Step 5. Create train, validation, and test splits
+    X_train, X_temp, y_train, y_temp = train_test_split(X_selected, y_selected, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    # Step 6. Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 7. Evaluate the model
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    model_performance = evaluate_model(model, test_loader)
+
+    # Step 8. Save the model
+    model_path = r'./agent_workspace/trained_models/obesity_CVD_risk_fnn.pth'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 206, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 180, in main
+    df_resampled = augment_data(df)
+                   ^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 56, in augment_data
+    raise KeyError("Column 'obesity_risk_level' not found in the DataFrame")
+KeyError: "Column 'obesity_risk_level' not found in the DataFrame"

@@ -1,0 +1,114 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+import xgboost as xgb
+import joblib
+import requests
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+    
+    # Normalize data
+    scaler = MinMaxScaler()
+    df_normalized = pd.DataFrame(scaler.fit_transform(df_imputed), columns=df_imputed.columns)
+    
+    # Feature engineering
+    df_normalized['mean'] = df_normalized.mean(axis=1)
+    df_normalized['variance'] = df_normalized.var(axis=1)
+    df_normalized['skewness'] = df_normalized.skew(axis=1)
+    df_normalized['mean_signal'] = df_normalized.mean(axis=1)
+    df_normalized['std_signal'] = df_normalized.std(axis=1)
+    df_normalized['max_signal'] = df_normalized.max(axis=1)
+    df_normalized['min_signal'] = df_normalized.min(axis=1)
+    df_normalized['fft_mean'] = df_normalized.apply(lambda x: np.mean(np.abs(np.fft.fft(x))), axis=1)
+    df_normalized['fft_std'] = df_normalized.apply(lambda x: np.std(np.abs(np.fft.fft(x))), axis=1)
+    
+    return df_normalized
+
+def train_model(X_train, y_train):
+    model = xgb.XGBClassifier(
+        max_depth=6,
+        learning_rate=0.1,
+        n_estimators=100,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        gamma=0,
+        reg_alpha=0,
+        reg_lambda=1,
+        random_state=42
+    )
+    
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    auc_roc = roc_auc_score(y_val, y_val_pred)
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    return performance_scores
+
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    url = 'https://remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        with open('smoker_status_Bio_Signals.csv', 'wb') as file:
+            file.write(response.content)
+        df = pd.read_csv('smoker_status_Bio_Signals.csv')
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading the dataset: {e}")
+        return
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X = df.drop('smoker_status', axis=1)
+    y = df['smoker_status']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.66, random_state=42)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data_train = preprocess_data(X_train)
+    processed_data_val = preprocess_data(X_val)
+    processed_data_test = preprocess_data(X_test)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(processed_data_train, y_train)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, processed_data_val, y_val)
+    
+    # Save the trained model
+    model_path = './agent_workspace/trained_models/smoker_status_xgboost_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)  # Ensure the directory exists
+    joblib.dump(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error downloading the dataset: HTTPSConnectionPool(host='remote-home', port=443): Max retries exceeded with url: /cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f852ece4fd0>: Failed to resolve 'remote-home' ([Errno -2] Name or service not known)"))
+Model Performance on Validation Set: None

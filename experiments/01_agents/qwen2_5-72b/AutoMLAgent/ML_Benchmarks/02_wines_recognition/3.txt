@@ -1,0 +1,172 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, f1_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the path for saving the trained model
+MODEL_PATH = "./agent_workspace/trained_models/xgboost_wine_quality_model.pkl"
+
+def load_dataset():
+    """
+    Load the dataset from the UCI Machine Learning Repository.
+    """
+    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+    data = pd.read_csv(url, header=None)
+    return data
+
+def initial_exploration(data):
+    """
+    Perform initial data exploration.
+    """
+    summary_stats = data.describe()
+    class_distribution = data[0].value_counts()
+    print("Summary Statistics:\n", summary_stats)
+    print("Class Distribution:\n", class_distribution)
+
+def preprocess_data(data):
+    """
+    Preprocess the dataset: handle missing values, scale features.
+    """
+    # Check for missing values
+    missing_values = data.isnull().sum()
+    print("Missing Values:\n", missing_values)
+
+    # Impute missing values with the mean
+    data.fillna(data.mean(), inplace=True)
+
+    # Scale the features
+    scaler = StandardScaler()
+    features = data.iloc[:, 1:]
+    target = data.iloc[:, 0]
+
+    # Adjust target to start from 0
+    target = target - 1
+
+    scaled_features = scaler.fit_transform(features)
+    scaled_data = pd.DataFrame(scaled_features, columns=features.columns)
+
+    return scaled_data, target
+
+def split_data(scaled_data, target):
+    """
+    Split the dataset into training (80%) and testing (20%) sets.
+    """
+    X_train, X_test, y_train, y_test = train_test_split(scaled_data, target, test_size=0.2, random_state=SEED)
+    return X_train, X_test, y_train, y_test
+
+def train_model(X_train, y_train):
+    """
+    Train an XGBoost model on the training set.
+    """
+    xgb_model = XGBClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, subsample=0.8, random_state=SEED)
+    xgb_model.fit(X_train, y_train)
+    return xgb_model
+
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluate the model's performance on the test set.
+    """
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, average='weighted')
+    performance_scores = {
+        'Accuracy': accuracy,
+        'F1': f1
+    }
+    return performance_scores
+
+def save_model(model, model_path):
+    """
+    Save the trained model to a file.
+    """
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    """
+    Load the saved model for inference.
+    """
+    return joblib.load(model_path)
+
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1: Load the dataset
+    data = load_dataset()
+    initial_exploration(data)
+
+    # Step 2: Preprocess the data
+    scaled_data, target = preprocess_data(data)
+
+    # Step 3: Split the data
+    X_train, X_test, y_train, y_test = split_data(scaled_data, target)
+
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 5: Evaluate the model
+    performance_scores = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:", performance_scores)
+
+    # Step 6: Save the model
+    save_model(model, MODEL_PATH)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Summary Statistics:
+                0           1           2   ...          11          12           13
+count  178.000000  178.000000  178.000000  ...  178.000000  178.000000   178.000000
+mean     1.938202   13.000618    2.336348  ...    0.957449    2.611685   746.893258
+std      0.775035    0.811827    1.117146  ...    0.228572    0.709990   314.907474
+min      1.000000   11.030000    0.740000  ...    0.480000    1.270000   278.000000
+25%      1.000000   12.362500    1.602500  ...    0.782500    1.937500   500.500000
+50%      2.000000   13.050000    1.865000  ...    0.965000    2.780000   673.500000
+75%      3.000000   13.677500    3.082500  ...    1.120000    3.170000   985.000000
+max      3.000000   14.830000    5.800000  ...    1.710000    4.000000  1680.000000
+
+[8 rows x 14 columns]
+Class Distribution:
+ 0
+2    71
+1    59
+3    48
+Name: count, dtype: int64
+Missing Values:
+ 0     0
+1     0
+2     0
+3     0
+4     0
+5     0
+6     0
+7     0
+8     0
+9     0
+10    0
+11    0
+12    0
+13    0
+dtype: int64
+Model Performance on Test Set: {'Accuracy': 1.0, 'F1': 1.0}
+Model Performance on Test Set: {'Accuracy': 1.0, 'F1': 1.0}

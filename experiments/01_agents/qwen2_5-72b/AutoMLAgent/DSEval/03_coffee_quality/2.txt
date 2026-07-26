@@ -1,0 +1,196 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Define paths
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+data_dir = 'data/'
+model_dir = './agent_workspace/trained_models/'
+
+# Create directory if it does not exist
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+
+# Load datasets
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Save datasets to the data directory
+train_df.to_csv(os.path.join(data_dir, 'coffee_quality_train.csv'), index=False)
+test_df.to_csv(os.path.join(data_dir, 'coffee_quality_test.csv'), index=False)
+
+# Verify data integrity
+print("Training dataset shape:", train_df.shape)
+print("Test dataset shape:", test_df.shape)
+print("First few rows of training dataset:\n", train_df.head())
+print("Last few rows of training dataset:\n", train_df.tail())
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicated rows
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+
+    # List of columns to drop
+    columns_to_drop = [
+        'ID', 'Owner', 'Region', 'Certification Contact', 'Certification Address', 'Farm Name', 'Lot Number', 'Mill', 'Producer', 'Company', 'Expiration', 'Harvest Year', 'Number of Bags', 'Bag Weight', 'In-Country Partner', 'Country of Origin', 'Processing Method', 'Grading Date', 'Variety', 'Status', 'Defects', 'Uniformity', 'Clean Cup', 'Sweetness', 'Certification Body'
+    ]
+
+    # Check if 'Unnamed: 0' exists in the columns and drop it if it does
+    if 'Unnamed: 0' in train_df.columns:
+        columns_to_drop.append('Unnamed: 0')
+
+    # Drop columns
+    train_df = train_df.drop(columns=columns_to_drop)
+    test_df = test_df.drop(columns=columns_to_drop)
+
+    # One-hot encode the 'Color' column
+    train_df = pd.get_dummies(train_df, columns=['Color'])
+    test_df = pd.get_dummies(test_df, columns=['Color'])
+
+    # Ensure that both datasets have the same columns after one-hot encoding
+    train_columns = set(train_df.columns)
+    test_columns = set(test_df.columns)
+    all_columns = train_columns.union(test_columns)
+
+    # Add missing columns with default value 0
+    for col in all_columns:
+        if col not in train_df.columns:
+            train_df[col] = 0
+        if col not in test_df.columns:
+            test_df[col] = 0
+
+    # Reorder columns to ensure consistency
+    train_df = train_df[sorted(train_df.columns)]
+    test_df = test_df[sorted(test_df.columns)]
+
+    # Convert non-numeric columns to numeric
+    for col in train_df.columns:
+        if train_df[col].dtype == 'object':
+            train_df[col] = pd.to_numeric(train_df[col], errors='coerce')
+        if test_df[col].dtype == 'object':
+            test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+
+    # Handle missing values (if any)
+    train_df.fillna(0, inplace=True)
+    test_df.fillna(0, inplace=True)
+
+    return train_df, test_df
+
+# Preprocess the data
+train_df, test_df = preprocess_data(train_df, test_df)
+
+# Split data into features and target variable
+X_train = train_df.drop(columns=['Total Cup Points'])
+y_train = train_df['Total Cup Points']
+X_test = test_df.drop(columns=['Total Cup Points'])
+y_test = test_df['Total Cup Points']
+
+# Initialize and train the model
+rf = RandomForestRegressor(
+    n_estimators=200,
+    max_depth=20,
+    min_samples_leaf=2,
+    min_samples_split=5,
+    random_state=42
+)
+rf.fit(X_train, y_train)
+
+# Make predictions
+y_pred = rf.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error:", mse)
+
+# Save the model
+model_path = os.path.join(model_dir, 'random_forest_regressor.pkl')
+joblib.dump(rf, model_path)
+
+# Save the preprocessing steps (if any additional steps are used)
+preprocessing_steps_path = os.path.join(model_dir, 'preprocessing_steps.pkl')
+joblib.dump((X_train.columns, X_test.columns), preprocessing_steps_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+    # Data retrieval and collection
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    train_df.to_csv(os.path.join(data_dir, 'coffee_quality_train.csv'), index=False)
+    test_df.to_csv(os.path.join(data_dir, 'coffee_quality_test.csv'), index=False)
+
+    # Data preprocessing
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Split data into features and target variable
+    X_train = train_df.drop(columns=['Total Cup Points'])
+    y_train = train_df['Total Cup Points']
+    X_test = test_df.drop(columns=['Total Cup Points'])
+    y_test = test_df['Total Cup Points']
+
+    # Model training
+    rf = RandomForestRegressor(
+        n_estimators=200,
+        max_depth=20,
+        min_samples_leaf=2,
+        min_samples_split=5,
+        random_state=42
+    )
+    rf.fit(X_train, y_train)
+
+    # Model evaluation
+    y_pred = rf.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    print("Mean Squared Error:", mse)
+
+    # Save the model
+    model_path = os.path.join(model_dir, 'random_forest_regressor.pkl')
+    joblib.dump(rf, model_path)
+
+    # Save the preprocessing steps
+    preprocessing_steps_path = os.path.join(model_dir, 'preprocessing_steps.pkl')
+    joblib.dump((X_train.columns, X_test.columns), preprocessing_steps_path)
+
+    return mse
+
+if __name__ == "__main__":
+    mse = main()
+    print("Model Performance on Test Set (MSE):", mse)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Training dataset shape: (165, 40)
+Test dataset shape: (42, 40)
+First few rows of training dataset:
+     ID  ...                    Certification Contact
+0   86  ...                       Brayan Cifuentes -
+1  202  ...            Chris Allen - 55 35 3212-4705
+2   67  ...     Lin, Jen-An Neil 林仁安 - 886-289116612
+3   82  ...            Ramon Reyes - + 504 9693-9042
+4  204  ...  松澤　宏樹　Koju Matsuzawa - +81(0)9085642901
+
+[5 rows x 40 columns]
+Last few rows of training dataset:
+       ID  ...                    Certification Contact
+160  106  ...            Damon Chen陳嘉峻 - +886423022323
+161   14  ...     Lin, Jen-An Neil 林仁安 - 886-289116612
+162   92  ...        Tirza Odermatt - +41 41 728 72 81
+163  179  ...  松澤　宏樹　Koju Matsuzawa - +81(0)9085642901
+164  102  ...     Lin, Jen-An Neil 林仁安 - 886-289116612
+
+[5 rows x 40 columns]
+Mean Squared Error: 0.13272005336867643
+Mean Squared Error: 0.13272005336867643
+Model Performance on Test Set (MSE): 0.13272005336867643

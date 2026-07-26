@@ -1,0 +1,196 @@
+import pandas as pd
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Display the first few rows of the datasets to understand their structure
+train_df.head(), test_df.head()
+
+# Preprocessing steps (if necessary)
+# For now, let's assume no preprocessing is needed until we inspect the data
+
+# Result variables
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage Status
+ 0     6703    1153          Placebo  14772   F       N            Y       N     N        1.4        420.0     3.83    79.0     976.0   97.65           55.0      236.0          9.9    3.0     CL
+ 1     5815    1447          Placebo  14754   F       N            N       N     N        0.8        578.0     3.35    77.0     976.0  116.25          177.0      306.0          9.5    2.0      C
+ ...    ...     ...              ...    ...  ..     ...          ...     ...   ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...    ...
+ 6322  7603    2527  D-penicillamine  17664   F       N            N       N     N        1.1        256.0     3.54    42.0    1132.0   74.40           94.0      192.0         10.5    4.0      C
+ 6323  7270    4050  D-penicillamine  16279   F       N            Y       N     N        0.5        201.0     3.93    42.0     661.0   54.25           90.0      234.0         10.7    4.0      C
+ 
+ [6324 rows x 20 columns],
+         id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage Status
+ 0     3467     971  D-penicillamine  20555   F       N            N       N     N        0.8        328.0     3.50    65.0     688.0   60.45          213.0      265.0          9.8    3.0      C
+ 1      465    1810  D-penicillamine  20555   F       N            Y       Y     N        3.3        361.0     3.57    34.0   12258.8   72.85          104.0      341.0         10.6    4.0      C
+ ...    ...     ...              ...    ...  ..     ...          ...     ...   ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...    ...
+ 1579  7819    2330  D-penicillamine  14872   F       N            N       N     N        1.1        316.0     3.43    35.0    1395.0  184.45           71.0      328.0         10.2    3.0      C
+ 1580  2432    2105  D-penicillamine  11872   F       N            Y       N     N        5.6        338.0     3.70   130.0    2139.0  185.00          193.0      354.0         10.9    2.0      D
+ 
+ [1581 rows x 20 columns])from sklearn.model_selection import train_test_split
+
+# Split the training set into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(
+    train_df.drop('Status', axis=1),
+    train_df['Status'],
+    test_size=0.2,
+    random_state=42
+)
+
+# Result variables
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 1170  2413    2419          Placebo  20354   F       N            Y       N     N        1.0        364.0     3.48    20.0     720.0  134.85           88.0      283.0          9.9    3.0
+ 5437  5063    3611  D-penicillamine  20442   F       N            N       N     N        0.6        298.0     3.85    34.0     791.0   65.10           85.0      303.0         10.6    1.0
+ ...    ...     ...              ...    ...  ..     ...          ...     ...   ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 5390   223    1785          Placebo  20834   F       N            Y       N     N        1.1        217.0     3.55    39.0    1052.0   75.95          104.0      228.0         10.1    4.0
+ 860   5982    1874  D-penicillamine  14212   F       N            Y       Y     N        1.2        558.0     3.80    96.0    1040.0  110.05          125.0       79.0          9.8    2.0
+ 
+ [5059 rows x 19 columns],
+         id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 3090  3247     904  D-penicillamine  22369   F       N            Y       N     N        2.0        303.0     3.20    58.0    1440.0  134.85          131.0      156.0         10.0    4.0
+ 198   6161    3069          Placebo  17874   F       N            N       N     N        0.7        263.0     3.61    75.0    1523.0   87.00          113.0      422.0         11.5    3.0
+ ...    ...     ...              ...    ...  ..     ...          ...     ...   ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 2641  1497    1216          Placebo  20597   F       N            Y       N     N        0.5        256.0     3.66    42.0     758.0   52.70          104.0      311.0         10.2    4.0
+ 1454  1983    2666  D-penicillamine  20555   F       N            N       N     N        0.5        256.0     3.77   129.0    1174.0   74.40          109.0      445.0         10.6    3.0
+ 
+ [1265 rows x 19 columns],
+ 1170     C
+ 5437     C
+         ..
+ 5390     C
+ 860     CL
+ Name: Status, Length: 5059, dtype: object,
+ 3090    D
+ 198     C
+        ..
+ 2641    C
+ 1454    C
+ Name: Status, Length: 1265, dtype: object)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
+
+# Initialize the model
+model = RandomForestClassifier(random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Result variable
+model
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 8
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Placebo'
+
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    X_val[column] = le.transform(X_val[column])
+    label_encoders[column] = le
+
+# Reinitialize and train the model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Result variables
+model, label_encoders
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ {'Drug': LabelEncoder(),
+  'Sex': LabelEncoder(),
+  'Ascites': LabelEncoder(),
+  'Hepatomegaly': LabelEncoder(),
+  'Spiders': LabelEncoder(),
+  'Edema': LabelEncoder()})from sklearn.metrics import log_loss
+
+# Predict on the validation set
+y_val_pred = model.predict_proba(X_val)
+
+# Calculate log loss on the validation set
+val_log_loss = log_loss(y_val, y_val_pred)
+
+# Result variables
+val_log_loss
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.6377683800267127# Encode categorical variables in the test set
+for column in test_df.select_dtypes(include=['object']).columns:
+    test_df[column] = label_encoders[column].transform(test_df[column])
+
+# Predict on the test set
+y_test_pred = model.predict_proba(test_df.drop('Status', axis=1))
+
+# Calculate log loss on the test set
+test_log_loss = log_loss(test_df['Status'], y_test_pred)
+
+# Result variables
+test_log_loss
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 3
+    test_df[column] = label_encoders[column].transform(test_df[column])
+
+KeyError: 'Status'
+
+# Encode categorical variables in the test set
+for column in test_df.select_dtypes(include=['object']).columns:
+    if column != 'Status':
+        test_df[column] = label_encoders[column].transform(test_df[column])
+
+# Predict on the test set
+y_test_pred = model.predict_proba(test_df.drop('Status', axis=1))
+
+# Calculate log loss on the test set
+test_log_loss = log_loss(test_df['Status'], y_test_pred)
+
+# Result variables
+test_log_loss
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.5485022640060283

@@ -1,0 +1,107 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+import xgboost as xgb
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval
+def load_data(train_data_path, test_data_path):
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Drop non-predictive columns
+    columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+    train_df = train_df.drop(columns=columns_to_drop)
+    test_df = test_df.drop(columns=columns_to_drop)
+
+    # One-hot encoding for categorical columns
+    categorical_columns = ['Geography', 'Card Type']
+    train_df = pd.get_dummies(train_df, columns=categorical_columns)
+    test_df = pd.get_dummies(test_df, columns=categorical_columns)
+
+    # Handle missing values
+    # Ensure all columns are numeric before filling missing values
+    for col in train_df.columns:
+        if train_df[col].dtype == 'object':
+            train_df[col] = pd.to_numeric(train_df[col], errors='coerce')
+        if test_df[col].dtype == 'object':
+            test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+
+    train_df.fillna(train_df.mean(), inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+
+    return train_df, test_df
+
+# Model training
+def train_model(X_train, y_train, hyperparameters):
+    xgb_model = xgb.XGBClassifier(**hyperparameters)
+    xgb_model.fit(X_train, y_train)
+    return xgb_model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc_score = roc_auc_score(y_test, y_pred_proba)
+    return {'AUC-ROC': auc_roc_score}
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+    train_df, test_df = load_data(train_data_path, test_data_path)
+
+    # Step 2: Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Split the data into features and target variable
+    X_train = train_df.drop(columns=['Exited'])
+    y_train = train_df['Exited']
+    X_test = test_df.drop(columns=['Exited'])
+    y_test = test_df['Exited']
+
+    # Step 4: Define the model hyperparameters
+    hyperparameters = {
+        'learning_rate': 0.1,
+        'max_depth': 7,
+        'n_estimators': 200,
+        'subsample': 0.7,
+        'colsample_bytree': 0.7
+    }
+
+    # Step 5: Train the model
+    model = train_model(X_train, y_train, hyperparameters)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7: Save the trained model
+    model_save_path = './agent_workspace/trained_models/xgboost_churn_model.pkl'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'AUC-ROC': 0.848290953541361}

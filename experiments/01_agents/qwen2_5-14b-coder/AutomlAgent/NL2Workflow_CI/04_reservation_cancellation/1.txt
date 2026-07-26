@@ -1,0 +1,128 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import SMOTE
+import lightgbm as lgb
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    train_df = imputer.fit_transform(train_df)
+    test_df = imputer.transform(test_df)
+    
+    # Encode categorical variables
+    categorical_columns = ['categorical_column']  # Replace with actual categorical column names
+    encoder = OneHotEncoder(sparse=False)
+    train_encoded = encoder.fit_transform(train_df[categorical_columns])
+    test_encoded = encoder.transform(test_df[categorical_columns])
+    
+    # Concatenate encoded features with numerical features
+    train_df = np.hstack((train_df.drop(categorical_columns, axis=1), train_encoded))
+    test_df = np.hstack((test_df.drop(categorical_columns, axis=1), test_encoded))
+    
+    # Scale numerical features
+    scaler = StandardScaler()
+    train_df = scaler.fit_transform(train_df)
+    test_df = scaler.transform(test_df)
+    
+    # Feature engineering
+    train_df = pd.DataFrame(train_df)
+    test_df = pd.DataFrame(test_df)
+    train_df['booking_lead_time'] = (pd.to_datetime(train_df['checkin_date']) - pd.to_datetime(train_df['booking_date'])).dt.days
+    test_df['booking_lead_time'] = (pd.to_datetime(test_df['checkin_date']) - pd.to_datetime(test_df['booking_date'])).dt.days
+    
+    return train_df, test_df
+
+def train_model(train_df, test_df):
+    # Split the dataset into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(train_df.drop('target', axis=1), train_df['target'], test_size=0.2, random_state=SEED)
+    
+    # Apply SMOTE for data augmentation
+    smote = SMOTE(random_state=SEED)
+    X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
+    
+    # Initialize LightGBM model with optimized hyperparameters
+    model = lgb.LGBMClassifier(learning_rate=0.05, n_estimators=200, max_depth=7, feature_fraction=0.9, bagging_fraction=0.9, random_state=SEED)
+    
+    # Train the model
+    model.fit(X_resampled, y_resampled)
+    
+    return model
+
+def evaluate_model(model, test_df):
+    # Evaluate the model on the test set
+    y_test_pred_proba = model.predict_proba(test_df.drop('target', axis=1))[:, 1]
+    auc_roc = roc_auc_score(test_df['target'], y_test_pred_proba)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/test.csv')
+    
+    # Ensure the target column is present
+    if 'target' not in train_df.columns or 'target' not in test_df.columns:
+        raise KeyError("The target column 'target' is not found in the dataset.")
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_loader, valid_loader, test_loader = (
+        train_df,
+        None,
+        test_df
+    )  # corresponding to 70%, 20%, 10% of `dataset`
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_train_df, processed_test_df = preprocess_data(train_loader, test_loader)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(processed_train_df, processed_test_df)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, processed_test_df)
+    
+    # Save the trained model
+    model_path = './agent_workspace/trained_models/hotel_reservation_cancellation_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 115, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 86, in main
+    raise KeyError("The target column 'target' is not found in the dataset.")
+KeyError: "The target column 'target' is not found in the dataset."

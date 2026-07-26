@@ -1,0 +1,159 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.impute import KNNImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Split the dataset into features and target
+    X = df.drop('has_kidney_stones', axis=1)
+    y = df['has_kidney_stones']
+    
+    # Split the dataset into training, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=[np.number]))
+    X_val_scaled = scaler.transform(X_val.select_dtypes(include=[np.number]))
+    X_test_scaled = scaler.transform(X_test.select_dtypes(include=[np.number]))
+    
+    # Handle missing values using KNN imputation
+    imputer = KNNImputer(n_neighbors=5)
+    X_train_imputed = imputer.fit_transform(X_train_scaled)
+    X_val_imputed = imputer.transform(X_val_scaled)
+    X_test_imputed = imputer.transform(X_test_scaled)
+    
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    X_train_encoded = encoder.fit_transform(X_train.select_dtypes(exclude=[np.number]))
+    X_val_encoded = encoder.transform(X_val.select_dtypes(exclude=[np.number]))
+    X_test_encoded = encoder.transform(X_test.select_dtypes(exclude=[np.number]))
+    
+    # Combine numerical and encoded features
+    X_train_combined = np.hstack((X_train_imputed, X_train_encoded))
+    X_val_combined = np.hstack((X_val_imputed, X_val_encoded))
+    X_test_combined = np.hstack((X_test_imputed, X_test_encoded))
+    
+    # Feature selection using Random Forest
+    rf = RandomForestClassifier(random_state=SEED)
+    rf.fit(X_train_combined, y_train)
+    feature_importances = rf.feature_importances_
+    selected_features = np.argsort(feature_importances)[-10:]  # Select top 10 features
+    X_train_selected = X_train_combined[:, selected_features]
+    X_val_selected = X_val_combined[:, selected_features]
+    X_test_selected = X_test_combined[:, selected_features]
+    
+    # Feature transformation using Polynomial Features
+    from sklearn.preprocessing import PolynomialFeatures
+    poly = PolynomialFeatures(degree=2)
+    X_train_poly = poly.fit_transform(X_train_selected)
+    X_val_poly = poly.transform(X_val_selected)
+    X_test_poly = poly.transform(X_test_selected)
+    
+    return X_train_poly, X_val_poly, X_test_poly, y_train, y_val, y_test
+
+# Define the neural network model
+class KidneyStonePredictor(nn.Module):
+    def __init__(self, input_size):
+        super(KidneyStonePredictor, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, num_epochs=50, learning_rate=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train, dtype=torch.float32))
+        loss = criterion(outputs.squeeze(), torch.tensor(y_train.values, dtype=torch.float32))
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_val, y_val):
+    model.eval()
+    with torch.no_grad():
+        outputs_val = model(torch.tensor(X_val, dtype=torch.float32))
+        auc_roc = roc_auc_score(y_val, outputs_val.numpy().squeeze())
+        print(f'Validation AUC-ROC: {auc_roc:.4f}')
+    
+    return auc_roc
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    df = pd.read_csv(dataset_path)
+    
+    # Verify the dataset
+    if 'has_kidney_stones' not in df.columns:
+        raise ValueError("The target column 'has_kidney_stones' is not found in the dataset.")
+    
+    # Step 2. Create a train-valid-test split of the data
+    X_train_poly, X_val_poly, X_test_poly, y_train, y_val, y_test = preprocess_data(df)
+    
+    # Step 3. Define required model
+    input_size = X_train_poly.shape[1]
+    model = KidneyStonePredictor(input_size)
+    
+    # Step 4. Train the model
+    model = train_model(model, X_train_poly, y_train)
+    
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_val_poly, y_val)
+    
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/kidney_stone_model.pth"
+    torch.save(model.state_dict(), model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 146, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 124, in main
+    raise ValueError("The target column 'has_kidney_stones' is not found in the dataset.")
+ValueError: The target column 'has_kidney_stones' is not found in the dataset.

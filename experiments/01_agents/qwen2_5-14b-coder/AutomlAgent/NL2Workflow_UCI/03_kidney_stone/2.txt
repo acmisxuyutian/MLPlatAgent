@@ -1,0 +1,158 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from imblearn.over_sampling import SMOTE
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
+import onnxruntime as ort
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    # Load the dataset
+    df = pd.read_csv('train.csv')
+    print(df.head())
+    return df
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Serialize each row
+    def serialize_row(row):
+        return ' '.join([f"{col}: {row[col]}" for col in row.index])
+
+    df['serialized_data'] = df.apply(serialize_row, axis=1)
+
+    # Identify numerical and categorical features
+    numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_features = df.select_dtypes(include=['object', 'category']).columns.tolist()
+
+    # Standardize numerical features
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    encoded_features = encoder.fit_transform(df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    df = pd.concat([df, encoded_df], axis=1)
+
+    # Drop original categorical columns
+    df.drop(categorical_features, axis=1, inplace=True)
+
+    return df, numerical_features, categorical_features
+
+# Data augmentation
+def augment_data(df, numerical_features):
+    # SMOTE for synthetic data generation
+    smote = SMOTE(random_state=SEED)
+    X_resampled, y_resampled = smote.fit_resample(df.drop('has_kidney_stones', axis=1), df['has_kidney_stones'])
+
+    # Add controlled noise to numerical features
+    noise = np.random.normal(0, 0.1, X_resampled[numerical_features].shape)
+    X_resampled[numerical_features] += noise
+
+    return X_resampled, y_resampled
+
+# Data splitting
+def split_data(df, test_size=0.1, val_size=0.2):
+    X = df.drop('has_kidney_stones', axis=1)
+    y = df['has_kidney_stones']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=test_size + val_size, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=test_size / (test_size + val_size), random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model fine-tuning
+def train_model(X_train, y_train, X_val, y_val):
+    model_name = 'bigscience/T0'
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+    def tokenize_function(examples):
+        return tokenizer(examples['serialized_data'], padding='max_length', truncation=True)
+
+    tokenized_datasets = df.map(tokenize_function, batched=True)
+
+    training_args = TrainingArguments(
+        output_dir='./results',
+        evaluation_strategy="epoch",
+        learning_rate=2e-5,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        num_train_epochs=3,
+        weight_decay=0.01,
+    )
+
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_datasets,
+        eval_dataset=tokenized_datasets,
+    )
+
+    trainer.train()
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    predictions = trainer.predict(X_test)
+    auc_roc = roc_auc_score(y_test, predictions.predictions[:, 1])
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df = load_data()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    df, numerical_features, categorical_features = preprocess_data(df)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+2025-09-09 01:40:07.866539: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-09-09 01:40:07.879129: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:485] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-09-09 01:40:07.893446: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:8454] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-09-09 01:40:07.897805: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1452] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-09-09 01:40:07.908226: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-09-09 01:40:08.742264: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 14, in <module>
+    import onnxruntime as ort
+ModuleNotFoundError: No module named 'onnxruntime'

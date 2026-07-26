@@ -1,0 +1,188 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_squared_log_error
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the dataset path
+dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+
+# Step 1: Retrieve or load the dataset
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2: Preprocess the dataset
+def preprocess_data(df):
+    # Check for target variable
+    if 'age' not in df.columns:
+        raise ValueError("The dataset does not contain the target variable 'age'.")
+
+    # Handle missing values
+    numerical_imputer = SimpleImputer(strategy='median')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    numerical_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_columns = df.select_dtypes(include=['object']).columns
+
+    df[numerical_columns] = numerical_imputer.fit_transform(df[numerical_columns])
+    df[categorical_columns] = categorical_imputer.fit_transform(df[categorical_columns])
+
+    # Encode categorical variables
+    df = pd.get_dummies(df, columns=categorical_columns)
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    # Data splitting
+    X = df.drop(columns=['age'])
+    y = df['age']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 3: Define the MLP model
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, output_size)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return x
+
+# Step 4: Train the model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=100):
+    for epoch in range(num_epochs):
+        model.train()
+        for i, (X_batch, y_batch) in enumerate(train_loader):
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0.0
+            for X_val_batch, y_val_batch in val_loader:
+                val_outputs = model(X_val_batch)
+                val_loss += criterion(val_outputs, y_val_batch).item()
+            val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Training Loss: {loss.item():.4f}, Validation Loss: {val_loss:.4f}')
+    return model
+
+# Step 5: Evaluate the model
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_loss = 0.0
+        y_true, y_pred = [], []
+        for X_test_batch, y_test_batch in test_loader:
+            test_outputs = model(X_test_batch)
+            test_loss += criterion(test_outputs, y_test_batch).item()
+            y_true.extend(y_test_batch.cpu().numpy())
+            y_pred.extend(test_outputs.cpu().numpy().flatten())
+        test_loss /= len(test_loader)
+        performance_scores = {
+            "MAE": mean_absolute_error(y_true, y_pred),
+            "MSE": mean_squared_error(y_true, y_pred),
+            "RMSLE": mean_squared_log_error(y_true, y_pred)
+        }
+    print(f'Test MAE: {performance_scores["MAE"]:.4f}, Test MSE: {performance_scores["MSE"]:.4f}, Test RMSLE: {performance_scores["RMSLE"]:.4f}')
+    return performance_scores
+
+# Step 6: Save the trained model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# Step 7: Load the trained model
+def load_model(model, model_path):
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
+
+# The main function to orchestrate the entire pipeline
+def main():
+    # Load the dataset
+    df = load_dataset(dataset_path)
+
+    # Preprocess the dataset
+    try:
+        X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+    except ValueError as e:
+        print(e)
+        return
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    # Create data loaders
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=64, shuffle=True)
+    val_loader = DataLoader(TensorDataset(X_val_tensor, y_val_tensor), batch_size=64, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=64, shuffle=False)
+
+    # Define the MLP model
+    input_size = X_train.shape[1]
+    hidden_size = 64
+    output_size = 1
+    model = MLP(input_size, hidden_size, output_size)
+
+    # Define loss function and optimizer
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+
+    # Train the model
+    model = train_model(model, train_loader, val_loader, criterion, optimizer)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+
+    # Save the trained model
+    model_path = r'./agent_workspace/trained_models/crab_age_mlp.pth'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+The dataset does not contain the target variable 'age'.
+Model Performance on Test Set: None

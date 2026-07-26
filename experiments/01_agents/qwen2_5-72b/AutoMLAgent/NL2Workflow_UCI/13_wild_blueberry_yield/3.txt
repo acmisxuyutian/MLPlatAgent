@@ -1,0 +1,224 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.metrics import mean_absolute_error
+import xgboost as xgb
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the path to the dataset
+dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+
+# Step 1: Retrieve or load the dataset
+def load_dataset():
+    # Load the dataset into a DataFrame
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2: Data Preprocessing
+def preprocess_data(df):
+    # Initial Data Exploration
+    print("Dataset Shape:", df.shape)
+    print("Data Types:\n", df.dtypes)
+    print("Summary Statistics:\n", df.describe())
+
+    # Identify the target variable and features
+    target_variable = 'yield'
+    features = df.columns.drop(target_variable)
+
+    # Handling Missing Values
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+
+    # Impute numerical features
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    if not numerical_features.empty:
+        imputer_numerical = SimpleImputer(strategy='median')
+        df[numerical_features] = imputer_numerical.fit_transform(df[numerical_features])
+
+    # Impute categorical features
+    categorical_features = df.select_dtypes(include=['object']).columns
+    if not categorical_features.empty:
+        imputer_categorical = SimpleImputer(strategy='most_frequent')
+        df[categorical_features] = imputer_categorical.fit_transform(df[categorical_features])
+
+    # Categorical Encoding
+    if not categorical_features.empty:
+        encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+        encoded_categorical = encoder.fit_transform(df[categorical_features])
+        encoded_categorical_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
+
+        # Combine encoded features with the original dataset
+        df = pd.concat([df.drop(categorical_features, axis=1), encoded_categorical_df], axis=1)
+
+    # Normalization/Standardization
+    if not numerical_features.empty:
+        scaler = StandardScaler()
+        df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    return df, target_variable
+
+# Step 3: Data Splitting
+def split_data(df, target_variable):
+    X = df.drop(target_variable, axis=1)
+    y = df[target_variable]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4: Model Initialization and Configuration
+def initialize_model():
+    model = xgb.XGBRegressor(objective='reg:squarederror', random_state=SEED)
+    return model
+
+# Step 5: Hyperparameter Tuning
+def tune_hyperparameters(model, X_train, y_train):
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 4, 5],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.5, 0.7, 1.0]
+    }
+
+    random_search = RandomizedSearchCV(model, param_grid, n_iter=10, scoring='neg_mean_absolute_error', cv=5, random_state=SEED)
+    random_search.fit(X_train, y_train)
+
+    best_model = random_search.best_estimator_
+    best_params = random_search.best_params_
+    print("Best Hyperparameters:", best_params)
+
+    return best_model
+
+# Step 6: Model Training
+def train_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+# Step 7: Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    val_mae = mean_absolute_error(y_val, y_val_pred)
+    print("Validation MAE:", val_mae)
+
+    y_test_pred = model.predict(X_test)
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+    print("Test MAE:", test_mae)
+
+    performance_scores = {
+        "Validation MAE": val_mae,
+        "Test MAE": test_mae
+    }
+
+    return performance_scores
+
+# Step 8: Model Saving
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset()
+
+    # Step 2: Preprocess the data
+    df, target_variable = preprocess_data(df)
+
+    # Step 3: Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df, target_variable)
+
+    # Step 4: Initialize the model
+    model = initialize_model()
+
+    # Step 5: Tune hyperparameters
+    best_model = tune_hyperparameters(model, X_train, y_train)
+
+    # Step 6: Train the model
+    best_model = train_model(best_model, X_train, y_train)
+
+    # Step 7: Evaluate the model
+    model_performance = evaluate_model(best_model, X_val, y_val, X_test, y_test)
+
+    # Step 8: Save the model
+    model_path = os.path.join("./agent_workspace/trained_models", "wild_blueberry_yield_model.pkl")
+    save_model(best_model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Dataset Shape: (12231, 18)
+Data Types:
+ id                        int64
+clonesize               float64
+honeybee                float64
+bumbles                 float64
+andrena                 float64
+osmia                   float64
+MaxOfUpperTRange        float64
+MinOfUpperTRange        float64
+AverageOfUpperTRange    float64
+MaxOfLowerTRange        float64
+MinOfLowerTRange        float64
+AverageOfLowerTRange    float64
+RainingDays             float64
+AverageRainingDays      float64
+fruitset                float64
+fruitmass               float64
+seeds                   float64
+yield                   float64
+dtype: object
+Summary Statistics:
+                  id     clonesize  ...         seeds         yield
+count  12231.000000  12231.000000  ...  12231.000000  12231.000000
+mean    7655.390074     19.694628  ...     36.193681   6030.165882
+std     4421.960747      6.562779  ...      4.045115   1339.792879
+min        1.000000     10.000000  ...     22.079199   1945.530610
+25%     3817.000000     12.500000  ...     33.232449   5126.993180
+50%     7641.000000     25.000000  ...     36.047770   6117.475900
+75%    11507.500000     25.000000  ...     39.203069   7028.673500
+max    15286.000000     40.000000  ...     46.585105   8969.401840
+
+[8 rows x 18 columns]
+Missing Values:
+ id                      0
+clonesize               0
+honeybee                0
+bumbles                 0
+andrena                 0
+osmia                   0
+MaxOfUpperTRange        0
+MinOfUpperTRange        0
+AverageOfUpperTRange    0
+MaxOfLowerTRange        0
+MinOfLowerTRange        0
+AverageOfLowerTRange    0
+RainingDays             0
+AverageRainingDays      0
+fruitset                0
+fruitmass               0
+seeds                   0
+yield                   0
+dtype: int64
+Best Hyperparameters: {'subsample': 0.7, 'n_estimators': 100, 'max_depth': 3, 'learning_rate': 0.1}
+Validation MAE: 0.266350678244773
+Test MAE: 0.28928612290675276
+Model Performance on Test Set: {'Validation MAE': 0.266350678244773, 'Test MAE': 0.28928612290675276}

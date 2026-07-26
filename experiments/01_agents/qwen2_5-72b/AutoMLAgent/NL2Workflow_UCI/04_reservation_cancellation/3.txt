@@ -1,0 +1,169 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn.utils.class_weight import compute_class_weight
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+import optuna
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Initial Data Exploration
+def initial_data_exploration(df):
+    numerical_features = df.select_dtypes(include=['number'])
+    descriptive_stats = numerical_features.describe()
+    data_types = df.dtypes
+    missing_values = df.isnull().sum()
+    target_variable = 'cancellation_status'
+    if target_variable in df.columns:
+        target_distribution = df[target_variable].value_counts(normalize=True)
+    else:
+        raise KeyError(f"The target variable '{target_variable}' is not found in the dataset.")
+    return descriptive_stats, data_types, missing_values, target_distribution
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_features = df.select_dtypes(include=['number'])
+    imputer_num = SimpleImputer(strategy='median')
+    df[numerical_features.columns] = imputer_num.fit_transform(df[numerical_features.columns])
+
+    categorical_features = df.select_dtypes(include=['object'])
+    imputer_cat = SimpleImputer(strategy='most_frequent', fill_value='Unknown')
+    df[categorical_features.columns] = imputer_cat.fit_transform(df[categorical_features.columns])
+
+    # Feature Encoding
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoded_features = encoder.fit_transform(df[categorical_features.columns])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features.columns))
+    df = pd.concat([df.drop(categorical_features.columns, axis=1), encoded_df], axis=1)
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_features.columns] = scaler.fit_transform(df[numerical_features.columns])
+
+    # Feature Selection
+    X = df.drop('cancellation_status', axis=1)
+    y = df['cancellation_status']
+    rf = RandomForestClassifier(random_state=42)
+    rf.fit(X, y)
+    feature_importances = rf.feature_importances_
+    selector = SelectFromModel(rf, prefit=True)
+    X_selected = selector.transform(X)
+    selected_features = X.columns[selector.get_support()]
+    df = pd.concat([pd.DataFrame(X_selected, columns=selected_features), y], axis=1)
+
+    return df
+
+# Handling Imbalanced Data
+def handle_imbalanced_data(X, y):
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
+    class_weights_dict = dict(enumerate(class_weights))
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    return X_resampled, y_resampled, class_weights_dict
+
+# Model Training
+def train_model(X, y, class_weights_dict):
+    xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss', **class_weights_dict, random_state=42)
+    cv_scores = cross_val_score(xgb, X, y, cv=5, scoring='roc_auc')
+    return xgb, cv_scores
+
+# Hyperparameter Optimization
+def optimize_hyperparameters(X, y, class_weights_dict):
+    def objective(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 50, 200),
+            'max_depth': trial.suggest_int('max_depth', 3, 7),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 0.01, 0.3),
+            'subsample': trial.suggest_uniform('subsample', 0.5, 1.0),
+            'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.5, 1.0),
+            'gamma': trial.suggest_loguniform('gamma', 1e-8, 1.0),
+            'reg_alpha': trial.suggest_loguniform('reg_alpha', 1e-8, 1.0),
+            'reg_lambda': trial.suggest_loguniform('reg_lambda', 1e-8, 1.0)
+        }
+        xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss', **params, **class_weights_dict, random_state=42)
+        cv_scores = cross_val_score(xgb, X, y, cv=5, scoring='roc_auc')
+        return cv_scores.mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=100)
+    best_params = study.best_params
+    return best_params
+
+# Final Model Training
+def train_final_model(X, y, best_params, class_weights_dict):
+    final_xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss', **best_params, **class_weights_dict, random_state=42)
+    final_xgb.fit(X, y)
+    return final_xgb
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    return auc_roc
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+    df = load_dataset(dataset_path)
+    descriptive_stats, data_types, missing_values, target_distribution = initial_data_exploration(df)
+    df = preprocess_data(df)
+
+    X = df.drop('cancellation_status', axis=1)
+    y = df['cancellation_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    X_resampled, y_resampled, class_weights_dict = handle_imbalanced_data(X_train, y_train)
+    xgb, cv_scores = train_model(X_resampled, y_resampled, class_weights_dict)
+    best_params = optimize_hyperparameters(X_resampled, y_resampled, class_weights_dict)
+    final_xgb = train_final_model(X_resampled, y_resampled, best_params, class_weights_dict)
+    auc_roc = evaluate_model(final_xgb, X_test, y_test)
+
+    # Save the final model
+    model_path = './agent_workspace/trained_models/xgb_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(final_xgb, model_path)
+
+    model_performance = {
+        'AUC-ROC': auc_roc
+    }
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 153, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 128, in main
+    descriptive_stats, data_types, missing_values, target_distribution = initial_data_exploration(df)
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 39, in initial_data_exploration
+    raise KeyError(f"The target variable '{target_variable}' is not found in the dataset.")
+KeyError: "The target variable 'cancellation_status' is not found in the dataset."

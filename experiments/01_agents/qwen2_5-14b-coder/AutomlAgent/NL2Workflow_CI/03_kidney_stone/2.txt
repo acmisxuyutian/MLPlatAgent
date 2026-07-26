@@ -1,0 +1,179 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from pytorch_tabnet import TabNetClassifier  # Correct import statement
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initial setup
+def load_data():
+    # Load the dataset
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+    
+    # Split the training set into training and validation sets
+    train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=SEED)
+    
+    return train_df, val_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, val_df, test_df):
+    # Separate features and target variable
+    X_train = train_df.drop('target', axis=1)
+    y_train = train_df['target']
+    X_val = val_df.drop('target', axis=1)
+    y_val = val_df['target']
+    X_test = test_df.drop('target', axis=1)
+    y_test = test_df['target']
+    
+    # Identify numerical and categorical columns
+    numerical_cols = X_train.select_dtypes(include=['float64', 'int64']).columns
+    categorical_cols = X_train.select_dtypes(include=['object']).columns
+    binary_cols = X_train.select_dtypes(include=['bool']).columns
+    
+    # Standardize numerical features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train[numerical_cols])
+    X_val_scaled = scaler.transform(val_df[numerical_cols])
+    X_test_scaled = scaler.transform(test_df[numerical_cols])
+    
+    # One-hot encode categorical columns
+    encoder = OneHotEncoder(sparse_output=False)  # Corrected sparse parameter
+    X_train_encoded = encoder.fit_transform(X_train[categorical_cols])
+    X_val_encoded = encoder.transform(val_df[categorical_cols])
+    X_test_encoded = encoder.transform(test_df[categorical_cols])
+    
+    # Label encode binary columns
+    label_encoder = LabelEncoder()
+    for col in binary_cols:
+        X_train[col] = label_encoder.fit_transform(X_train[col])
+        X_val[col] = label_encoder.transform(val_df[col])
+        X_test[col] = label_encoder.transform(test_df[col])
+    
+    # Combine encoded features with numerical features
+    X_train = pd.concat([pd.DataFrame(X_train_scaled, columns=numerical_cols), pd.DataFrame(X_train_encoded, columns=encoder.get_feature_names_out(categorical_cols)), X_train[binary_cols]], axis=1)
+    X_val = pd.concat([pd.DataFrame(X_val_scaled, columns=numerical_cols), pd.DataFrame(X_val_encoded, columns=encoder.get_feature_names_out(categorical_cols)), X_val[binary_cols]], axis=1)
+    X_test = pd.concat([pd.DataFrame(X_test_scaled, columns=numerical_cols), pd.DataFrame(X_test_encoded, columns=encoder.get_feature_names_out(categorical_cols)), X_test[binary_cols]], axis=1)
+    
+    return X_train, y_train, X_val, y_val, X_test, y_test
+
+# Model training
+def train_model(X_train, y_train, X_val, y_val):
+    # Define the model
+    model = TabNetClassifier(
+        n_d=64,
+        n_a=64,
+        n_steps=2,
+        gamma=1.5,
+        n_independent=2,
+        n_shared=2,
+        cat_idxs=[],
+        cat_dims=[],
+        cat_emb_dim=1,
+        output_dim=1,
+        momentum=0.02,
+        clip_value=2.,
+        lambda_sparse=1e-3,
+        mask_type="entmax",
+        optimizer_fn=torch.optim.Adam,
+        optimizer_params=dict(lr=0.001),
+        scheduler_fn=torch.optim.lr_scheduler.StepLR,
+        scheduler_params=dict(step_size=50, gamma=0.9),
+        seed=SEED,
+        verbose=1
+    )
+    
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)
+    
+    # Train the model
+    model.fit(
+        X_train=X_train_tensor,
+        y_train=y_train_tensor,
+        eval_set=[(X_val_tensor, y_val_tensor)],
+        max_epochs=50,
+        patience=10,
+        batch_size=32,
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False,
+        weights=1,
+        loss_fn=None,
+        from_unsupervised=None,
+        pretraining_ratio=0.8
+    )
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    # Convert test data to PyTorch tensor
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    
+    # Predict probabilities on the test set
+    y_test_pred = model.predict_proba(X_test_tensor)[:, 1]
+    
+    # Calculate AUC-ROC score
+    auc_roc_test = roc_auc_score(y_test, y_test_pred)
+    performance_scores = {
+        'AUC-ROC': auc_roc_test
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, val_df, test_df = load_data()
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, y_train, X_val, y_val, X_test, y_test = preprocess_data(train_df, val_df, test_df)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data = (X_train, y_train, X_val, y_val, X_test, y_test)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 11, in <module>
+    from pytorch_tabnet import TabNetClassifier  # Correct import statement
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'TabNetClassifier' from 'pytorch_tabnet' (unknown location)

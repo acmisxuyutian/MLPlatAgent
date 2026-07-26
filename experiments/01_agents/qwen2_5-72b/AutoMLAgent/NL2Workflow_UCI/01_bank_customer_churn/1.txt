@@ -1,0 +1,185 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import roc_auc_score
+from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
+import joblib
+import shap
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_exploration(df):
+    print("Data Overview:")
+    print(df.info())
+    print(df.describe())
+    print("Missing Values:")
+    print(df.isnull().sum())
+    print("Categorical Distribution:")
+    for column in df.select_dtypes(include=['object']).columns:
+        print(df[column].value_counts())
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[df.select_dtypes(include=['float64', 'int64']).columns] = numerical_imputer.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[df.select_dtypes(include=['object']).columns] = categorical_imputer.fit_transform(df.select_dtypes(include=['object']))
+
+    # Encoding Categorical Variables
+    df = pd.get_dummies(df, drop_first=True)
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[df.select_dtypes(include=['float64', 'int64']).columns] = scaler.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+
+    return df
+
+# Data Augmentation
+def address_class_imbalance(X, y):
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    return X_resampled, y_resampled
+
+# Model Training and Evaluation
+def train_model(X_train, y_train):
+    xgb_model = XGBClassifier(
+        n_estimators=200,
+        learning_rate=0.1,
+        max_depth=5,
+        subsample=0.8,
+        random_state=42
+    )
+    xgb_model.fit(X_train, y_train)
+    return xgb_model
+
+def evaluate_model(xgb_model, X_test, y_test):
+    y_pred_proba = xgb_model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    return auc_roc
+
+def cross_validation(xgb_model, X_train, y_train):
+    cv_scores = cross_val_score(xgb_model, X_train, y_train, cv=5, scoring='roc_auc')
+    return cv_scores
+
+# Feature Importance and Interpretability
+def feature_importance(xgb_model, X_train):
+    feature_importances = xgb_model.feature_importances_
+    feature_names = X_train.columns
+    feature_importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+    return feature_importance_df
+
+def shap_values(xgb_model, X_test):
+    explainer = shap.Explainer(xgb_model)
+    shap_values = explainer(X_test)
+    return shap_values
+
+# Model Saving and Deployment
+def save_model(xgb_model, model_path):
+    joblib.dump(xgb_model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    model_path = r'./agent_workspace/trained_models/xgboost_churn_model.pkl'
+
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+
+    # Step 1. Load the dataset
+    df = load_dataset(dataset_path)
+    initial_exploration(df)
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Split the data into features and target
+    if 'Exited' not in df.columns:
+        raise ValueError("The target column 'Exited' is not present in the dataset.")
+    X = df.drop(columns=['Exited'])
+    y = df['Exited']
+
+    # Step 4. Address class imbalance
+    X_resampled, y_resampled = address_class_imbalance(X, y)
+
+    # Step 5. Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+
+    # Step 6. Train the model
+    xgb_model = train_model(X_train, y_train)
+
+    # Step 7. Cross-validation
+    cv_scores = cross_validation(xgb_model, X_train, y_train)
+    print(f'Cross-Validation AUC-ROC Scores: {cv_scores}')
+    print(f'Mean AUC-ROC Score: {cv_scores.mean()}')
+
+    # Step 8. Evaluate the model on the test set
+    auc_roc = evaluate_model(xgb_model, X_test, y_test)
+    print(f'Test Set AUC-ROC Score: {auc_roc}')
+
+    # Step 9. Feature importance
+    feature_importance_df = feature_importance(xgb_model, X_train)
+    print("Feature Importance:")
+    print(feature_importance_df)
+
+    # Step 10. SHAP values
+    shap_values = shap_values(xgb_model, X_test)
+    shap.summary_plot(shap_values, X_test, plot_type="bar")
+
+    # Step 11. Save the model
+    save_model(xgb_model, model_path)
+
+    # Step 12. Load the model
+    loaded_model = load_model(model_path)
+
+    return auc_roc
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 123, in main
+    X_resampled, y_resampled = address_class_imbalance(X, y)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 57, in address_class_imbalance
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/base.py", line 202, in fit_resample
+    return super().fit_resample(X, y, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/imblearn/base.py", line 97, in fit_resample
+    check_classification_targets(y)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/multiclass.py", line 221, in check_classification_targets
+    raise ValueError(
+ValueError: Unknown label type: continuous. Maybe you are trying to fit a classifier, which expects discrete classes on a regression target with continuous values.

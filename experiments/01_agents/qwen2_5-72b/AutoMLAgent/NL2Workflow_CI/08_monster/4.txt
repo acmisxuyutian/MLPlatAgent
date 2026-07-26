@@ -1,0 +1,152 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_data():
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+    train_data = pd.read_csv(train_data_path)
+    test_data = pd.read_csv(test_data_path)
+    return train_data, test_data
+
+# Data Preprocessing
+def preprocess_data(train_data, test_data):
+    # Initial Data Overview
+    print("Train Data Shape:", train_data.shape)
+    print("Test Data Shape:", test_data.shape)
+    print("Train Data Feature Types:\n", train_data.dtypes)
+    if 'monster_type' not in train_data.columns:
+        raise KeyError("The 'monster_type' column is missing in the training data.")
+    if 'monster_type' not in test_data.columns:
+        raise KeyError("The 'monster_type' column is missing in the test data.")
+    print("Train Data Target Variable Counts:\n", train_data['monster_type'].value_counts())
+
+    # Handling Missing Data
+    print("Train Data Missing Values:\n", train_data.isnull().sum())
+    train_data.fillna(train_data.mean(), inplace=True)  # Numerical features
+    train_data.fillna(train_data.mode().iloc[0], inplace=True)  # Categorical features
+    test_data.fillna(test_data.mean(), inplace=True)  # Numerical features
+    test_data.fillna(test_data.mode().iloc[0], inplace=True)  # Categorical features
+
+    # Handling Categorical Data
+    train_data = pd.get_dummies(train_data, drop_first=True)
+    test_data = pd.get_dummies(test_data, drop_first=True)
+    missing_cols = set(train_data.columns) - set(test_data.columns)
+    for col in missing_cols:
+        test_data[col] = 0
+    test_data = test_data[train_data.columns]
+
+    # Label Encoding
+    label_encoder = LabelEncoder()
+    train_data['monster_type'] = label_encoder.fit_transform(train_data['monster_type'])
+    test_data['monster_type'] = label_encoder.transform(test_data['monster_type'])
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    numerical_features = train_data.select_dtypes(include=['float64', 'int64']).columns
+    train_data[numerical_features] = scaler.fit_transform(train_data[numerical_features])
+    test_data[numerical_features] = scaler.transform(test_data[numerical_features])
+
+    # Data Augmentation
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(train_data.drop('monster_type', axis=1), train_data['monster_type'])
+
+    # Feature Perturbation
+    perturbation_factor = 0.01
+    X_train_perturbed = X_train + np.random.normal(0, perturbation_factor, X_train.shape)
+
+    return X_train_perturbed, y_train, test_data, label_encoder
+
+# Model Training
+def train_model(X_train, y_train):
+    model = RandomForestClassifier(n_estimators=200, max_depth=20, min_samples_split=5, random_state=42)
+    model.fit(X_train, y_train)
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
+    print(f'Cross-validation accuracy: {cv_scores.mean()}')
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    test_accuracy = accuracy_score(y_test, y_pred)
+    test_precision = precision_score(y_test, y_pred, average='weighted')
+    test_recall = recall_score(y_test, y_pred, average='weighted')
+    test_f1 = f1_score(y_test, y_pred, average='weighted')
+
+    print(f'Test accuracy: {test_accuracy}')
+    print(f'Test precision: {test_precision}')
+    print(f'Test recall: {test_recall}')
+    print(f'Test F1-score: {test_f1}')
+
+    performance_scores = {
+        'accuracy': test_accuracy,
+        'precision': test_precision,
+        'recall': test_recall,
+        'f1_score': test_f1
+    }
+    return performance_scores
+
+# Saving Predictions and Model
+def save_model_and_predictions(model, predictions, label_encoder):
+    predictions['monster_type'] = label_encoder.inverse_transform(predictions['monster_type'])
+    predictions.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/predictions.csv', index=False)
+
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/monster_type_classifier.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data, test_data = load_data()
+
+    # Step 2. Preprocess the data
+    X_train, y_train, test_data, label_encoder = preprocess_data(train_data, test_data)
+
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4. Evaluate the model
+    y_test = test_data['monster_type']
+    X_test = test_data.drop('monster_type', axis=1)
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 5. Save the model and predictions
+    predictions = pd.DataFrame({'monster_type': model.predict(X_test)})
+    save_model_and_predictions(model, predictions, label_encoder)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 136, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 119, in main
+    X_train, y_train, test_data, label_encoder = preprocess_data(train_data, test_data)
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in preprocess_data
+    raise KeyError("The 'monster_type' column is missing in the training data.")
+KeyError: "The 'monster_type' column is missing in the training data."

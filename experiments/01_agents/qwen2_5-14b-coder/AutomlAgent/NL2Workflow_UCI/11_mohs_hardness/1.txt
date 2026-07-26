@@ -1,0 +1,136 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Inspect the dataset
+    print(dataset.head())
+    print(dataset.info())
+    print(dataset.describe())
+
+    # Identify the target variable
+    target_variable = 'Mohs hardness'
+    if target_variable not in dataset.columns:
+        raise ValueError(f"Target variable '{target_variable}' not found in the dataset.")
+
+    # Handle missing values
+    print(dataset.isnull().sum())
+    dataset = dataset.fillna(dataset.mean())
+
+    # Feature selection
+    correlation_matrix = dataset.corr()
+    target_correlation = correlation_matrix[target_variable].abs().sort_values(ascending=False)
+    selected_features = target_correlation[target_correlation > 0.1].index.drop(target_variable)
+
+    # Feature transformation
+    scaler = StandardScaler()
+    dataset[selected_features] = scaler.fit_transform(dataset[selected_features])
+
+    # Feature creation (if necessary)
+    if 'feature1' in dataset.columns and 'feature2' in dataset.columns:
+        dataset['interaction_feature'] = dataset['feature1'] * dataset['feature2']
+
+    # Data splitting
+    X = dataset[selected_features]
+    y = dataset[target_variable]
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.6667, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test, scaler, selected_features
+
+def train_model(X_train, y_train):
+    # Initialize the model
+    model = RandomForestRegressor(n_estimators=200, max_depth=10, min_samples_split=5, min_samples_leaf=2, random_state=SEED)
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    return model
+
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    # Evaluate the model on the validation set
+    y_pred_val = model.predict(X_val)
+    mae_val = mean_absolute_error(y_val, y_pred_val)
+    print(f'Validation MAE: {mae_val}')
+
+    # Hyperparameter tuning
+    param_grid = {
+        'n_estimators': [150, 200, 250],
+        'max_depth': [8, 10, 12],
+        'min_samples_split': [4, 5, 6],
+        'min_samples_leaf': [1, 2, 3]
+    }
+
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=3, scoring='neg_mean_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Final evaluation on the testing set
+    best_model = grid_search.best_estimator_
+    y_pred_test = best_model.predict(X_test)
+    mae_test = mean_absolute_error(y_test, y_pred_test)
+    print(f'Testing MAE: {mae_test}')
+
+    return mae_test
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, X_test, y_train, y_val, y_test, scaler, selected_features = preprocess_data(dataset)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 7. Save the model
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/models/mohs_hardness_model.pkl'
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 120, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 101, in main
+    X_train, X_val, X_test, y_train, y_val, y_test, scaler, selected_features = preprocess_data(dataset)
+                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 29, in preprocess_data
+    raise ValueError(f"Target variable '{target_variable}' not found in the dataset.")
+ValueError: Target variable 'Mohs hardness' not found in the dataset.

@@ -1,0 +1,176 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    # Load training dataset
+    train_df = pd.read_csv(train_path)
+    # Load test dataset
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Step 2: Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Identify categorical and numerical features
+    categorical_features = [col for col in train_df.columns if train_df[col].dtype == 'object' and col != 'outcome variable']
+    numerical_features = [col for col in train_df.columns if train_df[col].dtype != 'object' and col != 'outcome variable']
+
+    # One-Hot Encoding
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    train_encoded = encoder.fit_transform(train_df[categorical_features])
+    test_encoded = encoder.transform(test_df[categorical_features])
+
+    train_encoded_df = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(categorical_features))
+    test_encoded_df = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(categorical_features))
+
+    train_df = pd.concat([train_df[numerical_features], train_encoded_df, train_df['outcome variable']], axis=1)
+    test_df = pd.concat([test_df[numerical_features], test_encoded_df], axis=1)
+
+    # Handle Missing Values
+    imputer_num = SimpleImputer(strategy='mean')
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_features] = imputer_num.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = imputer_num.transform(test_df[numerical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    return train_df, test_df, imputer_num, imputer_cat, scaler, encoder
+
+# Step 3: Feature Selection
+def select_top_features(train_df, test_df):
+    # Initialize logistic regression model
+    logreg = LogisticRegression(solver='liblinear')
+
+    # Initialize RFE
+    rfe = RFE(estimator=logreg, n_features_to_select=5, step=1)
+
+    # Fit RFE on training data
+    rfe.fit(train_df.drop(columns=['outcome variable']), train_df['outcome variable'])
+
+    # Get the top 5 features
+    top_features = train_df.columns[rfe.support_]
+
+    # Select top 5 features in both training and test datasets
+    train_df = train_df[top_features.tolist() + ['outcome variable']]
+    test_df = test_df[top_features.tolist()]
+
+    return train_df, test_df, top_features
+
+# Step 4: Model Training
+def train_model(train_df):
+    # Define hyperparameter grid
+    param_grid = {
+        'C': [0.01, 0.1, 1, 10, 100],
+        'solver': ['liblinear', 'saga']
+    }
+
+    # Initialize logistic regression model
+    logreg = LogisticRegression()
+
+    # Initialize GridSearchCV
+    grid_search = GridSearchCV(estimator=logreg, param_grid=param_grid, cv=5, scoring='accuracy')
+
+    # Fit GridSearchCV on training data
+    grid_search.fit(train_df.drop(columns=['outcome variable']), train_df['outcome variable'])
+
+    # Get the best model
+    best_model = grid_search.best_estimator_
+
+    return best_model
+
+# Step 5: Model Evaluation
+def evaluate_model(model, test_df):
+    # Predict on test data
+    y_pred = model.predict(test_df)
+
+    # Evaluate performance
+    accuracy = accuracy_score(test_df['outcome variable'], y_pred)
+    precision = precision_score(test_df['outcome variable'], y_pred, average='weighted')
+    recall = recall_score(test_df['outcome variable'], y_pred, average='weighted')
+
+    # Print performance metrics
+    print(f'Accuracy: {accuracy}')
+    print(f'Precision: {precision}')
+    print(f'Recall: {recall}')
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall
+    }
+
+    return performance_scores
+
+# Step 6: Model Saving and Deployment
+def save_model(model, preprocessing_steps, model_path, preprocessing_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(preprocessing_path), exist_ok=True)
+
+    joblib.dump(model, model_path)
+    joblib.dump(preprocessing_steps, preprocessing_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from the specified paths
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2. Preprocess the data
+    train_df, test_df, imputer_num, imputer_cat, scaler, encoder = preprocess_data(train_df, test_df)
+
+    # Step 3. Select top 5 features
+    train_df, test_df, top_features = select_top_features(train_df, test_df)
+
+    # Step 4. Train the model
+    model = train_model(train_df)
+
+    # Step 5. Evaluate the model
+    performance_scores = evaluate_model(model, test_df)
+
+    # Step 6. Save the model and preprocessing steps
+    model_path = './agent_workspace/trained_models/logistic_regression_top5_features.pkl'
+    preprocessing_path = './agent_workspace/trained_models/preprocessing_steps.pkl'
+    save_model(model, (imputer_num, imputer_cat, scaler, encoder, top_features), model_path, preprocessing_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 159, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 140, in main
+    train_df, test_df, imputer_num, imputer_cat, scaler, encoder = preprocess_data(train_df, test_df)
+                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 35, in preprocess_data
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'

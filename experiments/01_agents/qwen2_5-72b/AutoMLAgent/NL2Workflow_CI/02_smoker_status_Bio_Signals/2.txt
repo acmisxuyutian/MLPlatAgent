@@ -1,0 +1,194 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import roc_auc_score
+import xgboost as xgb
+import shap
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    # Verify data integrity
+    print("Training dataset missing values:\n", train_df.isnull().sum())
+    print("Test dataset missing values:\n", test_df.isnull().sum())
+    print("Training dataset data types:\n", train_df.dtypes)
+    print("Test dataset data types:\n", test_df.dtypes)
+    
+    if 'smoker_status' not in train_df.columns:
+        raise KeyError("Target variable 'smoker_status' not found in the training dataset.")
+    
+    if 'smoker_status' not in test_df.columns:
+        raise KeyError("Target variable 'smoker_status' not found in the test dataset.")
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    numerical_features = train_df.select_dtypes(include=[np.number]).columns
+    categorical_features = train_df.select_dtypes(include=[object]).columns
+    
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    
+    if not numerical_features.empty:
+        train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+    
+    if not categorical_features.empty:
+        train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+        test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+    
+    # Feature normalization/standardization
+    scaler = StandardScaler()
+    if not numerical_features.empty:
+        train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+        test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+    
+    # Categorical encoding
+    encoder = OneHotEncoder(handle_unknown='ignore')
+    if not categorical_features.empty:
+        encoded_train = encoder.fit_transform(train_df[categorical_features])
+        encoded_test = encoder.transform(test_df[categorical_features])
+        
+        train_df = train_df.drop(columns=categorical_features)
+        test_df = test_df.drop(columns=categorical_features)
+        
+        encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+        encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+        
+        train_df = pd.concat([train_df, encoded_train_df], axis=1)
+        test_df = pd.concat([test_df, encoded_test_df], axis=1)
+    
+    # Feature selection
+    if 'smoker_status' in train_df.columns:
+        X_train = train_df.drop(columns=['smoker_status'])
+        y_train = train_df['smoker_status']
+    else:
+        raise KeyError("Target variable 'smoker_status' not found in the training dataset.")
+    
+    if 'smoker_status' in test_df.columns:
+        X_test = test_df.drop(columns=['smoker_status'])
+        y_test = test_df['smoker_status']
+    else:
+        raise KeyError("Target variable 'smoker_status' not found in the test dataset.")
+    
+    selector = SelectKBest(mutual_info_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+    
+    return X_train_selected, y_train, X_test_selected, y_test
+
+# Model Training and Evaluation
+def train_model(X_train, y_train):
+    # Model initialization
+    model = xgb.XGBClassifier(booster='dart', learning_rate=0.1, random_state=SEED)
+    
+    # Hyperparameter configuration
+    param_grid = {
+        'max_depth': [3, 5, 7],
+        'min_child_weight': [1, 3, 5],
+        'gamma': [0, 0.1, 0.2],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0]
+    }
+    
+    # Hyperparameter tuning
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    best_model = grid_search.best_estimator_
+    
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# Model Interpretability and Profiling
+def model_interpretability(model, X_train):
+    # Feature importance
+    feature_importances = model.feature_importances_
+    feature_names = X_train.columns
+    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importances})
+    importance_df = importance_df.sort_values(by='Importance', ascending=False)
+    
+    print("Feature Importances:\n", importance_df)
+    
+    # SHAP values
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_train)
+    
+    shap.summary_plot(shap_values, X_train, plot_type="bar", show=False)
+    shap.summary_plot(shap_values, X_train, show=False)
+    
+    # Save SHAP plots
+    shap.save_html("shap_summary_plot.html", shap.summary_plot(shap_values, X_train, show=False))
+    shap.save_html("shap_summary_bar_plot.html", shap.summary_plot(shap_values, X_train, plot_type="bar", show=False))
+
+# Main function to orchestrate the pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv'
+    
+    # Step 1: Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Step 2: Preprocess data
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+    
+    # Step 3: Train model
+    model = train_model(X_train, y_train)
+    
+    # Step 4: Evaluate model
+    performance_scores = evaluate_model(model, X_test, y_test)
+    
+    # Step 5: Model interpretability and profiling
+    model_interpretability(model, X_train)
+    
+    # Step 6: Save the trained model
+    model_save_path = './agent_workspace/trained_models/xgboost_dart_model.pkl'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    joblib.dump(model, model_save_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 178, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 156, in main
+    train_df, test_df = load_datasets(train_path, test_path)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 33, in load_datasets
+    raise KeyError("Target variable 'smoker_status' not found in the training dataset.")
+KeyError: "Target variable 'smoker_status' not found in the training dataset."

@@ -1,0 +1,243 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the train and eval datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the train dataset
+print("Train dataset head:")
+print(train_df.head())
+
+# Display the first few rows of the eval dataset
+print("\nEval dataset head:")
+print(eval_df.head())
+
+# Display the summary statistics of the train dataset
+print("\nTrain dataset summary statistics:")
+print(train_df.describe())
+
+# Display the summary statistics of the eval dataset
+print("\nEval dataset summary statistics:")
+print(eval_df.describe())
+
+# Check for missing values in the train dataset
+print("\nMissing values in train dataset:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the eval dataset
+print("\nMissing values in eval dataset:")
+print(eval_df.isnull().sum())
+
+
+执行结果：
+Train dataset head:
+   target    var_0   var_1    var_2  ...   var_14   var_15   var_16   var_17
+0       0  12.6407  2.9411  15.2365  ...  11.1089  15.0745   4.8570  -3.3979
+1       0   5.5300 -2.6867  10.0739  ...   2.8759  13.9574   6.2063   6.6106
+2       0   9.3848  1.3839   9.4459  ...  10.4819  14.2421   3.8085 -10.8337
+3       0  11.5179 -5.7696  12.4163  ...   6.4419  14.8648   8.5745  -0.7653
+4       0  12.6522 -6.0295  12.0836  ...   8.3703  14.4378  11.4569   0.4568
+
+[5 rows x 19 columns]
+
+Eval dataset head:
+   target    var_0   var_1    var_2  ...  var_14   var_15   var_16   var_17
+0       1   8.6646 -2.0466  12.2794  ...  6.1990  14.3138  11.9914 -18.2099
+1       1  18.2832 -0.0892  10.4312  ...  8.2536  14.2073  10.8528  -2.7252
+2       0  13.8916 -0.3960   8.1494  ...  3.6420  14.9770   9.0804 -14.1675
+3       0   8.2493 -0.0634  10.6337  ...  8.9594  14.5846   3.3459   2.4677
+4       0   9.6026  2.7460   5.8710  ...  7.7771  13.9491  10.4395 -12.0996
+
+[5 rows x 19 columns]
+
+Train dataset summary statistics:
+              target          var_0  ...         var_16         var_17
+count  160000.000000  160000.000000  ...  160000.000000  160000.000000
+mean        0.100175      10.677401  ...       9.337185      -5.700292
+std         0.300234       3.039160  ...       2.558483       6.715098
+min         0.000000       0.408400  ...       0.635100     -33.380200
+25%         0.000000       8.452700  ...       7.455175     -10.485750
+50%         0.000000      10.524750  ...       9.235850      -5.663200
+75%         0.000000      12.759200  ...      11.064625      -0.810775
+max         1.000000      20.315000  ...      17.950600      19.025900
+
+[8 rows x 19 columns]
+
+Eval dataset summary statistics:
+             target         var_0  ...        var_16        var_17
+count  40000.000000  40000.000000  ...  40000.000000  40000.000000
+mean       0.101750     10.689968  ...      9.317579     -5.682488
+std        0.302323      3.043630  ...      2.553141      6.702726
+min        0.000000      0.452800  ...      0.863400    -29.029100
+25%        0.000000      8.458700  ...      7.440475    -10.442000
+50%        0.000000     10.524450  ...      9.216600     -5.683250
+75%        0.000000     12.753225  ...     11.027825     -0.811625
+max        1.000000     20.315000  ...     16.449400     16.394400
+
+[8 rows x 19 columns]
+
+Missing values in train dataset:
+target    0
+var_0     0
+var_1     0
+var_2     0
+var_3     0
+var_4     0
+var_5     0
+var_6     0
+var_7     0
+var_8     0
+var_9     0
+var_10    0
+var_11    0
+var_12    0
+var_13    0
+var_14    0
+var_15    0
+var_16    0
+var_17    0
+dtype: int64
+
+Missing values in eval dataset:
+target    0
+var_0     0
+var_1     0
+var_2     0
+var_3     0
+var_4     0
+var_5     0
+var_6     0
+var_7     0
+var_8     0
+var_9     0
+var_10    0
+var_11    0
+var_12    0
+var_13    0
+var_14    0
+var_15    0
+var_16    0
+var_17    0
+dtype: int64
+
+生成的代码：
+from sklearn.preprocessing import StandardScaler
+
+# Separate features and target
+X_train = train_df.drop(columns=['target'])
+y_train = train_df['target']
+
+X_eval = eval_df.drop(columns=['target'])
+y_eval = eval_df['target']
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_eval_scaled = scaler.transform(X_eval)
+
+# Convert back to DataFrame for better readability
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+X_eval_scaled_df = pd.DataFrame(X_eval_scaled, columns=X_eval.columns)
+
+# Display the first few rows of the scaled train dataset
+print("Scaled train dataset head:")
+print(X_train_scaled_df.head())
+
+# Display the first few rows of the scaled eval dataset
+print("\nScaled eval dataset head:")
+print(X_eval_scaled_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_39bfba4b9fa351fcaf9eb3c74f3e5b95a55b234515ec614785b2cde94c263865.py", line 4, in <module>
+    X_train = train_df.drop(columns=['target'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Load the train and eval datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['target'])
+y_train = train_df['target']
+
+X_eval = eval_df.drop(columns=['target'])
+y_eval = eval_df['target']
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_eval_scaled = scaler.transform(X_eval)
+
+# Convert back to DataFrame for better readability
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+X_eval_scaled_df = pd.DataFrame(X_eval_scaled, columns=X_eval.columns)
+
+# Display the first few rows of the scaled train dataset
+print("Scaled train dataset head:")
+print(X_train_scaled_df.head())
+
+# Display the first few rows of the scaled eval dataset
+print("\nScaled eval dataset head:")
+print(X_eval_scaled_df.head())
+
+
+执行结果：
+Scaled train dataset head:
+      var_0     var_1     var_2  ...    var_15    var_16    var_17
+0  0.646003  1.127083  1.714367  ...  1.217056 -1.751116  0.342869
+1 -1.693697 -0.261292 -0.242032  ... -1.494532 -1.223731  1.833321
+2 -0.425317  0.742922 -0.480017  ... -0.803466 -2.160930 -0.764460
+3  0.276557 -1.021842  0.645635  ...  0.708041 -0.298102  0.734912
+4  0.649787 -1.085959  0.519556  ... -0.328435  0.828507  0.916906
+
+[5 rows x 18 columns]
+
+Scaled eval dataset head:
+      var_0     var_1     var_2  ...    var_15    var_16    var_17
+0 -0.662291 -0.103380  0.593756  ... -0.629426  1.037421 -1.862914
+1  2.502607  0.379510 -0.106631  ... -0.887938  0.592390  0.443047
+2  1.057598  0.303822 -0.971334  ...  0.980389 -0.100367 -1.260925
+3 -0.798941  0.385874 -0.029893  ...  0.027899 -2.341741  1.216366
+4 -0.353652  1.078952 -1.834748  ... -1.514679  0.430848 -0.952976
+
+[5 rows x 18 columns]
+
+生成的代码：
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Initialize the logistic regression model
+model = LogisticRegression(max_iter=1000)
+
+# Train the model
+model.fit(X_train_scaled, y_train)
+
+# Predict probabilities on the eval dataset
+y_eval_pred_proba = model.predict_proba(X_eval_scaled)[:, 1]
+
+# Calculate the AUC score
+auc_score = roc_auc_score(y_eval, y_eval_pred_proba)
+
+# Print the AUC score
+print(f"AUC score on the eval dataset: {auc_score:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_935d1417141a1eab5a73af52539ee3a023157ee7c8bd6b30e5d0ab1fa1f46dc8.py", line 8, in <module>
+    model.fit(X_train_scaled, y_train)
+NameError: name 'X_train_scaled' is not defined

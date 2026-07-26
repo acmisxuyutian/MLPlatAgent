@@ -1,0 +1,207 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Preprocess the data (if necessary)
+# For simplicity, let's assume no preprocessing is needed for now
+
+# Split the data into training and validation sets
+X = train_data.drop(columns=['age'])
+y = train_data['age']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 12
+    X = train_data.drop(columns=['age'])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['age'] not found in axis"
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Inspect the columns of the dataset
+train_data.columns
+
+train_data.columns
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+Index(['id', 'Sex', 'Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight',
+       'Viscera_Weight', 'Shell_Weight', 'Age'],
+      dtype='object')import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# 数据预处理
+# 检查是否有缺失值
+missing_values = train_data.isnull().sum()
+
+# 如果有缺失值，进行填充或删除
+if missing_values.any():
+    # 假设我们选择用中位数填充数值型特征
+    numeric_features = ['Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight', 'Viscera_Weight', 'Shell_Weight']
+    train_data[numeric_features] = train_data[numeric_features].fillna(train_data[numeric_features].median())
+    
+    # 对于类别型特征，假设只有'Sex'，使用众数填充
+    categorical_features = ['Sex']
+    train_data[categorical_features] = train_data[categorical_features].fillna(train_data[categorical_features].mode().iloc[0])
+
+# 划分训练集和验证集
+X = train_data.drop(columns=['id', 'Age'])
+y = train_data['Age']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据预处理后的前几行
+X_train.head(), X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 5553    I  1.0875    0.8750   0.275  12.133586        5.499803        2.919999      3.543687
+ 28476   M  1.2500    0.9625   0.325  18.016107        8.972617        3.827183      4.535920
+ 24108   F  0.9000    0.6750   0.225   5.343881        2.395533        1.091456      1.559222
+ 407     I  0.8250    0.6375   0.150   5.613201        2.551455        1.034757      1.559222
+ 50091   M  1.6250    1.2750   0.475  44.338618       18.909116        9.610480     11.765042,
+       Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 5553    I  1.0875    0.8750  0.2750  12.133586        5.499803        2.919999      3.543687
+ 28476   M  1.2500    0.9625  0.3250  18.016107        8.972617        3.827183      4.535920
+ ...    ..     ...       ...     ...        ...             ...             ...           ...
+ 15795   I  0.5625    0.4125  0.0875   1.644271        0.396893        0.212621      0.425243
+ 56422   I  1.1500    0.8250  0.2625  10.149121        5.499803        2.140387      3.118445
+ 
+ [47392 rows x 8 columns],
+       Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 26164   I  0.8000    0.6125  0.1750   4.847765        1.587572        0.779611      1.630096
+ 32999   M  1.8250    1.3750  0.5250  50.532984       19.461932       11.623295     15.252031
+ ...    ..     ...       ...     ...        ...             ...             ...           ...
+ 39654   M  1.5000    1.1750  0.3625  28.434548       13.196692        5.542327      6.775531
+ 51513   M  1.3125    1.0000  0.3625  28.264451       11.949314        6.307764      7.512618
+ 
+ [11848 rows x 8 columns],
+ 5553     8
+ 28476    7
+         ..
+ 15795    5
+ 56422    7
+ Name: Age, Length: 47392, dtype: int64,
+ 26164     5
+ 32999    11
+          ..
+ 39654     9
+ 51513    24
+ Name: Age, Length: 11848, dtype: int64)from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# Initialize the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Predict on the validation set
+y_val_pred = model.predict(X_val)
+
+# Calculate MAE on the validation set
+mae = mean_absolute_error(y_val, y_val_pred)
+
+model, y_val_pred, mae
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 8
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'I'
+
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# Define the column transformer to handle categorical and numerical features
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), ['Sex']),
+        ('num', 'passthrough', ['Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight', 'Viscera_Weight', 'Shell_Weight'])
+    ]
+)
+
+# Create the pipeline
+pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('model', RandomForestRegressor(n_estimators=100, random_state=42))])
+
+# Train the model
+pipeline.fit(X_train, y_train)
+
+# Predict on the validation set
+y_val_pred = pipeline.predict(X_val)
+
+# Calculate MAE on the validation set
+mae = mean_absolute_error(y_val, y_val_pred)
+
+pipeline, y_val_pred, mae
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(Pipeline(steps=[('preprocessor',
+                  ColumnTransformer(transformers=[('cat', OneHotEncoder(),
+                                                   ['Sex']),
+                                                  ('num', 'passthrough',
+                                                   ['Length', 'Diameter',
+                                                    'Height', 'Weight',
+                                                    'Shucked_Weight',
+                                                    'Viscera_Weight',
+                                                    'Shell_Weight'])])),
+                 ('model', RandomForestRegressor(random_state=42))]),
+ array([ 6.71, 13.73, 10.88, ..., 11.19,  9.42, 10.53]),
+ 1.447811444969615)

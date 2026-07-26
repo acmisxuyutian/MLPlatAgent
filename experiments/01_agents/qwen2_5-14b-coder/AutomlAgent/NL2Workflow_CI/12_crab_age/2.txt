@@ -1,0 +1,135 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import OneHotEncoder
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Preparation
+def load_data(train_path, test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+    return train_data, test_data
+
+# Data Preprocessing
+def preprocess_data(train_data, test_data):
+    # Check if 'age' column exists
+    if 'age' not in train_data.columns or 'age' not in test_data.columns:
+        raise ValueError("The 'age' column is missing from one or both datasets.")
+    
+    # Identify categorical variables
+    categorical_cols = train_data.select_dtypes(include=['object']).columns
+    
+    # One-hot encoding
+    encoder = OneHotEncoder(sparse_output=False, drop='first')
+    train_encoded = encoder.fit_transform(train_data[categorical_cols])
+    test_encoded = encoder.transform(test_data[categorical_cols])
+    
+    # Create DataFrames from encoded data
+    train_encoded_df = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+    test_encoded_df = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+    
+    # Concatenate encoded data with numerical data
+    train_data = pd.concat([train_data.select_dtypes(exclude=['object']), train_encoded_df], axis=1)
+    test_data = pd.concat([test_data.select_dtypes(exclude=['object']), test_encoded_df], axis=1)
+    
+    # Split features and target
+    X_train = train_data.drop(columns=['age'])
+    y_train = train_data['age']
+    X_test = test_data.drop(columns=['age'])
+    y_test = test_data['age']
+    
+    return X_train, y_train, X_test, y_test
+
+# Model Selection and Hyperparameter Optimization
+def optimize_model(X_train, y_train):
+    # Initialize Random Forest model
+    rf = RandomForestRegressor(random_state=SEED)
+    
+    # Define parameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    
+    # Grid Search with Cross Validation
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=3, scoring='neg_mean_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    # Best parameters and model
+    best_params = grid_search.best_params_
+    best_model = grid_search.best_estimator_
+    
+    return best_model, best_params
+
+# Model Training and Evaluation
+def train_and_evaluate_model(best_model, X_train, y_train, X_test, y_test):
+    # Train the model
+    best_model.fit(X_train, y_train)
+    
+    # Predict on test set
+    y_pred = best_model.predict(X_test)
+    
+    # Evaluate the model
+    mae = mean_absolute_error(y_test, y_pred)
+    performance_scores = {
+        "MAE": mae
+    }
+    
+    return performance_scores, y_pred
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load data
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+    train_data, test_data = load_data(train_path, test_path)
+    
+    # Step 2: Preprocess data
+    X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+    
+    # Step 3: Optimize model
+    best_model, best_params = optimize_model(X_train, y_train)
+    
+    # Step 4: Train and evaluate model
+    performance_scores, y_pred = train_and_evaluate_model(best_model, X_train, y_train, X_test, y_test)
+    
+    # Step 5: Save model and predictions
+    model_save_path = './agent_workspace/trained_models/model.pkl'
+    predictions_save_path = './agent_workspace/trained_models/predictions.csv'
+    
+    joblib.dump(best_model, model_save_path)
+    pd.DataFrame({'predictions': y_pred}).to_csv(predictions_save_path, index=False)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 119, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 101, in main
+    X_train, y_train, X_test, y_test = preprocess_data(train_data, test_data)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 28, in preprocess_data
+    raise ValueError("The 'age' column is missing from one or both datasets.")
+ValueError: The 'age' column is missing from one or both datasets.

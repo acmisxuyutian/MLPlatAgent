@@ -1,0 +1,171 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.metrics import log_loss
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+
+def load_dataset(dataset_path):
+    # Load the dataset
+    df = pd.read_csv(dataset_path)
+    return df
+
+
+def initial_exploration(df):
+    # Basic statistical analysis
+    print(df.describe())
+    print(df.info())
+
+    # Identify missing values
+    print(df.isnull().sum())
+
+
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='median')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    numerical_features = df.select_dtypes(include=['number']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+
+    # Feature Engineering
+    if 'datetime' in df.columns:
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df['time_of_day'] = df['datetime'].dt.hour
+        df['day_of_week'] = df['datetime'].dt.dayofweek
+        df['month'] = df['datetime'].dt.month
+        df['year'] = df['datetime'].dt.year
+        df['quarter'] = df['datetime'].dt.quarter
+        df['season'] = df['datetime'].dt.month % 12 // 3 + 1
+    else:
+        print("Warning: 'datetime' column not found in the dataset.")
+
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        from sklearn.cluster import KMeans
+        kmeans = KMeans(n_clusters=10)
+        df['spatial_cluster'] = kmeans.fit_predict(df[['latitude', 'longitude']])
+    else:
+        print("Warning: 'latitude' or 'longitude' column not found in the dataset.")
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Encoding Categorical Variables
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    # Handling Imbalanced Data
+    smote = SMOTE()
+    target_column = 'crime_category'
+    if target_column not in df.columns:
+        raise KeyError(f"Target column '{target_column}' not found in the dataset.")
+    
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    return X_resampled, y_resampled
+
+
+def train_model(X_train, y_train):
+    # Model Specification
+    model = XGBClassifier(
+        n_estimators=150,
+        max_depth=6,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8
+    )
+
+    # Cross-Validation
+    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_log_loss')
+    print(f'Cross-validated logloss: {-scores.mean()}')
+
+    # Hyperparameter Tuning
+    param_grid = {
+        'n_estimators': [100, 150, 200],
+        'max_depth': [3, 6, 9],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0]
+    }
+
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_log_loss')
+    grid_search.fit(X_train, y_train)
+
+    # Print the best parameters and the best score
+    print(f'Best parameters: {grid_search.best_params_}')
+    print(f'Best logloss: {-grid_search.best_score_}')
+
+    # Train the model with the best hyperparameters
+    best_model = XGBClassifier(**grid_search.best_params_)
+    best_model.fit(X_train, y_train)
+
+    return best_model
+
+
+def evaluate_model(model, X_test, y_test):
+    # Predict on the test set
+    y_pred_proba = model.predict_proba(X_test)
+
+    # Calculate logloss
+    test_logloss = log_loss(y_test, y_pred_proba)
+    print(f'Test logloss: {test_logloss}')
+
+    return test_logloss
+
+
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = load_dataset(dataset_path)
+    initial_exploration(df)
+
+    # Ensure the target column exists in the dataset
+    if 'crime_category' not in df.columns:
+        raise KeyError("Target column 'crime_category' not found in the dataset.")
+
+    X_resampled, y_resampled = preprocess_data(df)
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.1, random_state=42)
+
+    model = train_model(X_train, y_train)
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the model
+    model_path = r'./agent_workspace/trained_models/xgboost_crime_category_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 141, in main
+    raise KeyError("Target column 'crime_category' not found in the dataset.")
+KeyError: "Target column 'crime_category' not found in the dataset."

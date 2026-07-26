@@ -1,0 +1,153 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 查看数据的前几行
+print(train_df.head())
+
+# 检查数据的基本信息
+print(train_df.info())
+
+# 检查缺失值
+print(train_df.isnull().sum())
+
+
+执行结果：
+      id Sex  Length  ...  Viscera_Weight  Shell_Weight  Age
+0  20612   M  1.6125  ...        6.265239      7.059025    9
+1   2935   F  1.5250  ...        7.002326      8.930093   10
+2  73847   M  1.5000  ...        6.166016      8.079607   12
+3  46445   M  1.1250  ...        2.891649      3.685435   10
+4  66755   I  0.8625  ...        0.737087      1.275727    6
+
+[5 rows x 10 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 59240 entries, 0 to 59239
+Data columns (total 10 columns):
+ #   Column          Non-Null Count  Dtype  
+---  ------          --------------  -----  
+ 0   id              59240 non-null  int64  
+ 1   Sex             59240 non-null  object 
+ 2   Length          59240 non-null  float64
+ 3   Diameter        59240 non-null  float64
+ 4   Height          59240 non-null  float64
+ 5   Weight          59240 non-null  float64
+ 6   Shucked_Weight  59240 non-null  float64
+ 7   Viscera_Weight  59240 non-null  float64
+ 8   Shell_Weight    59240 non-null  float64
+ 9   Age             59240 non-null  int64  
+dtypes: float64(7), int64(2), object(1)
+memory usage: 4.5+ MB
+None
+id                0
+Sex               0
+Length            0
+Diameter          0
+Height            0
+Weight            0
+Shucked_Weight    0
+Viscera_Weight    0
+Shell_Weight      0
+Age               0
+dtype: int64
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# 对分类变量进行编码
+label_encoder = LabelEncoder()
+train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['id', 'Age'])
+y = train_df['Age']
+
+# 将数据集分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看特征和目标变量的形状
+print("X_train shape:", X_train.shape)
+print("y_train shape:", y_train.shape)
+print("X_test shape:", X_test.shape)
+print("y_test shape:", y_test.shape)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_4c9e31cb7b50d6c177c8e26eb9fbab4f4a7f40132426f26355f1879ba42e2f93.py", line 6, in <module>
+    train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_df = pd.read_csv(train_path)
+
+# 对分类变量进行编码
+label_encoder = LabelEncoder()
+train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['id', 'Age'])
+y = train_df['Age']
+
+# 将数据集分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看特征和目标变量的形状
+print("X_train shape:", X_train.shape)
+print("y_train shape:", y_train.shape)
+print("X_test shape:", X_test.shape)
+print("y_test shape:", y_test.shape)
+
+
+执行结果：
+X_train shape: (47392, 8)
+y_train shape: (47392,)
+X_test shape: (11848, 8)
+y_test shape: (11848,)
+
+生成的代码：
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error
+
+# 定义模型
+models = {
+    'Linear Regression': LinearRegression(),
+    'Decision Tree': DecisionTreeRegressor(random_state=42),
+    'Random Forest': RandomForestRegressor(random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(random_state=42)
+}
+
+# 训练模型并评估
+results = {}
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    results[name] = mae
+    print(f"{name} MAE: {mae:.4f}")
+
+# 找到表现最好的模型
+best_model = min(results, key=results.get)
+print(f"Best model: {best_model} with MAE: {results[best_model]:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_9dd905821c4dd8bf77c7e96dbe5f6fce4e2d13dfc4399ba35b65459f2f608db3.py", line 17, in <module>
+    model.fit(X_train, y_train)
+NameError: name 'X_train' is not defined

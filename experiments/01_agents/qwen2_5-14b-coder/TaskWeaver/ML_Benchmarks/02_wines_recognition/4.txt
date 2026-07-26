@@ -1,0 +1,105 @@
+from sklearn.datasets import load_wine
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+wine_data = load_wine()
+df = pd.DataFrame(data=wine_data.data, columns=wine_data.feature_names)
+df['target'] = wine_data.target
+
+# Perform EDA and create a plot
+eda_results = df.describe()
+correlation_matrix = df.corr()
+
+# Plotting the correlation matrix
+plt.figure(figsize=(10, 8))
+plt.imshow(correlation_matrix, cmap='coolwarm', interpolation='nearest')
+plt.colorbar()
+plt.xticks(range(len(correlation_matrix.columns)), correlation_matrix.columns, rotation=90)
+plt.yticks(range(len(correlation_matrix.columns)), correlation_matrix.columns)
+plt.title('Correlation Matrix of Wine Dataset')
+plt.show()
+
+# Store the results
+eda_results, correlation_matrix
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          alcohol  malic_acid         ash  alcalinity_of_ash   magnesium  total_phenols  flavanoids  nonflavanoid_phenols  proanthocyanins  color_intensity         hue  od280/od315_of_diluted_wines      proline      target
+ count  178.000000  178.000000  178.000000         178.000000  178.000000     178.000000   178.00000            178.000000       178.000000        178.00000  178.000000                    178.000000   178.000000  178.000000
+ mean    13.000618    2.336348    2.366517          19.494944   99.741573       2.295112     2.02927              0.361854         1.590899          5.05809    0.957449                      2.611685   746.893258    0.938202
+ ...           ...         ...         ...                ...         ...            ...         ...                   ...              ...              ...         ...                           ...          ...         ...
+ 75%     13.677500    3.082500    2.557500          21.500000  107.000000       2.800000     2.87500              0.437500         1.950000          6.20000    1.120000                      3.170000   985.000000    2.000000
+ max     14.830000    5.800000    3.230000          30.000000  162.000000       3.880000     5.08000              0.660000         3.580000         13.00000    1.710000                      4.000000  1680.000000    2.000000
+ 
+ [8 rows x 14 columns],
+              alcohol  malic_acid       ash  alcalinity_of_ash  magnesium  total_phenols  flavanoids  nonflavanoid_phenols  proanthocyanins  color_intensity       hue  od280/od315_of_diluted_wines   proline    target
+ alcohol     1.000000    0.094397  0.211545          -0.310235   0.270798       0.289101    0.236815             -0.155929         0.136698         0.546364 -0.071747                      0.072343  0.643720 -0.328222
+ malic_acid  0.094397    1.000000  0.164045           0.288500  -0.054575      -0.335167   -0.411007              0.292977        -0.220746         0.248985 -0.561296                     -0.368710 -0.192011  0.437776
+ ...              ...         ...       ...                ...        ...            ...         ...                   ...              ...              ...       ...                           ...       ...       ...
+ proline     0.643720   -0.192011  0.223626          -0.440597   0.393351       0.498115    0.494193             -0.311385         0.330417         0.316100  0.236183                      0.312761  1.000000 -0.633717
+ target     -0.328222    0.437776 -0.049643           0.517859  -0.209179      -0.719163   -0.847498              0.489109        -0.499130         0.265668 -0.617369                     -0.788230 -0.633717  1.000000
+ 
+ [14 rows x 14 columns])from sklearn.model_selection import train_test_split
+
+# Split the dataset into training and testing sets
+X = df.drop('target', axis=1)
+y = df['target']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Store the results
+X_train, X_test, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     alcohol  malic_acid   ash  alcalinity_of_ash  magnesium  total_phenols  flavanoids  nonflavanoid_phenols  proanthocyanins  color_intensity   hue  od280/od315_of_diluted_wines  proline
+ 158    14.34        1.68  2.70               25.0       98.0           2.80        1.31                  0.53             2.70            13.00  0.57                          1.96    660.0
+ 137    12.53        5.51  2.64               25.0       96.0           1.79        0.60                  0.63             1.10             5.00  0.82                          1.69    515.0
+ ..       ...         ...   ...                ...        ...            ...         ...                   ...              ...              ...   ...                           ...      ...
+ 92     12.69        1.53  2.26               20.7       80.0           1.38        1.46                  0.58             1.62             3.05  0.96                          2.06    495.0
+ 102    12.34        2.45  2.46               21.0       98.0           2.56        2.11                  0.34             1.31             2.80  0.80                          3.38    438.0
+ 
+ [142 rows x 13 columns],
+     alcohol  malic_acid   ash  alcalinity_of_ash  magnesium  total_phenols  flavanoids  nonflavanoid_phenols  proanthocyanins  color_intensity   hue  od280/od315_of_diluted_wines  proline
+ 19    13.64        3.10  2.56               15.2      116.0           2.70        3.03                  0.17             1.66             5.10  0.96                          3.36    845.0
+ 45    14.21        4.04  2.44               18.9      111.0           2.85        2.65                  0.30             1.25             5.24  0.87                          3.33   1080.0
+ ..      ...         ...   ...                ...        ...            ...         ...                   ...              ...              ...   ...                           ...      ...
+ 12    13.75        1.73  2.41               16.0       89.0           2.60        2.76                  0.29             1.81             5.60  1.15                          2.90   1320.0
+ 42    13.88        1.89  2.59               15.0      101.0           3.25        3.56                  0.17             1.70             5.43  0.88                          3.56   1095.0
+ 
+ [36 rows x 13 columns],
+ 158    2
+ 137    2
+       ..
+ 92     1
+ 102    1
+ Name: target, Length: 142, dtype: int32,
+ 19    0
+ 45    0
+      ..
+ 12    0
+ 42    0
+ Name: target, Length: 36, dtype: int32)from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+# Initialize the logistic regression model
+model = LogisticRegression(max_iter=200)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Calculate the prediction accuracy
+accuracy = accuracy_score(y_test, y_pred)
+
+# Store the results
+model, y_pred, accuracy
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LogisticRegression(max_iter=200),
+ array([0, 0, 2, 0, 1, 0, 1, 2, 1, 2, 1, 2, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1,
+        1, 2, 2, 2, 1, 1, 1, 0, 0, 1, 2, 0, 0, 0]),
+ 0.9722222222222222)

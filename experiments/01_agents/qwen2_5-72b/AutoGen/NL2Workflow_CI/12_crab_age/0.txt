@@ -1,0 +1,183 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据的前几行
+print("训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集前几行:
+      id Sex  Length  ...  Viscera_Weight  Shell_Weight  Age
+0  20612   M  1.6125  ...        6.265239      7.059025    9
+1   2935   F  1.5250  ...        7.002326      8.930093   10
+2  73847   M  1.5000  ...        6.166016      8.079607   12
+3  46445   M  1.1250  ...        2.891649      3.685435   10
+4  66755   I  0.8625  ...        0.737087      1.275727    6
+
+[5 rows x 10 columns]
+
+测试集前几行:
+      id Sex  Length  ...  Viscera_Weight  Shell_Weight  Age
+0  27233   I  1.6125  ...        6.435337     11.056305   18
+1  55493   I  0.6625  ...        0.581165      0.793786    6
+2  49980   M  1.3500  ...        5.684075      6.236890    8
+3  28319   I  1.1125  ...        1.615922      3.401940    8
+4  20212   I  1.0375  ...        1.686795      2.409708    8
+
+[5 rows x 10 columns]
+
+生成的代码：
+# 导入必要的库
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# 移除 id 列
+train_df = train_df.drop(columns=['id'])
+test_df = test_df.drop(columns=['id'])
+
+# 定义需要进行独热编码的列
+categorical_features = ['Sex']
+numerical_features = train_df.columns.difference(['Sex', 'Age'])
+
+# 创建预处理步骤
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), categorical_features),
+        ('num', 'passthrough', numerical_features)
+    ])
+
+# 查看预处理后的数据
+X_train = train_df.drop(columns=['Age'])
+y_train = train_df['Age']
+X_test = test_df.drop(columns=['Age'])
+y_test = test_df['Age']
+
+# 应用预处理
+X_train_processed = preprocessor.fit_transform(X_train)
+X_test_processed = preprocessor.transform(X_test)
+
+# 查看预处理后的数据
+print("预处理后的训练集特征前几行:")
+print(X_train_processed[:5])
+print("\n预处理后的测试集特征前几行:")
+print(X_test_processed[:5])
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_702c717395be62ca0bd142fb42806cb6fa63f0d4126b124b218a674fcdb7d2a6.py", line 9, in <module>
+    train_df = train_df.drop(columns=['id'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# 重新加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 移除 id 列
+train_df = train_df.drop(columns=['id'])
+test_df = test_df.drop(columns=['id'])
+
+# 定义需要进行独热编码的列
+categorical_features = ['Sex']
+numerical_features = train_df.columns.difference(['Sex', 'Age'])
+
+# 创建预处理步骤
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), categorical_features),
+        ('num', 'passthrough', numerical_features)
+    ])
+
+# 查看预处理后的数据
+X_train = train_df.drop(columns=['Age'])
+y_train = train_df['Age']
+X_test = test_df.drop(columns=['Age'])
+y_test = test_df['Age']
+
+# 应用预处理
+X_train_processed = preprocessor.fit_transform(X_train)
+X_test_processed = preprocessor.transform(X_test)
+
+# 查看预处理后的数据
+print("预处理后的训练集特征前几行:")
+print(X_train_processed[:5])
+print("\n预处理后的测试集特征前几行:")
+print(X_test_processed[:5])
+
+
+执行结果：
+预处理后的训练集特征前几行:
+[[ 0.          0.          1.          1.15        0.4         1.6125
+   7.0590255  15.252031    6.2652395  31.2694985 ]
+ [ 1.          0.          0.          1.175       0.4125      1.525
+   8.9300925  12.23280925  7.0023265  30.220567  ]
+ [ 0.          0.          1.          1.1625      0.3875      1.5
+   8.0796075  13.1258185   6.16601625 29.1149365 ]
+ [ 0.          0.          1.          0.8875      0.2375      1.125
+   3.685435    5.499803    2.891649   12.99824575]
+ [ 0.          1.          0.          0.6375      0.1875      0.8625
+   1.2757275   1.644271    0.737087    4.2807745 ]]
+
+预处理后的测试集特征前几行:
+[[ 0.          1.          0.          1.35        0.4375      1.6125
+  11.056305   14.67086625  6.4353365  35.6920205 ]
+ [ 0.          1.          0.          0.5         0.1625      0.6625
+   0.793786    1.13398     0.58116475  2.76407625]
+ [ 0.          0.          1.          1.05        0.3         1.35
+   6.23689     9.07184     5.68407475 21.87163925]
+ [ 0.          1.          0.          0.8         0.275       1.1125
+   3.40194     4.26659975  1.6159215  10.41844125]
+ [ 0.          1.          0.          0.825       0.25        1.0375
+   2.4097075   3.061746    1.68679525  6.50621025]]
+
+生成的代码：
+# 创建随机森林回归模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train_processed, y_train)
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test_processed)
+
+# 计算MAE
+mae = mean_absolute_error(y_test, y_pred)
+print(f"模型在测试集上的MAE: {mae}")
+
+# 保存预测结果
+predictions_df = pd.DataFrame({'id': test_df['id'], 'Age': y_pred})
+predictions_df.to_csv('crab_age_predictions.csv', index=False)
+
+print("预测结果已保存到 'crab_age_predictions.csv'")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_949279eec69fa152fc0d610e2427adf8ae35e86087eaaf205323a5655a37fe75.py", line 2, in <module>
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+NameError: name 'RandomForestRegressor' is not defined

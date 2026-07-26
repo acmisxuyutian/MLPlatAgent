@@ -1,0 +1,150 @@
+######代码######
+
+import os
+import requests
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import joblib
+
+# Constants
+SEED = 42
+DATASET_URL = 'https://example.com/path/to/10_life_expectancy.csv'
+DATASET_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/10_life_expectancy.csv'
+MODEL_SAVE_PATH = './agent_workspace/trained_models/linear_regression_model.pkl'
+PREDICTIONS_SAVE_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/predictions/linear_regression_predictions.csv'
+
+# Ensure the dataset directory exists
+os.makedirs(os.path.dirname(DATASET_PATH), exist_ok=True)
+
+# Step 1: Retrieve the dataset
+def download_dataset(url, save_path):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"Dataset downloaded and saved to {save_path}")
+    else:
+        raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
+
+# Step 2: Preprocess the dataset
+def preprocess_data(df):
+    # Handle missing values
+    df.fillna(df.mean(), inplace=True)
+    
+    # Normalize GDP feature
+    scaler = StandardScaler()
+    df[['GDP']] = scaler.fit_transform(df[['GDP']])
+    
+    return df
+
+# Step 3: Feature Engineering
+def feature_engineering(df):
+    # Define GDP bins
+    gdp_bins = [0, 1000, 10000, float('inf')]
+    gdp_labels = ['Low GDP', 'Medium GDP', 'High GDP']
+    
+    # Create GDP_bins feature
+    df['GDP_bins'] = pd.cut(df['GDP'], bins=gdp_bins, labels=gdp_labels, right=False)
+    
+    return df
+
+# Step 4: Split the dataset
+def split_dataset(df):
+    # Split the dataset into training and temporary sets (70%, 30%)
+    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=SEED)
+    
+    # Split the temporary set into validation and test sets (20%, 10%)
+    val_df, test_df = train_test_split(temp_df, test_size=0.33, random_state=SEED)
+    
+    return train_df, val_df, test_df
+
+# Step 5: Train the model
+def train_model(train_df):
+    # Prepare features and target variable
+    X_train = pd.get_dummies(train_df[['GDP', 'GDP_bins']], drop_first=True)
+    y_train = train_df['life_expectancy']
+    
+    # Train the Linear Regression model
+    model = LinearRegression(fit_intercept=True, normalize=False)
+    model.fit(X_train, y_train)
+    
+    return model
+
+# Step 6: Evaluate the model
+def evaluate_model(model, val_df):
+    # Prepare features and target variable
+    X_val = pd.get_dummies(val_df[['GDP', 'GDP_bins']], drop_first=True)
+    y_val = val_df['life_expectancy']
+    
+    # Make predictions on the validation set
+    y_val_pred = model.predict(X_val)
+    
+    # Evaluate the model on the validation set
+    r2_val = r2_score(y_val, y_val_pred)
+    print(f'Validation R-squared: {r2_val}')
+    
+    return r2_val
+
+# Step 7: Make predictions on the test set
+def predict_on_test_set(model, test_df):
+    # Prepare test features
+    X_test = pd.get_dummies(test_df[['GDP', 'GDP_bins']], drop_first=True)
+    
+    # Make predictions on the test set
+    y_test_pred = model.predict(X_test)
+    
+    return y_test_pred
+
+# Step 8: Save the model and predictions
+def save_model_and_predictions(model, y_test_pred, test_df):
+    # Save the trained model
+    joblib.dump(model, MODEL_SAVE_PATH)
+    print(f"Model saved to {MODEL_SAVE_PATH}")
+    
+    # Save predictions to a CSV file
+    test_df['predicted_life_expectancy'] = y_test_pred
+    test_df.to_csv(PREDICTIONS_SAVE_PATH, index=False)
+    print(f"Predictions saved to {PREDICTIONS_SAVE_PATH}")
+
+# Main function to orchestrate the pipeline
+def main():
+    try:
+        # Step 1: Retrieve the dataset
+        download_dataset(DATASET_URL, DATASET_PATH)
+        
+        # Step 2: Load the dataset
+        df = pd.read_csv(DATASET_PATH)
+        
+        # Step 3: Preprocess the dataset
+        df = preprocess_data(df)
+        
+        # Step 4: Feature Engineering
+        df = feature_engineering(df)
+        
+        # Step 5: Split the dataset
+        train_df, val_df, test_df = split_dataset(df)
+        
+        # Step 6: Train the model
+        model = train_model(train_df)
+        
+        # Step 7: Evaluate the model
+        evaluate_model(model, val_df)
+        
+        # Step 8: Make predictions on the test set
+        y_test_pred = predict_on_test_set(model, test_df)
+        
+        # Step 9: Save the model and predictions
+        save_model_and_predictions(model, y_test_pred, test_df)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+An error occurred: Failed to download dataset. Status code: 404

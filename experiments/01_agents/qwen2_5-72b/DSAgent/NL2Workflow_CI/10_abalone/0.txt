@@ -1,0 +1,775 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import root_mean_squared_log_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = root_mean_squared_log_error(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LGBM model with default hyperparameters
+    model = LGBMRegressor(random_state=SEED)
+    model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)], early_stopping_rounds=10, verbose=False)
+    return model
+
+
+def predict(model, X):
+    # Predict using the trained LGBM model
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Rings'], axis=1)
+    y = data_df['Rings'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the validation set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmsle on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Rings'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py:726: UserWarning: 'early_stopping_rounds' argument is deprecated and will be removed in a future release of LightGBM. Pass 'early_stopping()' callback via 'callbacks' argument instead.
+  _log_warning("'early_stopping_rounds' argument is deprecated and will be removed in a future release of LightGBM. "
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py:736: UserWarning: 'verbose' argument is deprecated and will be removed in a future release of LightGBM. Pass 'log_evaluation()' callback via 'callbacks' argument instead.
+  _log_warning("'verbose' argument is deprecated and will be removed in a future release of LightGBM. "
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/10_abalone/train.py", line 44, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250902-120218/10_abalone/train.py", line 24, in train_model
+    model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)], early_stopping_rounds=10, verbose=False)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 895, in fit
+    super().fit(X, y, sample_weight=sample_weight, init_score=init_score,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/sklearn.py", line 748, in fit
+    self._Booster = train(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/engine.py", line 271, in train
+    booster = Booster(params=params, train_set=train_set)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 2605, in __init__
+    train_set.construct()
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1815, in construct
+    self._lazy_init(self.data, label=self.label,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 1474, in _lazy_init
+    data, feature_name, categorical_feature, self.pandas_categorical = _data_from_pandas(data,
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/lightgbm/basic.py", line 594, in _data_from_pandas
+    raise ValueError("DataFrame.dtypes for data must be int, float or bool.\n"
+ValueError: DataFrame.dtypes for data must be int, float or bool.
+Did not expect the data types in the following fields: Sex
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import root_mean_squared_log_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor, early_stopping, log_evaluation
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = root_mean_squared_log_error(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define and train the LGBM model with default hyperparameters
+    model = LGBMRegressor(random_state=SEED)
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_valid, y_valid)],
+        callbacks=[early_stopping(10), log_evaluation(period=0)]
+    )
+    return model
+
+
+def predict(model, X):
+    # Predict using the trained LGBM model
+    y_pred = model.predict(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Convert categorical column 'Sex' to numerical format
+    data_df = pd.get_dummies(data_df, columns=['Sex'])
+
+    X = data_df.drop(['Rings'], axis=1)
+    y = data_df['Rings'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the validation set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final rmsle on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    # Convert categorical column 'Sex' to numerical format for the test set
+    submission_df = pd.get_dummies(submission_df, columns=['Sex'])
+    X_test = submission_df.drop(['Rings'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Training until validation scores don't improve for 10 rounds
+Did not meet early stopping. Best iteration is:
+[91]	valid_0's l2: 3.48047
+Final rmsle on validation set:  0.1541330224497105
+Final rmsle on test set:  0.15281275242149
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import root_mean_squared_log_error
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor, early_stopping, log_evaluation
+from submission import submit_predictions_for_test_set
+from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
+import joblib
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = root_mean_squared_log_error(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid, params):
+    # Define and train the LGBM model with specified hyperparameters
+    model = LGBMRegressor(
+        n_estimators=params['n_estimators'],
+        learning_rate=params['learning_rate'],
+        random_state=SEED
+    )
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_valid, y_valid)],
+        callbacks=[early_stopping(10), log_evaluation(period=0)]
+    )
+    return model
+
+
+def predict(model, X):
+    # Predict using the trained LGBM model
+    y_pred = model.predict(X)
+    return y_pred
+
+
+def objective(params):
+    model = train_model(X_train, y_train, X_valid, y_valid, params)
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    return {'loss': score, 'status': STATUS_OK, 'model': model}
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    # Convert categorical column 'Sex' to numerical format
+    data_df = pd.get_dummies(data_df, columns=['Sex'])
+
+    X = data_df.drop(['Rings'], axis=1)
+    y = data_df['Rings'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define the hyperparameter search space
+    space = {
+        'n_estimators': hp.choice('n_estimators', [100, 200, 300, 400, 500]),
+        'learning_rate': hp.loguniform('learning_rate', -5, 0)  # Range from 0.001 to 1
+    }
+
+    # Perform hyperparameter tuning
+    trials = Trials()
+    best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=50, trials=trials)
+
+    # Get the best model
+    best_model = trials.best_trial['result']['model']
+
+    # Evaluate the best model on the validation set
+    y_valid_pred = best_model.predict(X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Best RMSLE on validation set: ", score)
+
+    # Save the best model
+    joblib.dump(best_model, 'best_model.pkl')
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    # Convert categorical column 'Sex' to numerical format for the test set
+    submission_df = pd.get_dummies(submission_df, columns=['Sex'])
+    X_test = submission_df.drop(['Rings'], axis=1)
+    y_test_pred = predict(best_model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+                                                                               
+Early stopping, best iteration is:
+[7]	valid_0's l2: 3.68181
+
+  0%|                                   | 0/50 [00:00<?, ?trial/s, best loss=?]
+  2%|▏       | 1/50 [00:00<00:10,  4.89trial/s, best loss: 0.15859239380732132]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+  2%|▏       | 1/50 [00:00<00:10,  4.89trial/s, best loss: 0.15859239380732132]
+                                                                               
+Early stopping, best iteration is:
+[18]	valid_0's l2: 3.50417
+
+  2%|▏       | 1/50 [00:00<00:10,  4.89trial/s, best loss: 0.15859239380732132]
+  4%|▎       | 2/50 [00:00<00:08,  5.73trial/s, best loss: 0.15475728374885034]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+  4%|▎       | 2/50 [00:00<00:08,  5.73trial/s, best loss: 0.15475728374885034]
+                                                                               
+Early stopping, best iteration is:
+[122]	valid_0's l2: 3.48739
+
+  4%|▎       | 2/50 [00:00<00:08,  5.73trial/s, best loss: 0.15475728374885034]
+  6%|▌        | 3/50 [00:00<00:13,  3.40trial/s, best loss: 0.1542343574819094]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+  6%|▌        | 3/50 [00:00<00:13,  3.40trial/s, best loss: 0.1542343574819094]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[99]	valid_0's l2: 3.48212
+
+  6%|▌        | 3/50 [00:01<00:13,  3.40trial/s, best loss: 0.1542343574819094]
+  8%|▋        | 4/50 [00:01<00:13,  3.33trial/s, best loss: 0.1541825168204245]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+  8%|▋        | 4/50 [00:01<00:13,  3.33trial/s, best loss: 0.1541825168204245]
+                                                                               
+Early stopping, best iteration is:
+[153]	valid_0's l2: 3.47008
+
+  8%|▋        | 4/50 [00:01<00:13,  3.33trial/s, best loss: 0.1541825168204245]
+ 10%|▊       | 5/50 [00:01<00:16,  2.71trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 10%|▊       | 5/50 [00:01<00:16,  2.71trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[25]	valid_0's l2: 3.54247
+
+ 10%|▊       | 5/50 [00:01<00:16,  2.71trial/s, best loss: 0.15388655535895954]
+ 12%|▉       | 6/50 [00:01<00:13,  3.34trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 12%|▉       | 6/50 [00:01<00:13,  3.34trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[20]	valid_0's l2: 3.56371
+
+ 12%|▉       | 6/50 [00:01<00:13,  3.34trial/s, best loss: 0.15388655535895954]
+ 14%|█       | 7/50 [00:01<00:10,  3.94trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 14%|█       | 7/50 [00:02<00:10,  3.94trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[17]	valid_0's l2: 3.54187
+
+ 14%|█       | 7/50 [00:02<00:10,  3.94trial/s, best loss: 0.15388655535895954]
+ 16%|█▎      | 8/50 [00:02<00:09,  4.50trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 16%|█▎      | 8/50 [00:02<00:09,  4.50trial/s, best loss: 0.15388655535895954]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[397]	valid_0's l2: 3.48945
+
+ 16%|█▎      | 8/50 [00:03<00:09,  4.50trial/s, best loss: 0.15388655535895954]
+ 18%|█▍      | 9/50 [00:03<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 18%|█▍      | 9/50 [00:03<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[181]	valid_0's l2: 3.48313
+
+ 18%|█▍      | 9/50 [00:03<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+ 20%|█▍     | 10/50 [00:03<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 20%|█▍     | 10/50 [00:03<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[190]	valid_0's l2: 3.47746
+
+ 20%|█▍     | 10/50 [00:04<00:21,  1.90trial/s, best loss: 0.15388655535895954]
+ 22%|█▌     | 11/50 [00:04<00:20,  1.88trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 22%|█▌     | 11/50 [00:04<00:20,  1.88trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[69]	valid_0's l2: 3.50433
+
+ 22%|█▌     | 11/50 [00:04<00:20,  1.88trial/s, best loss: 0.15388655535895954]
+ 24%|█▋     | 12/50 [00:04<00:17,  2.18trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 24%|█▋     | 12/50 [00:04<00:17,  2.18trial/s, best loss: 0.15388655535895954]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[300]	valid_0's l2: 3.67229
+
+ 24%|█▋     | 12/50 [00:05<00:17,  2.18trial/s, best loss: 0.15388655535895954]
+ 26%|█▊     | 13/50 [00:05<00:23,  1.58trial/s, best loss: 0.15388655535895954]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 26%|█▊     | 13/50 [00:05<00:23,  1.58trial/s, best loss: 0.15388655535895954]
+                                                                               
+Early stopping, best iteration is:
+[147]	valid_0's l2: 3.45986
+
+ 26%|█▊     | 13/50 [00:06<00:23,  1.58trial/s, best loss: 0.15388655535895954]
+ 28%|██▏     | 14/50 [00:06<00:21,  1.71trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 28%|██▏     | 14/50 [00:06<00:21,  1.71trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[13]	valid_0's l2: 3.58802
+
+ 28%|██▏     | 14/50 [00:06<00:21,  1.71trial/s, best loss: 0.1537005391898727]
+ 30%|██▍     | 15/50 [00:06<00:15,  2.21trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 30%|██▍     | 15/50 [00:06<00:15,  2.21trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[375]	valid_0's l2: 3.47974
+
+ 30%|██▍     | 15/50 [00:07<00:15,  2.21trial/s, best loss: 0.1537005391898727]
+ 32%|██▌     | 16/50 [00:07<00:22,  1.52trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 32%|██▌     | 16/50 [00:07<00:22,  1.52trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[101]	valid_0's l2: 3.46283
+
+ 32%|██▌     | 16/50 [00:07<00:22,  1.52trial/s, best loss: 0.1537005391898727]
+ 34%|██▋     | 17/50 [00:07<00:18,  1.78trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 34%|██▋     | 17/50 [00:07<00:18,  1.78trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[180]	valid_0's l2: 3.48063
+
+ 34%|██▋     | 17/50 [00:08<00:18,  1.78trial/s, best loss: 0.1537005391898727]
+ 36%|██▉     | 18/50 [00:08<00:18,  1.70trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 36%|██▉     | 18/50 [00:08<00:18,  1.70trial/s, best loss: 0.1537005391898727]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[397]	valid_0's l2: 3.47018
+
+ 36%|██▉     | 18/50 [00:09<00:18,  1.70trial/s, best loss: 0.1537005391898727]
+ 38%|███     | 19/50 [00:09<00:21,  1.44trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 38%|███     | 19/50 [00:09<00:21,  1.44trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[65]	valid_0's l2: 3.47416
+
+ 38%|███     | 19/50 [00:09<00:21,  1.44trial/s, best loss: 0.1537005391898727]
+ 40%|███▏    | 20/50 [00:09<00:16,  1.79trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 40%|███▏    | 20/50 [00:09<00:16,  1.79trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[63]	valid_0's l2: 3.48888
+
+ 40%|███▏    | 20/50 [00:09<00:16,  1.79trial/s, best loss: 0.1537005391898727]
+ 42%|███▎    | 21/50 [00:09<00:14,  2.02trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 42%|███▎    | 21/50 [00:10<00:14,  2.02trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[82]	valid_0's l2: 3.47939
+
+ 42%|███▎    | 21/50 [00:10<00:14,  2.02trial/s, best loss: 0.1537005391898727]
+ 44%|███▌    | 22/50 [00:10<00:12,  2.31trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 44%|███▌    | 22/50 [00:10<00:12,  2.31trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[350]	valid_0's l2: 3.46358
+
+ 44%|███▌    | 22/50 [00:11<00:12,  2.31trial/s, best loss: 0.1537005391898727]
+ 46%|███▋    | 23/50 [00:11<00:15,  1.77trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 46%|███▋    | 23/50 [00:11<00:15,  1.77trial/s, best loss: 0.1537005391898727]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[500]	valid_0's l2: 3.50865
+
+ 46%|███▋    | 23/50 [00:12<00:15,  1.77trial/s, best loss: 0.1537005391898727]
+ 48%|███▊    | 24/50 [00:12<00:21,  1.21trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 48%|███▊    | 24/50 [00:12<00:21,  1.21trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[331]	valid_0's l2: 3.47329
+
+ 48%|███▊    | 24/50 [00:13<00:21,  1.21trial/s, best loss: 0.1537005391898727]
+ 50%|████    | 25/50 [00:13<00:20,  1.20trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 50%|████    | 25/50 [00:13<00:20,  1.20trial/s, best loss: 0.1537005391898727]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[500]	valid_0's l2: 3.48558
+
+ 50%|████    | 25/50 [00:14<00:20,  1.20trial/s, best loss: 0.1537005391898727]
+ 52%|████▏   | 26/50 [00:14<00:23,  1.03trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 52%|████▏   | 26/50 [00:14<00:23,  1.03trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[286]	valid_0's l2: 3.47139
+
+ 52%|████▏   | 26/50 [00:15<00:23,  1.03trial/s, best loss: 0.1537005391898727]
+ 54%|████▎   | 27/50 [00:15<00:20,  1.10trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 54%|████▎   | 27/50 [00:15<00:20,  1.10trial/s, best loss: 0.1537005391898727]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[100]	valid_0's l2: 4.36552
+
+ 54%|████▎   | 27/50 [00:15<00:20,  1.10trial/s, best loss: 0.1537005391898727]
+ 56%|████▍   | 28/50 [00:15<00:16,  1.33trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 56%|████▍   | 28/50 [00:15<00:16,  1.33trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[48]	valid_0's l2: 3.48939
+
+ 56%|████▍   | 28/50 [00:16<00:16,  1.33trial/s, best loss: 0.1537005391898727]
+ 58%|████▋   | 29/50 [00:16<00:12,  1.69trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 58%|████▋   | 29/50 [00:16<00:12,  1.69trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[444]	valid_0's l2: 3.46967
+
+ 58%|████▋   | 29/50 [00:17<00:12,  1.69trial/s, best loss: 0.1537005391898727]
+ 60%|████▊   | 30/50 [00:17<00:14,  1.35trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 60%|████▊   | 30/50 [00:17<00:14,  1.35trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[126]	valid_0's l2: 3.46331
+
+ 60%|████▊   | 30/50 [00:17<00:14,  1.35trial/s, best loss: 0.1537005391898727]
+ 62%|████▉   | 31/50 [00:17<00:11,  1.59trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 62%|████▉   | 31/50 [00:17<00:11,  1.59trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[11]	valid_0's l2: 3.67385
+
+ 62%|████▉   | 31/50 [00:17<00:11,  1.59trial/s, best loss: 0.1537005391898727]
+ 64%|█████   | 32/50 [00:17<00:08,  2.07trial/s, best loss: 0.1537005391898727]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 64%|█████   | 32/50 [00:17<00:08,  2.07trial/s, best loss: 0.1537005391898727]
+                                                                               
+Early stopping, best iteration is:
+[180]	valid_0's l2: 3.45898
+
+ 64%|█████   | 32/50 [00:18<00:08,  2.07trial/s, best loss: 0.1537005391898727]
+ 66%|████▌  | 33/50 [00:18<00:08,  1.93trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 66%|████▌  | 33/50 [00:18<00:08,  1.93trial/s, best loss: 0.15369564669268715]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[100]	valid_0's l2: 3.49045
+
+ 66%|████▌  | 33/50 [00:18<00:08,  1.93trial/s, best loss: 0.15369564669268715]
+ 68%|████▊  | 34/50 [00:18<00:07,  2.10trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 68%|████▊  | 34/50 [00:18<00:07,  2.10trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[128]	valid_0's l2: 3.47163
+
+ 68%|████▊  | 34/50 [00:19<00:07,  2.10trial/s, best loss: 0.15369564669268715]
+ 70%|████▉  | 35/50 [00:19<00:06,  2.16trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 70%|████▉  | 35/50 [00:19<00:06,  2.16trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[53]	valid_0's l2: 3.46822
+
+ 70%|████▉  | 35/50 [00:19<00:06,  2.16trial/s, best loss: 0.15369564669268715]
+ 72%|█████  | 36/50 [00:19<00:05,  2.52trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 72%|█████  | 36/50 [00:19<00:05,  2.52trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[129]	valid_0's l2: 3.46754
+
+ 72%|█████  | 36/50 [00:19<00:05,  2.52trial/s, best loss: 0.15369564669268715]
+ 74%|█████▏ | 37/50 [00:19<00:05,  2.48trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 74%|█████▏ | 37/50 [00:19<00:05,  2.48trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[81]	valid_0's l2: 3.49799
+
+ 74%|█████▏ | 37/50 [00:20<00:05,  2.48trial/s, best loss: 0.15369564669268715]
+ 76%|█████▎ | 38/50 [00:20<00:04,  2.59trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 76%|█████▎ | 38/50 [00:20<00:04,  2.59trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[31]	valid_0's l2: 3.5194
+
+ 76%|█████▎ | 38/50 [00:20<00:04,  2.59trial/s, best loss: 0.15369564669268715]
+ 78%|█████▍ | 39/50 [00:20<00:03,  3.06trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 78%|█████▍ | 39/50 [00:20<00:03,  3.06trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[152]	valid_0's l2: 3.48573
+
+ 78%|█████▍ | 39/50 [00:20<00:03,  3.06trial/s, best loss: 0.15369564669268715]
+ 80%|█████▌ | 40/50 [00:20<00:03,  2.63trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 80%|█████▌ | 40/50 [00:20<00:03,  2.63trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[156]	valid_0's l2: 3.4753
+
+ 80%|█████▌ | 40/50 [00:21<00:03,  2.63trial/s, best loss: 0.15369564669268715]
+ 82%|█████▋ | 41/50 [00:21<00:04,  2.25trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 82%|█████▋ | 41/50 [00:21<00:04,  2.25trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[33]	valid_0's l2: 3.48154
+
+ 82%|█████▋ | 41/50 [00:21<00:04,  2.25trial/s, best loss: 0.15369564669268715]
+ 84%|█████▉ | 42/50 [00:21<00:02,  2.68trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 84%|█████▉ | 42/50 [00:21<00:02,  2.68trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[15]	valid_0's l2: 3.65841
+
+ 84%|█████▉ | 42/50 [00:21<00:02,  2.68trial/s, best loss: 0.15369564669268715]
+ 86%|██████ | 43/50 [00:21<00:02,  3.25trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 86%|██████ | 43/50 [00:21<00:02,  3.25trial/s, best loss: 0.15369564669268715]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[100]	valid_0's l2: 3.47273
+
+ 86%|██████ | 43/50 [00:22<00:02,  3.25trial/s, best loss: 0.15369564669268715]
+ 88%|██████▏| 44/50 [00:22<00:01,  3.08trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 88%|██████▏| 44/50 [00:22<00:01,  3.08trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[26]	valid_0's l2: 3.53705
+
+ 88%|██████▏| 44/50 [00:22<00:01,  3.08trial/s, best loss: 0.15369564669268715]
+ 90%|██████▎| 45/50 [00:22<00:01,  3.27trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 90%|██████▎| 45/50 [00:22<00:01,  3.27trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[249]	valid_0's l2: 3.47125
+
+ 90%|██████▎| 45/50 [00:23<00:01,  3.27trial/s, best loss: 0.15369564669268715]
+ 92%|██████▍| 46/50 [00:23<00:01,  2.30trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 92%|██████▍| 46/50 [00:23<00:01,  2.30trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[77]	valid_0's l2: 3.46163
+
+ 92%|██████▍| 46/50 [00:23<00:01,  2.30trial/s, best loss: 0.15369564669268715]
+ 94%|██████▌| 47/50 [00:23<00:01,  2.59trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 94%|██████▌| 47/50 [00:23<00:01,  2.59trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[21]	valid_0's l2: 3.54809
+
+ 94%|██████▌| 47/50 [00:23<00:01,  2.59trial/s, best loss: 0.15369564669268715]
+ 96%|██████▋| 48/50 [00:23<00:00,  3.12trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 96%|██████▋| 48/50 [00:23<00:00,  3.12trial/s, best loss: 0.15369564669268715]
+                                                                               
+Early stopping, best iteration is:
+[97]	valid_0's l2: 3.46709
+
+ 96%|██████▋| 48/50 [00:23<00:00,  3.12trial/s, best loss: 0.15369564669268715]
+ 98%|██████▊| 49/50 [00:23<00:00,  3.02trial/s, best loss: 0.15369564669268715]
+                                                                               
+Training until validation scores don't improve for 10 rounds
+
+ 98%|██████▊| 49/50 [00:23<00:00,  3.02trial/s, best loss: 0.15369564669268715]
+                                                                               
+Did not meet early stopping. Best iteration is:
+[399]	valid_0's l2: 3.48993
+
+ 98%|██████▊| 49/50 [00:25<00:00,  3.02trial/s, best loss: 0.15369564669268715]
+100%|███████| 50/50 [00:25<00:00,  1.66trial/s, best loss: 0.15369564669268715]
+100%|███████| 50/50 [00:25<00:00,  1.99trial/s, best loss: 0.15369564669268715]
+Best RMSLE on validation set:  0.15369564669268715
+Final rmsle on test set:  0.15248084566287656
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

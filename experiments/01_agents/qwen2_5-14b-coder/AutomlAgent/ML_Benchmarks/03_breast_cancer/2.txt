@@ -1,0 +1,186 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data():
+    # Load the dataset
+    column_names = ['id', 'diagnosis'] + [f'feature_{i}' for i in range(1, 31)]
+    data = pd.read_csv('./data/wdbc.data', header=None, names=column_names)
+    
+    # Handle missing values
+    data.fillna(data.mean(), inplace=True)
+    
+    # Encode categorical variables
+    data = pd.get_dummies(data, columns=['diagnosis'])
+    
+    # Normalize features
+    scaler = StandardScaler()
+    data[['feature_1', 'feature_2', 'feature_3', 'feature_4', 'feature_5', 'feature_6', 'feature_7', 'feature_8', 'feature_9', 'feature_10', 
+          'feature_11', 'feature_12', 'feature_13', 'feature_14', 'feature_15', 'feature_16', 'feature_17', 'feature_18', 'feature_19', 'feature_20', 
+          'feature_21', 'feature_22', 'feature_23', 'feature_24', 'feature_25', 'feature_26', 'feature_27', 'feature_28', 'feature_29', 'feature_30']] = scaler.fit_transform(data[['feature_1', 'feature_2', 'feature_3', 'feature_4', 'feature_5', 'feature_6', 'feature_7', 'feature_8', 'feature_9', 'feature_10', 
+                                                                                                                'feature_11', 'feature_12', 'feature_13', 'feature_14', 'feature_15', 'feature_16', 'feature_17', 'feature_18', 'feature_19', 'feature_20', 
+                                                                                                                'feature_21', 'feature_22', 'feature_23', 'feature_24', 'feature_25', 'feature_26', 'feature_27', 'feature_28', 'feature_29', 'feature_30']])
+    
+    # Split the dataset
+    X = data.drop(['id', 'diagnosis_M', 'diagnosis_B'], axis=1)
+    y = data['diagnosis_M']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the model architecture
+class BreastCancerModel(nn.Module):
+    def __init__(self, input_size):
+        super(BreastCancerModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.sigmoid(self.fc3(x))
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, hyperparameters):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=hyperparameters['learning_rate'])
+    
+    model.train()
+    for epoch in range(hyperparameters['epochs']):
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+        loss.backward()
+        optimizer.step()
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{hyperparameters["epochs"]}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_val, y_val):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+        predicted = (outputs > 0.5).float()
+        accuracy = (predicted == torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)).float().mean()
+        f1 = f1_score(y_val, predicted.numpy())
+    
+    performance_scores = {
+        'ACC': accuracy.item(),
+        'F1': f1
+    }
+    
+    return performance_scores
+
+# Hyperparameter search
+def random_search(X_train, y_train, X_val, y_val):
+    hyperparameters = {
+        'learning_rate': random.choice([0.001, 0.0005, 0.0001]),
+        'batch_size': random.choice([32, 64, 128]),
+        'epochs': random.choice([50, 60, 70])
+    }
+    
+    model = BreastCancerModel(input_size=X_train.shape[1])
+    model = train_model(model, X_train, y_train, hyperparameters)
+    performance_scores = evaluate_model(model, X_val, y_val)
+    
+    return performance_scores, hyperparameters
+
+# Save the model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data()
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = BreastCancerModel(input_size=X_train.shape[1])
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    best_accuracy = 0
+    best_hyperparameters = None
+
+    for _ in range(5):
+        performance_scores, hyperparameters = random_search(X_train, y_train, X_val, y_val)
+        if performance_scores['ACC'] > best_accuracy:
+            best_accuracy = performance_scores['ACC']
+            best_hyperparameters = hyperparameters
+
+    model = BreastCancerModel(input_size=X_train.shape[1])
+    model = train_model(model, X_train, y_train, best_hyperparameters)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the model
+    model_path = "./agent_workspace/trained_models/breast_cancer_model.pth"
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 154, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 121, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data()
+                                                     ^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 26, in preprocess_data
+    data = pd.read_csv('./data/wdbc.data', header=None, names=column_names)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './data/wdbc.data'

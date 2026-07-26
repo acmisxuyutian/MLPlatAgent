@@ -1,0 +1,242 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1: Retrieve the Dataset
+def download_dataset(url, save_path):
+    import requests
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"Dataset downloaded and saved to {save_path}")
+    else:
+        raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
+
+# Step 2: Inspect the Dataset
+def inspect_dataset(dataset_path):
+    dataset = pd.read_csv(dataset_path)
+    print("First few rows of the dataset:")
+    print(dataset.head())
+    print("\nMissing values in each column:")
+    print(dataset.isnull().sum())
+    print("\nData types of each column:")
+    print(dataset.dtypes)
+    return dataset
+
+# Step 3: Preprocess the Dataset
+def preprocess_data(dataset):
+    # Separate numerical and categorical features
+    numerical_features = dataset.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = dataset.select_dtypes(include=['object', 'category']).columns
+    
+    # Standardize numerical features
+    scaler = StandardScaler()
+    dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
+    
+    # Encode categorical features
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    encoded_features = encoder.fit_transform(dataset[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    dataset = pd.concat([dataset.drop(categorical_features, axis=1), encoded_df], axis=1)
+    
+    # Impute missing values
+    imputer = SimpleImputer(strategy='mean')
+    dataset[numerical_features] = imputer.fit_transform(dataset[numerical_features])
+    
+    # Create interaction terms
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    interaction_features = poly.fit_transform(dataset[numerical_features])
+    interaction_df = pd.DataFrame(interaction_features, columns=poly.get_feature_names_out(numerical_features))
+    dataset = pd.concat([dataset, interaction_df], axis=1)
+    
+    return dataset
+
+# Step 4: Split the Dataset
+def split_dataset(dataset, target_column):
+    X = dataset.drop(target_column, axis=1)
+    y = dataset[target_column]
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5: Define the Neural Network Model
+class KidneyStoneModel(nn.Module):
+    def __init__(self, input_size):
+        super(KidneyStoneModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 1)
+        self.dropout = nn.Dropout(0.3)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Step 6: Train the Model
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100, learning_rate=0.001, weight_decay=0.1):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs.squeeze(), torch.tensor(y_train.values, dtype=torch.float32))
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Step 7: Evaluate the Model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.tensor(X_test.values, dtype=torch.float32))
+        predictions = outputs.squeeze().numpy()
+    
+    auc_roc = roc_auc_score(y_test, predictions)
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    dataset_url = 'https://user-link'  # Replace with the actual URL
+    dataset_path = './data/kidney_stone.csv'
+    download_dataset(dataset_url, dataset_path)
+    
+    # Step 2: Inspect the dataset
+    dataset = inspect_dataset(dataset_path)
+    
+    # Step 3: Preprocess the dataset
+    processed_data = preprocess_data(dataset)
+    
+    # Step 4: Split the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(processed_data, 'has_kidney_stones')
+    
+    # Step 5: Define the model
+    input_size = X_train.shape[1]
+    model = KidneyStoneModel(input_size)
+    
+    # Step 6: Train the model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+    
+    # Step 7: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Save the trained model
+    model_save_path = './agent_workspace/trained_models/kidney_stone_model.pth'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/socket.py", line 974, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -2] Name or service not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 753, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x7f947d52c450>: Failed to resolve 'user-link' ([Errno -2] Name or service not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/adapters.py", line 589, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/util/retry.py", line 519, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='user-link', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f947d52c450>: Failed to resolve 'user-link' ([Errno -2] Name or service not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 165, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 135, in main
+    download_dataset(dataset_url, dataset_path)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 25, in download_dataset
+    response = requests.get(url)
+               ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/adapters.py", line 622, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='user-link', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f947d52c450>: Failed to resolve 'user-link' ([Errno -2] Name or service not known)"))

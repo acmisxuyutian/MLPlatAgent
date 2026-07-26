@@ -1,0 +1,188 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Check for missing values
+missing_values = train_data.isnull().sum()
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_data['category'] = label_encoder.fit_transform(train_data['category'])
+
+# Split the data into features and labels
+X = train_data.drop(columns=['category'])
+y = train_data['category']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Put all the result variables in the last line
+X_train, X_test, y_train, y_test, label_encoder, missing_values
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'category'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 14
+    train_data['category'] = label_encoder.fit_transform(train_data['category'])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'category'
+
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Inspect the columns of the dataset
+columns = train_data.columns.tolist()
+
+# Put all the result variables in the last line
+train_data, columns
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(            Category  DayOfWeek PdDistrict           X          Y
+ 0      LARCENY/THEFT  Wednesday   SOUTHERN -122.388380  37.783310
+ 1       NON-CRIMINAL   Saturday   SOUTHERN -122.403405  37.775421
+ ...              ...        ...        ...         ...        ...
+ 70242        ASSAULT    Tuesday    BAYVIEW -122.389775  37.735227
+ 70243  LARCENY/THEFT    Tuesday  INGLESIDE -122.417108  37.712256
+ 
+ [70244 rows x 5 columns],
+ ['Category', 'DayOfWeek', 'PdDistrict', 'X', 'Y'])from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import log_loss
+
+# Preprocess the data
+features = train_data.drop(columns='Category')
+target = train_data['Category']
+
+# Encode categorical features
+encoder = OneHotEncoder()
+encoded_features = encoder.fit_transform(features[['DayOfWeek', 'PdDistrict']]).toarray()
+
+# Combine encoded features with numerical features
+X = pd.concat([pd.DataFrame(encoded_features), features[['X', 'Y']]], axis=1)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, target, test_size=0.2, random_state=42)
+
+# Initialize and train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)
+
+# Calculate log loss
+logloss = log_loss(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+model, y_pred_proba, logloss
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 22
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2919 in validate_data
+    _check_feature_names(_estimator, X, reset=reset)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2715 in _check_feature_names
+    feature_names_in = _get_feature_names(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2417 in _get_feature_names
+    raise TypeError(
+
+TypeError: Feature names are only supported if all input features have string names, but your input has ['int', 'str'] as feature name / column name types. If you want feature names to be stored and validated, you must convert them all to strings, by using X.columns = X.columns.astype(str) for example. Otherwise you can remove feature / column names from your input data, or convert them all to a non-string data type.
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import log_loss
+
+# Preprocess the data
+features = train_data.drop(columns='Category')
+target = train_data['Category']
+
+# Encode categorical features
+encoder = OneHotEncoder()
+encoded_features = encoder.fit_transform(features[['DayOfWeek', 'PdDistrict']]).toarray()
+
+# Combine encoded features with numerical features
+X = pd.concat([pd.DataFrame(encoded_features), features[['X', 'Y']]], axis=1)
+
+# Convert all feature names to strings
+X.columns = X.columns.astype(str)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, target, test_size=0.2, random_state=42)
+
+# Initialize and train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)
+
+# Calculate log loss
+logloss = log_loss(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+model, y_pred_proba, logloss
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ array([[0.        , 0.        , 0.        , ..., 0.018     , 0.        ,
+         0.        ],
+        [0.        , 0.        , 0.        , ..., 0.        , 0.        ,
+         0.        ],
+        [0.        , 0.1575    , 0.        , ..., 0.        , 0.        ,
+         0.        ],
+        ...,
+        [0.        , 0.01      , 0.        , ..., 0.03      , 0.        ,
+         0.019     ],
+        [0.        , 0.00753247, 0.        , ..., 0.        , 0.01188312,
+         0.        ],
+        [0.        , 0.        , 0.        , ..., 0.67      , 0.        ,
+         0.        ]]),
+ 11.439968766933292)

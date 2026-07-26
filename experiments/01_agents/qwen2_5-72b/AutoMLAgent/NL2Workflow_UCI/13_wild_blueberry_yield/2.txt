@@ -1,0 +1,164 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(data_path):
+    # Load the dataset
+    df = pd.read_csv(data_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Identify missing values
+    print(df.isnull().sum())
+
+    # Impute missing values
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    # Mean imputation for numerical features
+    df[numerical_features] = df[numerical_features].fillna(df[numerical_features].mean())
+
+    # Mode imputation for categorical features
+    if not categorical_features.empty:
+        df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+
+    # Alternatively, use KNN imputation
+    imputer = KNNImputer(n_neighbors=5)
+    df[numerical_features] = imputer.fit_transform(df[numerical_features])
+
+    # Encoding categorical variables
+    df = pd.get_dummies(df, drop_first=True)
+
+    # Normalizing numerical features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    return df, scaler
+
+# Data Splitting
+def split_data(df):
+    # Split the data
+    X = df.drop(columns=['yield'])
+    y = df['yield']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    # Define the model
+    rf = RandomForestRegressor(random_state=42)
+
+    # Define the hyperparameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 20, 30],
+        'min_samples_split': [2, 5, 10]
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(rf, param_grid, cv=5, scoring='neg_mean_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_rf = grid_search.best_estimator_
+
+    return best_rf, grid_search.best_params_
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    # Evaluate on the validation set
+    y_val_pred = model.predict(X_val)
+    val_mae = mean_absolute_error(y_val, y_val_pred)
+    print(f'Validation MAE: {val_mae}')
+
+    # Evaluate on the test set
+    y_test_pred = model.predict(X_test)
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+    print(f'Test MAE: {test_mae}')
+
+    performance_scores = {
+        'Validation MAE': val_mae,
+        'Test MAE': test_mae
+    }
+
+    return performance_scores
+
+# Model Saving and Deployment
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from the specified path
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+    df = load_data(data_path)
+
+    # Step 2. Preprocess the data
+    df, scaler = preprocess_data(df)
+
+    # Step 3. Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 4. Train the model
+    model, best_params = train_model(X_train, y_train)
+    print(f'Best Hyperparameters: {best_params}')
+
+    # Step 5. Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 6. Save the model
+    model_path = r'./agent_workspace/trained_models/wild_blueberry_yield_model.pkl'
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+id                      0
+clonesize               0
+honeybee                0
+bumbles                 0
+andrena                 0
+osmia                   0
+MaxOfUpperTRange        0
+MinOfUpperTRange        0
+AverageOfUpperTRange    0
+MaxOfLowerTRange        0
+MinOfLowerTRange        0
+AverageOfLowerTRange    0
+RainingDays             0
+AverageRainingDays      0
+fruitset                0
+fruitmass               0
+seeds                   0
+yield                   0
+dtype: int64
+Best Hyperparameters: {'max_depth': 10, 'min_samples_split': 10, 'n_estimators': 300}
+Validation MAE: 0.050399732136340664
+Test MAE: 0.05562037282205178
+Model Performance on Test Set: {'Validation MAE': 0.050399732136340664, 'Test MAE': 0.05562037282205178}

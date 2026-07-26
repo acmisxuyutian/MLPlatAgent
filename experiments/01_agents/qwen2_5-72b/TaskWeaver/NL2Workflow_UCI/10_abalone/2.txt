@@ -1,0 +1,98 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first few rows of the dataset
+train_df.head(), train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      id Sex  Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Rings
+ 0  43718   M   0.650     0.505   0.175        1.3850          0.7105          0.3020         0.360     10
+ 1  45247   F   0.670     0.520   0.195        1.5405          0.6370          0.3455         0.385     11
+ 2  71393   M   0.605     0.495   0.150        1.1345          0.5585          0.2470         0.285      9
+ 3  51688   M   0.680     0.560   0.200        1.5340          0.6900          0.3060         0.440     11
+ 4  40681   I   0.295     0.200   0.075        0.1075          0.0350          0.0190         0.038      5,
+           id Sex  Length  Diameter  Height  Whole weight  Whole weight.1  Whole weight.2  Shell weight  Rings
+ 0      43718   M   0.650     0.505   0.175        1.3850          0.7105          0.3020         0.360     10
+ 1      45247   F   0.670     0.520   0.195        1.5405          0.6370          0.3455         0.385     11
+ ...      ...  ..     ...       ...     ...           ...             ...             ...           ...    ...
+ 72490    860   M   0.695     0.525   0.185        1.8275          0.8850          0.4095         0.499     11
+ 72491  15795   I   0.370     0.275   0.095        0.2225          0.0960          0.0455         0.080      7
+ 
+ [72492 rows x 10 columns])import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+import numpy as np
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Data preprocessing
+# Check for missing values
+missing_values = train_df.isnull().sum()
+
+# Drop rows with missing values
+train_df.dropna(inplace=True)
+
+# Convert categorical variable 'Sex' to numerical values
+train_df['Sex'] = train_df['Sex'].map({'M': 0, 'F': 1, 'I': 2})
+
+# Feature selection
+features = ['Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shell weight']
+X = train_df[features]
+y = train_df['Rings']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict on the validation set
+y_pred = model.predict(X_val)
+
+# Calculate RMLSE
+rmlse = np.sqrt(mean_squared_log_error(y_val, y_pred))
+
+# Report the RMLSE
+rmlse, model, X_train, X_val, y_train, y_val, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.1699383907173355,
+ RandomForestRegressor(random_state=42),
+        Sex  Length  Diameter  Height  Whole weight  Shell weight
+ 30516    0   0.585     0.480   0.135        0.8265         0.219
+ 9019     2   0.475     0.350   0.115        0.4745         0.126
+ ...    ...     ...       ...     ...           ...           ...
+ 860      2   0.450     0.355   0.120        0.4790         0.160
+ 15795    1   0.625     0.485   0.205        1.4385         0.405
+ 
+ [57993 rows x 6 columns],
+        Sex  Length  Diameter  Height  Whole weight  Shell weight
+ 57968    1    0.62     0.475   0.150        1.0265        0.2565
+ 22693    2    0.37     0.275   0.095        0.2575        0.0700
+ ...    ...     ...       ...     ...           ...           ...
+ 60918    2    0.41     0.305   0.105        0.3625        0.1300
+ 53724    1    0.48     0.405   0.120        0.5990        0.2200
+ 
+ [14499 rows x 6 columns],
+ 30516     8
+ 9019     10
+          ..
+ 860      22
+ 15795    13
+ Name: Rings, Length: 57993, dtype: int64,
+ 57968     9
+ 22693     6
+          ..
+ 60918     7
+ 53724    11
+ Name: Rings, Length: 14499, dtype: int64,
+ array([ 9.12,  6.35,  8.05, ..., 11.73,  7.17, 12.75]))

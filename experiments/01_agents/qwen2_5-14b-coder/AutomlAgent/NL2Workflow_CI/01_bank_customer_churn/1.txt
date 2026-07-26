@@ -1,0 +1,145 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data(train_url, test_url):
+    train_df = pd.read_csv(train_url)
+    test_df = pd.read_csv(test_url)
+    return train_df, test_df
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+
+    # Define preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    # Define preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Apply preprocessing
+    train_preprocessed = preprocessor.fit_transform(train_df.drop('Churn', axis=1))
+    test_preprocessed = preprocessor.transform(test_df.drop('Churn', axis=1))
+
+    return train_preprocessed, test_preprocessed
+
+def train_model(train_data, train_labels):
+    # Define the model
+    model = RandomForestClassifier(random_state=SEED)
+    
+    # Define hyperparameters for GridSearchCV
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
+    
+    # Hyperparameter optimization
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=3, n_jobs=-1, scoring='accuracy')
+    grid_search.fit(train_data, train_labels)
+    
+    return grid_search.best_estimator_
+
+def evaluate_model(model, test_data, test_labels):
+    # Predict on the test data
+    y_pred = model.predict(test_data)
+    
+    # Calculate performance scores
+    performance_scores = {
+        'ACC': accuracy_score(test_labels, y_pred),
+        'F1': f1_score(test_labels, y_pred)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_url = "path/to/bank_customer_churn_train.csv"  # Replace with the correct path or URL
+    test_url = "path/to/bank_customer_churn_test.csv"    # Replace with the correct path or URL
+    train_df, test_df = load_data(train_url, test_url)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_df, test_df = train_test_split(train_df, test_size=0.3, random_state=SEED)
+    valid_df, test_df = train_test_split(test_df, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_preprocessed, test_preprocessed = preprocess_data(train_df, test_df)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    train_labels = train_df['Churn']  # Assuming 'Churn' is the target column
+    model = train_model(train_preprocessed, train_labels)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_preprocessed, test_df['Churn'])
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 113, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 92, in main
+    train_df, test_df = load_data(train_url, test_url)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 22, in load_data
+    train_df = pd.read_csv(train_url)
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'path/to/bank_customer_churn_train.csv'

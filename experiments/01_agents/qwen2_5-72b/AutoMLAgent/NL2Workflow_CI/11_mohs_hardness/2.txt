@@ -1,0 +1,195 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import median_absolute_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from scipy import stats
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Check for missing values and impute
+    train_df.fillna(train_df.mean(), inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+
+    # Check for outliers and handle
+    z_scores = stats.zscore(train_df.select_dtypes(include=[np.number]))
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    train_df = train_df[filtered_entries]
+
+    # Ensure target variable is present
+    if 'mohs_hardness' not in train_df.columns:
+        raise KeyError("Column 'mohs_hardness' not found in the training dataset.")
+    if 'mohs_hardness' not in test_df.columns:
+        raise KeyError("Column 'mohs_hardness' not found in the testing dataset.")
+
+    # Feature scaling
+    scaler = StandardScaler()
+    train_features = train_df.drop(columns=['mohs_hardness'])
+    test_features = test_df.drop(columns=['mohs_hardness'])
+
+    train_df_scaled = pd.DataFrame(scaler.fit_transform(train_features), columns=train_features.columns)
+    test_df_scaled = pd.DataFrame(scaler.transform(test_features), columns=test_features.columns)
+
+    train_df_scaled['mohs_hardness'] = train_df['mohs_hardness']
+    test_df_scaled['mohs_hardness'] = test_df['mohs_hardness']
+
+    return train_df_scaled, test_df_scaled
+
+# Data Splitting
+def split_data(train_df_scaled):
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df_scaled.drop(columns=['mohs_hardness']),
+        train_df_scaled['mohs_hardness'],
+        test_size=0.2,
+        random_state=42
+    )
+    return X_train, X_val, y_train, y_val
+
+# Model Definition
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.fc1(x))
+        x = self.tanh(self.fc2(x))
+        x = self.tanh(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Model Training
+def train_model(model, X_train, y_train, X_val, y_val):
+    criterion = nn.L1Loss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=0.001)
+    num_epochs = 200
+    patience = 10
+    best_val_loss = float('inf')
+    epochs_no_improve = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+            val_loss = criterion(val_outputs, torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1))
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve == patience:
+                print(f'Early stopping at epoch {epoch}')
+                break
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+
+# Model Evaluation
+def evaluate_model(model, test_df_scaled):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(test_df_scaled.drop(columns=['mohs_hardness']).values, dtype=torch.float32))
+        test_predictions = test_outputs.numpy().flatten()
+        test_true_values = test_df_scaled['mohs_hardness'].values
+
+    medae = median_absolute_error(test_true_values, test_predictions)
+    print(f'Median Absolute Error (MedAE) on Test Set: {medae:.4f}')
+    return medae
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+# Model Loading
+def load_model(model, model_path):
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+    model_path = r'./agent_workspace/trained_models/mohs_hardness_model.pth'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess data
+    train_df_scaled, test_df_scaled = preprocess_data(train_df, test_df)
+
+    # Split data
+    X_train, X_val, y_train, y_val = split_data(train_df_scaled)
+
+    # Define model
+    input_size = X_train.shape[1]
+    model = NeuralNetwork(input_size)
+
+    # Train model
+    train_model(model, X_train, y_train, X_val, y_val)
+
+    # Evaluate model
+    model_performance = evaluate_model(model, test_df_scaled)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Save model
+    save_model(model, model_path)
+
+    # Load model for inference (example)
+    loaded_model = load_model(NeuralNetwork(input_size), model_path)
+    with torch.no_grad():
+        sample_input = torch.tensor([[0.5, 0.3, 0.2, 0.1]], dtype=torch.float32)  # Replace with actual input features
+        prediction = loaded_model(sample_input).item()
+        print(f'Predicted Mohs Hardness: {prediction:.4f}')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in main
+    train_df_scaled, test_df_scaled = preprocess_data(train_df, test_df)
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 40, in preprocess_data
+    raise KeyError("Column 'mohs_hardness' not found in the training dataset.")
+KeyError: "Column 'mohs_hardness' not found in the training dataset."

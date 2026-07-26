@@ -1,0 +1,176 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from scipy import stats
+import torch
+import torch.nn as nn
+import torch.utils.data as data
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_classif
+from imblearn.over_sampling import SMOTE
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(data):
+    # Handling Missing Values
+    numerical_features = data.select_dtypes(include=['int64', 'float64']).columns
+    data[numerical_features] = data[numerical_features].fillna(data[numerical_features].mean())
+    
+    categorical_features = data.select_dtypes(include=['object', 'category']).columns
+    data[categorical_features] = data[categorical_features].fillna(data[categorical_features].mode().iloc[0])
+    
+    # Handling Outliers
+    z_scores = stats.zscore(data[numerical_features])
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    data = data[filtered_entries]
+    
+    data[numerical_features] = data[numerical_features].clip(lower=data[numerical_features].quantile(0.01), upper=data[numerical_features].quantile(0.99), axis=1)
+    
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    data[numerical_features] = scaler.fit_transform(data[numerical_features])
+    
+    # SMOTE
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(data.drop('churn', axis=1), data['churn'])
+    
+    # Feature Augmentation
+    X_resampled['activity_ratio'] = X_resampled['total_transactions'] / X_resampled['total_days_active']
+    
+    # Encode Categorical Variables
+    data = pd.get_dummies(data, columns=categorical_features, drop_first=True)
+    
+    # Feature Selection
+    X = data.drop('churn', axis=1)
+    y = data['churn']
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_new = selector.fit_transform(X, y)
+    
+    return X_new, y
+
+def train_model(model, train_loader, criterion, optimizer, num_epochs=50):
+    model.train()
+    for epoch in range(num_epochs):
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            preds = (outputs > 0.5).float()
+            y_true.extend(labels.numpy())
+            y_pred.extend(preds.numpy())
+    
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'AUC-ROC': roc_auc_score(y_true, y_pred)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X, y = preprocess_data(dataset)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.6667, random_state=SEED)
+    
+    train_dataset = data.TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32))
+    train_loader = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+    
+    val_dataset = data.TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val, dtype=torch.float32))
+    val_loader = data.DataLoader(val_dataset, batch_size=32, shuffle=False)
+    
+    test_dataset = data.TensorDataset(torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32))
+    test_loader = data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = ChurnPredictor(input_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    model = train_model(model, train_loader, criterion, optimizer)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/churn_predictor.pth"
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py:37: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py:41: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 132, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 97, in main
+    X, y = preprocess_data(dataset)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 45, in preprocess_data
+    X_resampled, y_resampled = smote.fit_resample(data.drop('churn', axis=1), data['churn'])
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['churn'] not found in axis"

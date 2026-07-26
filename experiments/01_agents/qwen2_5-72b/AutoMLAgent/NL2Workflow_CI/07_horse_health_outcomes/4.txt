@@ -1,0 +1,166 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetClassifier
+import torch
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, roc_auc_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Ensure 'health_status' column exists
+    if 'health_status' not in train_df.columns:
+        raise ValueError("The 'health_status' column is missing in the training dataset.")
+    if 'health_status' not in test_df.columns:
+        raise ValueError("The 'health_status' column is missing in the testing dataset.")
+
+    # Feature Encoding
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    train_df = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+
+    # Normalization
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    scaler = MinMaxScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Handling Missing Values
+    train_df.fillna(train_df.mean(), inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+
+    # Feature Selection
+    X_train = train_df.drop(columns=['health_status'])
+    y_train = train_df['health_status']
+    mutual_info = mutual_info_classif(X_train, y_train)
+    selected_features = X_train.columns[mutual_info > 0.1]  # Adjust the threshold as needed
+    X_train = X_train[selected_features]
+    X_test = test_df[selected_features]
+
+    # Dimensionality Reduction
+    pca = PCA(n_components=0.95)  # Retain 95% of the variance
+    X_train = pca.fit_transform(X_train)
+    X_test = pca.transform(X_test)
+
+    return X_train, y_train, X_test, test_df
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+    return X_train, y_train
+
+# Model Training
+def train_model(X_train, y_train, X_test, y_test):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    model = TabNetClassifier(
+        n_d=64, n_a=64, n_steps=3, gamma=1.3, n_independent=2, n_shared=2,
+        cat_idxs=[], cat_dims=[], cat_emb_dim=1,
+        optimizer_fn=torch.optim.Adam, optimizer_params=dict(lr=2e-2),
+        scheduler_params={"step_size": 50, "gamma": 0.9},
+        scheduler_fn=torch.optim.lr_scheduler.StepLR, mask_type='entmax',
+        verbose=1
+    )
+
+    model.fit(
+        X_train=X_train, y_train=y_train,
+        eval_set=[(X_train, y_train), (X_test, y_test)],
+        eval_name=['train', 'valid'],
+        eval_metric=['f1'],
+        max_epochs=200, patience=20,
+        batch_size=64, virtual_batch_size=128,
+        num_workers=0,
+        weights=1,
+        drop_last=False
+    )
+
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    performance_scores = {
+        'F1 Score': f1_score(y_test, y_pred),
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred),
+        'Recall': recall_score(y_test, y_pred),
+        'AUC-ROC': roc_auc_score(y_test, y_pred)
+    }
+    return performance_scores
+
+# Saving Predictions and Model
+def save_predictions(y_pred, output_path):
+    predictions_df = pd.DataFrame({'health_status': y_pred})
+    predictions_df.to_csv(output_path, index=False)
+
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save_model(model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+    output_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/predictions.csv'
+    model_path = './agent_workspace/trained_models/tabnet_horse_health_model.zip'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess data
+    X_train, y_train, X_test, test_df = preprocess_data(train_df, test_df)
+
+    # Augment data
+    X_train, y_train = augment_data(X_train, y_train)
+
+    # Train model
+    model = train_model(X_train, y_train, X_test, test_df['health_status'])
+
+    # Evaluate model
+    performance_scores = evaluate_model(model, X_test, test_df['health_status'])
+
+    # Save predictions
+    y_pred = model.predict(X_test)
+    save_predictions(y_pred, output_path)
+
+    # Save model
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 129, in main
+    X_train, y_train, X_test, test_df = preprocess_data(train_df, test_df)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 30, in preprocess_data
+    raise ValueError("The 'health_status' column is missing in the training dataset.")
+ValueError: The 'health_status' column is missing in the training dataset.

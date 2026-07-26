@@ -1,0 +1,180 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import roc_auc_score, confusion_matrix, accuracy_score, f1_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_data(data_path):
+    # Load the dataset
+    df = pd.read_csv(data_path)
+
+    # Data overview
+    print(df.info())
+    print(df.head())
+
+    # Missing values
+    print(df.isnull().sum())
+
+    # Descriptive statistics
+    print(df.describe())
+
+    # Categorical distribution
+    for column in df.select_dtypes(include=['object']).columns:
+        print(f"Value counts for {column}:")
+        print(df[column].value_counts())
+
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling missing values
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    numerical_transformer = SimpleImputer(strategy='median')
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    scaler = StandardScaler()
+    smote = SMOTE(random_state=42)
+
+    preprocessing_pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('scaler', scaler),
+        ('smote', smote)
+    ])
+
+    # Apply preprocessing
+    X = df.drop(columns=['churn'])
+    y = df['churn']
+    X_preprocessed, y_preprocessed = preprocessing_pipeline.fit_transform(X, y)
+
+    return X_preprocessed, y_preprocessed, preprocessing_pipeline
+
+# Feature Engineering
+def feature_engineering(df):
+    # Ensure 'customer_id' and 'transaction_date' are present in the dataset
+    if 'customer_id' not in df.columns or 'transaction_date' not in df.columns:
+        raise KeyError("The dataset does not contain the required 'customer_id' or 'transaction_date' columns.")
+    
+    # Ensure 'transaction_date' is in datetime format
+    df['transaction_date'] = pd.to_datetime(df['transaction_date'])
+    
+    df['average_transaction_amount'] = df.groupby('customer_id')['transaction_amount'].transform('mean')
+    df['frequency_of_service_usage'] = df.groupby('customer_id')['transaction_date'].transform('count')
+    df['recency'] = (df['transaction_date'].max() - df['transaction_date']).dt.days
+
+    df['transaction_amount_frequency'] = df['average_transaction_amount'] * df['frequency_of_service_usage']
+    df['service_usage_recency'] = df['frequency_of_service_usage'] * df['recency']
+    
+    return df
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    # Model selection
+    model = RandomForestClassifier(random_state=42)
+
+    # Hyperparameter tuning
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10]
+    }
+
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Best model
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    # Evaluate the model
+    y_pred = model.predict(X_val)
+    y_pred_proba = model.predict_proba(X_val)[:, 1]
+
+    auc_roc = roc_auc_score(y_val, y_pred_proba)
+    conf_matrix = confusion_matrix(y_val, y_pred)
+    accuracy = accuracy_score(y_val, y_pred)
+    f1 = f1_score(y_val, y_pred)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': conf_matrix,
+        'Accuracy': accuracy,
+        'F1 Score': f1
+    }
+
+    print(f'AUC-ROC: {auc_roc}')
+    print(f'Confusion Matrix:\n{conf_matrix}')
+    print(f'Accuracy: {accuracy}')
+    print(f'F1 Score: {f1}')
+
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    df = load_data(data_path)
+    
+    # Check if 'customer_id' and 'transaction_date' columns are present
+    if 'customer_id' not in df.columns or 'transaction_date' not in df.columns:
+        raise KeyError("The dataset does not contain the required 'customer_id' or 'transaction_date' columns.")
+    
+    df = feature_engineering(df)
+    X_preprocessed, y_preprocessed, preprocessing_pipeline = preprocess_data(df)
+    X_train, X_val, y_train, y_val = train_test_split(X_preprocessed, y_preprocessed, test_size=0.2, random_state=42)
+    model = train_model(X_train, y_train)
+    model_performance = evaluate_model(model, X_val, y_val)
+
+    # Save the model and preprocessing pipeline
+    model_path = os.path.join("./agent_workspace/trained_models", "bank_customer_churn_model.pkl")
+    preprocessing_pipeline_path = os.path.join("./agent_workspace/trained_models", "bank_customer_churn_preprocessing_pipeline.pkl")
+
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    joblib.dump(preprocessing_pipeline, preprocessing_pipeline_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 167, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in main
+    raise KeyError("The dataset does not contain the required 'customer_id' or 'transaction_date' columns.")
+KeyError: "The dataset does not contain the required 'customer_id' or 'transaction_date' columns."

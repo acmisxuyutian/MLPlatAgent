@@ -1,0 +1,166 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import log_loss
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv', on_bad_lines='skip')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv', on_bad_lines='skip')
+    return train_df, test_df
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object']).columns
+
+    imputer_num = SimpleImputer(strategy='mean')
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_cols] = imputer_num.fit_transform(train_df[numerical_cols])
+    test_df[numerical_cols] = imputer_num.transform(test_df[numerical_cols])
+
+    train_df[categorical_cols] = imputer_cat.fit_transform(train_df[categorical_cols])
+    test_df[categorical_cols] = imputer_cat.transform(test_df[categorical_cols])
+
+    # Encode categorical features
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    encoded_features = encoder.fit_transform(train_df[categorical_cols])
+    encoded_features_test = encoder.transform(test_df[categorical_cols])
+
+    train_df_encoded = pd.concat([train_df[numerical_cols], pd.DataFrame(encoded_features)], axis=1)
+    test_df_encoded = pd.concat([test_df[numerical_cols], pd.DataFrame(encoded_features_test)], axis=1)
+
+    # Split the dataset
+    X_train, X_val, y_train, y_val = train_test_split(train_df_encoded.drop('survival_status', axis=1), train_df_encoded['survival_status'], test_size=0.2, random_state=42)
+
+    return X_train, X_val, y_train, y_val, test_df_encoded.drop('survival_status', axis=1), test_df_encoded['survival_status']
+
+# Model initialization and training
+class LNN(nn.Module):
+    def __init__(self, input_size, num_rule_modules):
+        super(LNN, self).__init__()
+        self.rule_modules = nn.ModuleList([nn.Linear(input_size, 1) for _ in range(num_rule_modules)])
+        self.regularization_coefficients = {'λnon-empty': 1e-1, 'λsparsity': 1e-3}
+
+    def forward(self, x):
+        rules = torch.stack([rule(x) for rule in self.rule_modules], dim=1)
+        return torch.mean(rules, dim=1)
+
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100):
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train, dtype=torch.float32).view(-1, 1))
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(torch.tensor(X_val, dtype=torch.float32))
+            val_loss = criterion(val_outputs, torch.tensor(y_val, dtype=torch.float32).view(-1, 1))
+        print(f'Epoch {epoch+1}, Train Loss: {loss.item()}, Val Loss: {val_loss.item()}')
+
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(X_test, dtype=torch.float32))
+        test_loss = log_loss(y_test, test_outputs.sigmoid().numpy())
+    performance_scores = {
+        'LogLoss': test_loss
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, test_df = load_data()
+
+    # Step 2. Create a train-valid-test split of the data
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering
+    # Preprocessing is done in the preprocess_data function
+
+    # Step 4. Define required model
+    input_size = X_train.shape[1]
+    num_rule_modules = 128
+    model = LNN(input_size, num_rule_modules)
+
+    # Step 5. Train the retrieved/loaded model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 6. Evaluate the trained model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the trained model
+    model_path = "./agent_workspace/trained_models/lnn_model.pt"
+    torch.jit.save(torch.jit.trace(model, torch.tensor(X_train[0:1], dtype=torch.float32)), model_path)
+    print(f"Model saved to {model_path}")
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 102, in main
+    X_train, X_val, y_train, y_val, X_test, y_test = preprocess_data(train_df, test_df)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 35, in preprocess_data
+    train_df[numerical_cols] = imputer_num.fit_transform(train_df[numerical_cols])
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 436, in fit
+    X = self._validate_input(X, in_fit=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 363, in _validate_input
+    raise ve
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 929, in check_array
+    dtype_orig = np.result_type(*dtypes_orig)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: at least one array or dtype is required

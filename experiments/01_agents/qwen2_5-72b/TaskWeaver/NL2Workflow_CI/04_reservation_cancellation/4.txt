@@ -1,0 +1,172 @@
+import pandas as pd
+
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+ 0      15559             2               0                     0                  3                  0                           0                   1         65          2018             11             2                    0               0                             0                                     0                60.0                       2               0
+ 1      32783             2               0                     1                  4                  0                           0                   1         73          2018             12            26                    1               0                             0                                     0               111.6                       1               0
+ ...      ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+ 33672    860             2               0                     0                  2                  0                           0                   0         21          2017             12            10                    0               0                             0                                     0                70.0                       0               0
+ 33673  15795             2               0                     2                  1                  0                           0                   1        253          2018             10             5                    1               0                             0                                     0               115.2                       0               1
+ 
+ [33674 rows x 19 columns],
+          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+ 0      8768             2               0                     0                  3                  0                           0                   0         58          2018              1            26                    0               0                             0                                     0               80.67                       1               0
+ 1     38340             2               0                     0                  2                  0                           0                   0        224          2018              8             2                    1               0                             0                                     0               93.96                       0               1
+ ...     ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+ 8418  38678             3               0                     1                  4                  0                           0                   1        139          2018              6            27                    1               0                             0                                     0              116.45                       0               1
+ 8419  19300             2               0                     2                  2                  0                           0                   0        133          2018              8            11                    1               0                             0                                     0              113.60                       1               1
+ 
+ [8420 rows x 19 columns])import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Define features and target
+X = train_df.drop(columns=['id', 'booking_status'])
+y = train_df['booking_status']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create LightGBM dataset
+train_data = lgb.Dataset(X_train, label=y_train)
+val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
+
+# Define parameters for LightGBM
+params = {
+    'objective': 'binary',
+    'metric': 'auc',
+    'boosting_type': 'gbdt',
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+    'feature_fraction': 0.9,
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'verbose': 0
+}
+
+# Train the model
+model = lgb.train(params, train_data, valid_sets=[val_data], num_boost_round=100, early_stopping_rounds=10)
+
+# Save the model
+model.save_model('lightgbm_model.txt')
+
+model, X_val, y_val
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 30
+    model = lgb.train(params, train_data, valid_sets=[val_data], num_boost_round=100, early_stopping_rounds=10)
+
+TypeError: train() got an unexpected keyword argument 'early_stopping_rounds'
+
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Define features and target
+X = train_df.drop(columns=['id', 'booking_status'])
+y = train_df['booking_status']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create LightGBM dataset
+train_data = lgb.Dataset(X_train, label=y_train)
+val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
+
+# Define parameters for LightGBM
+params = {
+    'objective': 'binary',
+    'metric': 'auc',
+    'boosting_type': 'gbdt',
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+    'feature_fraction': 0.9,
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'verbose': 0
+}
+
+# Train the model
+model = lgb.train(params, train_data, valid_sets=[val_data], num_boost_round=100)
+
+# Save the model
+model.save_model('lightgbm_model.txt')
+
+model, X_val, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(<lightgbm.basic.Booster at 0x1b829fac3d0>,
+        no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests
+ 19413             2               0                     2                  5                  1                           0                   0        161          2018             11            23                    1               0                             0                                     0               95.69                       2
+ 18726             2               0                     2                  2                  0                           0                   0        188          2018              7            16                    1               0                             0                                     0               90.95                       0
+ ...             ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...
+ 10890             2               0                     0                  4                  0                           0                   0         51          2018             11             2                    0               0                             0                                     0               75.00                       0
+ 15452             1               0                     0                  1                  0                           0                   0         22          2018             12            21                    2               1                             1                                     1               67.00                       0
+ 
+ [6735 rows x 17 columns],
+ 19413    1
+ 18726    1
+         ..
+ 10890    0
+ 15452    0
+ Name: booking_status, Length: 6735, dtype: int64)import pandas as pd
+
+# Load the test data
+X_test = test_df.drop(columns=['id', 'booking_status'])
+
+# Predict using the trained model
+y_pred = model.predict(X_test)
+
+# Convert probabilities to binary predictions (0 or 1)
+y_pred_binary = (y_pred > 0.5).astype(int)
+
+# Save the predictions to a CSV file
+predictions_df = pd.DataFrame({'id': test_df['id'], 'predicted_booking_status': y_pred_binary})
+predictions_df.to_csv('predictions.csv', index=False)
+
+y_pred, y_pred_binary, predictions_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([0.02813631, 0.8616576 , 0.55339389, ..., 0.77302939, 0.75711285,
+        0.25385772]),
+ array([0, 1, 1, ..., 1, 1, 0]),
+          id  predicted_booking_status
+ 0      8768                         0
+ 1     38340                         1
+ ...     ...                       ...
+ 8418  38678                         1
+ 8419  19300                         0
+ 
+ [8420 rows x 2 columns])from sklearn.metrics import roc_auc_score
+
+# Calculate AUC-ROC score
+true_labels = test_df['booking_status']
+auc_roc_score = roc_auc_score(true_labels, y_pred)
+
+auc_roc_score, true_labels, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8925995665211841,
+ 0       0
+ 1       1
+        ..
+ 8418    1
+ 8419    1
+ Name: booking_status, Length: 8420, dtype: int64,
+ array([0.02813631, 0.8616576 , 0.55339389, ..., 0.77302939, 0.75711285,
+        0.25385772]))

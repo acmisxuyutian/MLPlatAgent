@@ -1,0 +1,180 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data():
+    # Load the dataset
+    wine_data = load_wine()
+    df = pd.DataFrame(data=wine_data.data, columns=wine_data.feature_names)
+    df['class'] = wine_data.target
+
+    # Exploratory Data Analysis (EDA)
+    print(df.head())
+    print(df.describe())
+    print(df.info())
+    print(df.isnull().sum())
+
+    # Standardize the features
+    scaler = StandardScaler()
+    df[wine_data.feature_names] = scaler.fit_transform(df[wine_data.feature_names])
+
+    # Split the dataset
+    X = df.drop('class', axis=1)
+    y = df['class']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=SEED)
+
+    # Convert to PyTorch Tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    return train_loader, test_loader
+
+def train_model(model, train_loader, criterion, optimizer, num_epochs=15):
+    # Train the model
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
+    return model
+
+def evaluate_model(model, test_loader):
+    # Evaluate the model
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+
+    accuracy = accuracy_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred, average='weighted')
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1
+    }
+    print(f'Accuracy: {accuracy:.4f}')
+    print(f'F1 Score: {f1:.4f}')
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_loader, test_loader = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = WineClassifier()
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = train_model(model, train_loader, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the model
+    os.makedirs("./agent_workspace/trained_models", exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/wine_classifier_model.pth')
+
+    return model_performance
+
+class WineClassifier(nn.Module):
+    def __init__(self):
+        super(WineClassifier, self).__init__()
+        self.fc1 = nn.Linear(13, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 3)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 137, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 109, in main
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

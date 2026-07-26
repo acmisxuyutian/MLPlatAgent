@@ -1,0 +1,136 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    # Load the training dataset
+    train_df = pd.read_csv(train_path)
+    
+    # Load the test dataset
+    test_df = pd.read_csv(test_path)
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Preprocess the 'Diet' column
+    diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+    train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+    test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+    
+    # Identify numerical columns
+    numerical_columns = train_df.select_dtypes(include=[np.number]).columns
+    
+    # Handle missing values in numerical columns
+    train_df[numerical_columns] = train_df[numerical_columns].fillna(train_df[numerical_columns].median())
+    test_df[numerical_columns] = test_df[numerical_columns].fillna(test_df[numerical_columns].median())
+    
+    # Ensure all columns are numerical
+    for col in train_df.columns:
+        if train_df[col].dtype == 'object':
+            train_df[col] = pd.to_numeric(train_df[col], errors='coerce')
+            test_df[col] = pd.to_numeric(test_df[col], errors='coerce')
+    
+    # Fill any remaining missing values with the median
+    train_df = train_df.fillna(train_df.median())
+    test_df = test_df.fillna(test_df.median())
+    
+    return train_df, test_df
+
+# Model Training
+def train_model(X_train, y_train):
+    # Initialize the RandomForest model
+    rf_model = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        max_features='sqrt',
+        random_state=42
+    )
+    
+    # Train the model
+    rf_model.fit(X_train, y_train)
+    
+    return rf_model
+
+# Model Prediction
+def make_predictions(model, X_test):
+    # Make predictions
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    return y_pred_proba
+
+# Model Evaluation
+def evaluate_model(y_test, y_pred_proba):
+    # Calculate ROC AUC score
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+    
+    # Return the ROC AUC score in a tuple
+    return (roc_auc,)
+
+# Model and Data Storage
+def save_model_and_data(model, train_df, test_df, model_path, train_data_path, test_data_path):
+    # Save the trained model
+    joblib.dump(model, model_path)
+    
+    # Save the processed datasets
+    train_df.to_csv(train_data_path, index=False)
+    test_df.to_csv(test_data_path, index=False)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Define paths
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/test.csv'
+    model_path = './agent_workspace/trained_models/heart_attack_risk_random_forest.pkl'
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/processed_train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/processed_test.csv'
+    
+    # Ensure the directory for the model exists
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Preprocess datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Separate features and target
+    X_train = train_df.drop(columns=['Heart Attack Risk'])
+    y_train = train_df['Heart Attack Risk']
+    X_test = test_df.drop(columns=['Heart Attack Risk'])
+    y_test = test_df['Heart Attack Risk']
+    
+    # Train the model
+    rf_model = train_model(X_train, y_train)
+    
+    # Make predictions
+    y_pred_proba = make_predictions(rf_model, X_test)
+    
+    # Evaluate the model
+    model_performance = evaluate_model(y_test, y_pred_proba)
+    
+    # Save the model and processed datasets
+    save_model_and_data(rf_model, train_df, test_df, model_path, train_data_path, test_data_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: (0.4948478414720453,)

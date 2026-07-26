@@ -1,0 +1,149 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据的前几行
+print("训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集前几行:
+    id  gravity    ph  osmo  cond  urea   calc  target
+0  192    1.012  5.77   461  17.4   195   1.40       0
+1  234    1.017  5.71   704  24.5   270   3.46       0
+2    5    1.025  6.90   947  28.4   395   2.64       1
+3   45    1.008  5.98   779  17.8   418   6.99       1
+4  245    1.031  5.24   703  23.6   364  12.68       1
+
+测试集前几行:
+    id  gravity    ph  osmo  cond  urea  calc  target
+0  358    1.025  6.03   956  27.6   473  9.39       1
+1  350    1.021  5.09   874  29.0   382  6.99       1
+2  373    1.021  5.21   725  21.4   443  3.53       1
+3  399    1.017  6.56   559  15.8   317  5.38       1
+4  369    1.011  6.79   364  15.5   159  2.64       0
+
+生成的代码：
+# 检查缺失值
+print("训练集缺失值情况:")
+print(train_df.isnull().sum())
+print("\n测试集缺失值情况:")
+print(test_df.isnull().sum())
+
+# 查看数据的基本统计信息
+print("\n训练集基本统计信息:")
+print(train_df.describe())
+print("\n测试集基本统计信息:")
+print(test_df.describe())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_169b92b78537ad03a2ef4b0ac1d4e72e0e1d4f90514622db5b1721853eff12ea.py", line 3, in <module>
+    print(train_df.isnull().sum())
+NameError: name 'train_df' is not defined
+训练集缺失值情况:
+
+生成的代码：
+import pandas as pd
+
+# 重新加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 检查缺失值
+print("训练集缺失值情况:")
+print(train_df.isnull().sum())
+print("\n测试集缺失值情况:")
+print(test_df.isnull().sum())
+
+# 查看数据的基本统计信息
+print("\n训练集基本统计信息:")
+print(train_df.describe())
+print("\n测试集基本统计信息:")
+print(test_df.describe())
+
+
+执行结果：
+训练集缺失值情况:
+id         0
+gravity    0
+ph         0
+osmo       0
+cond       0
+urea       0
+calc       0
+target     0
+dtype: int64
+
+测试集缺失值情况:
+id         0
+gravity    0
+ph         0
+osmo       0
+cond       0
+urea       0
+calc       0
+target     0
+dtype: int64
+
+训练集基本统计信息:
+               id     gravity          ph  ...        urea        calc      target
+count  331.000000  331.000000  331.000000  ...  331.000000  331.000000  331.000000
+mean   210.528701    1.018142    5.945921  ...  281.755287    4.060967    0.441088
+std    117.388586    0.006595    0.647881  ...  134.351542    3.155523    0.497269
+min      1.000000    1.005000    4.760000  ...   10.000000    0.170000    0.000000
+25%    112.500000    1.013000    5.530000  ...  178.000000    1.505000    0.000000
+50%    213.000000    1.018000    5.730000  ...  282.000000    3.100000    0.000000
+75%    309.500000    1.022000    6.280000  ...  385.000000    5.640000    1.000000
+max    413.000000    1.040000    7.940000  ...  620.000000   14.340000    1.000000
+
+[8 rows x 8 columns]
+
+测试集基本统计信息:
+               id    gravity         ph  ...        urea       calc     target
+count   83.000000  83.000000  83.000000  ...   83.000000  83.000000  83.000000
+mean   190.433735   1.016904   5.993494  ...  266.301205   4.328675   0.457831
+std    127.781463   0.006938   0.621700  ...  144.667384   3.466218   0.501247
+min      0.000000   1.005000   4.910000  ...   64.000000   0.170000   0.000000
+25%     77.500000   1.011000   5.530000  ...  137.000000   1.270000   0.000000
+50%    165.000000   1.017000   5.940000  ...  255.000000   3.160000   0.000000
+75%    301.000000   1.021500   6.285000  ...  383.500000   7.085000   1.000000
+max    409.000000   1.034000   7.610000  ...  620.000000  14.340000   1.000000
+
+[8 rows x 8 columns]
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+
+# 定义特征和目标变量
+X_train = train_df.drop(columns=['id', 'target'])
+y_train = train_df['target']
+
+# 划分训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# 查看划分后的数据集大小
+print("训练集大小:", X_train.shape)
+print("验证集大小:", X_val.shape)
+print("测试集大小:", test_df.shape)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_98be677104b075fa29dd2596ef27889ff2f853fc10136214142acbb8d9b1b526.py", line 4, in <module>
+    X_train = train_df.drop(columns=['id', 'target'])
+NameError: name 'train_df' is not defined

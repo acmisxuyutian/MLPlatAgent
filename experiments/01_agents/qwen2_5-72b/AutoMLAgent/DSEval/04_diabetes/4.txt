@@ -1,0 +1,180 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import roc_auc_score, confusion_matrix
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# Define the paths to the datasets
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+
+# Load the datasets into DataFrame objects
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Drop duplicates from both datasets
+train_df = train_df.drop_duplicates()
+test_df = test_df.drop_duplicates()
+
+# Identify categorical columns
+categorical_columns = ['gender', 'smoking_history']
+
+# Perform one-hot encoding on the categorical columns
+train_df = pd.get_dummies(train_df, columns=categorical_columns)
+test_df = pd.get_dummies(test_df, columns=categorical_columns)
+
+# Ensure the target column name is correct
+target_column_name = 'diabetes'  # Replace with the actual target column name if different
+
+# Split the training data into features and target variable
+X_train = train_df.drop(columns=[target_column_name])
+y_train = train_df[target_column_name]
+
+# Split the test data into features and target variable
+X_test = test_df.drop(columns=[target_column_name])
+y_test = test_df[target_column_name]
+
+# Train a preliminary random forest classifier for feature ranking
+preliminary_model = RandomForestClassifier(n_estimators=100, random_state=42)
+preliminary_model.fit(X_train, y_train)
+
+# Compute permutation importance
+result = permutation_importance(preliminary_model, X_train, y_train, n_repeats=10, random_state=42, n_jobs=2)
+
+# Sort and print the feature importances
+sorted_importances = sorted(zip(X_train.columns, result.importances_mean), key=lambda x: x[1], reverse=True)
+for feature, importance in sorted_importances:
+    print(f"{feature}: {importance}")
+
+# Define the hyperparameters for the random forest classifier
+rf_model = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, random_state=42)
+
+# Train the random forest classifier
+rf_model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = rf_model.predict(X_test)
+y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+
+# Compute the AUC-ROC score
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC Score: {auc_roc}")
+
+# Generate the confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f"Confusion Matrix:\n{conf_matrix}")
+
+# Save the model
+model_path = './agent_workspace/trained_models/random_forest_diabetes_model.pkl'
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+joblib.dump(rf_model, model_path)
+
+# Load the model
+loaded_model = joblib.load(model_path)
+
+# Evaluate the loaded model
+y_pred_loaded = loaded_model.predict(X_test)
+y_pred_proba_loaded = loaded_model.predict_proba(X_test)[:, 1]
+auc_roc_loaded = roc_auc_score(y_test, y_pred_proba_loaded)
+print(f"AUC-ROC Score (Loaded Model): {auc_roc_loaded}")
+
+# Generate the confusion matrix for the loaded model
+conf_matrix_loaded = confusion_matrix(y_test, y_pred_loaded)
+print(f"Confusion Matrix (Loaded Model):\n{conf_matrix_loaded}")
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Load the datasets
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    # Preprocess the data
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+    train_df = pd.get_dummies(train_df, columns=categorical_columns)
+    test_df = pd.get_dummies(test_df, columns=categorical_columns)
+
+    # Split the data into features and target variable
+    X_train = train_df.drop(columns=[target_column_name])
+    y_train = train_df[target_column_name]
+    X_test = test_df.drop(columns=[target_column_name])
+    y_test = test_df[target_column_name]
+
+    # Train the model
+    rf_model = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    rf_model.fit(X_train, y_train)
+
+    # Evaluate the model
+    y_pred = rf_model.predict(X_test)
+    y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    conf_matrix = confusion_matrix(y_test, y_pred)
+
+    # Save the model
+    model_path = './agent_workspace/trained_models/random_forest_diabetes_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(rf_model, model_path)
+
+    # Load the model
+    loaded_model = joblib.load(model_path)
+
+    # Evaluate the loaded model
+    y_pred_loaded = loaded_model.predict(X_test)
+    y_pred_proba_loaded = loaded_model.predict_proba(X_test)[:, 1]
+    auc_roc_loaded = roc_auc_score(y_test, y_pred_proba_loaded)
+    conf_matrix_loaded = confusion_matrix(y_test, y_pred_loaded)
+
+    # Return the performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': conf_matrix,
+        'AUC-ROC (Loaded Model)': auc_roc_loaded,
+        'Confusion Matrix (Loaded Model)': conf_matrix_loaded
+    }
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+HbA1c_level: 0.08217486762236856
+blood_glucose_level: 0.07050238925481075
+age: 0.027747643032416336
+bmi: 0.026443239054629964
+gender_Male: 0.010715484954152098
+smoking_history_No Info: 0.010180808472168368
+smoking_history_never: 0.009471780963450827
+gender_Female: 0.008674932196822915
+hypertension: 0.007947823840888513
+smoking_history_former: 0.006293426320547557
+heart_disease: 0.0051142967841921625
+smoking_history_current: 0.0034456928838950906
+smoking_history_not current: 0.002898101511042206
+smoking_history_ever: 0.0018868655559860393
+gender_Other: 0.0
+AUC-ROC Score: 0.9705016405346965
+Confusion Matrix:
+[[18099     0]
+ [  556  1152]]
+AUC-ROC Score (Loaded Model): 0.9705016405346965
+Confusion Matrix (Loaded Model):
+[[18099     0]
+ [  556  1152]]
+Model Performance on Test Set: {'AUC-ROC': 0.9705016405346965, 'Confusion Matrix': array([[18099,     0],
+       [  556,  1152]]), 'AUC-ROC (Loaded Model)': 0.9705016405346965, 'Confusion Matrix (Loaded Model)': array([[18099,     0],
+       [  556,  1152]])}

@@ -1,0 +1,189 @@
+import pandas as pd
+
+# 加载训练集和测试集
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  Gender        Age    Height      Weight family_history_with_overweight FAVC      FCVC       NCP       CAEC SMOKE      CH2O SCC       FAF       TUE       CALC                 MTRANS           NObeyesdad
+ 0       9958    Male  17.000000  1.770000   97.000000                            yes  yes  3.000000  3.000000     Always    no  2.000000  no  3.000000  1.000000         no             Automobile       Obesity_Type_I
+ 1       7841    Male  22.667596  1.753389   54.877111                            yes  yes  2.000000  4.000000  Sometimes    no  2.000000  no  2.000000  1.000000         no  Public_Transportation  Insufficient_Weight
+ ...      ...     ...        ...       ...         ...                            ...  ...       ...       ...        ...   ...       ...  ..       ...       ...        ...                    ...                  ...
+ 16604    860  Female  26.000000  1.650125  111.939671                            yes  yes  3.000000  3.000000  Sometimes    no  2.770732  no  0.000000  0.237307  Sometimes  Public_Transportation     Obesity_Type_III
+ 16605  15795    Male  37.997912  1.774330  107.998815                            yes  yes  2.964419  2.902766  Sometimes    no  2.745242  no  2.545707  0.000000  Sometimes             Automobile       Obesity_Type_I
+ 
+ [16606 rows x 18 columns],
+          id  Gender        Age    Height     Weight family_history_with_overweight FAVC  FCVC       NCP       CAEC SMOKE      CH2O SCC       FAF       TUE       CALC                 MTRANS           NObeyesdad
+ 0     10317  Female  26.000000  1.649178  111.93301                            yes  yes   3.0  3.000000  Sometimes    no  1.292479  no  0.065264  0.711331  Sometimes  Public_Transportation     Obesity_Type_III
+ 1      4074    Male  18.000000  1.750000   80.00000                             no  yes   2.0  3.000000  Sometimes    no  2.000000  no  1.000000  1.000000  Sometimes  Public_Transportation   Overweight_Level_I
+ ...     ...     ...        ...       ...        ...                            ...  ...   ...       ...        ...   ...       ...  ..       ...       ...        ...                    ...                  ...
+ 4150   7947    Male  33.185661  1.826970   87.00000                            yes  yes   2.0  1.000000  Sometimes    no  2.175632  no  2.000000  0.000000  Sometimes             Automobile   Overweight_Level_I
+ 4151  11274    Male  21.024970  1.721854   80.00000                            yes  yes   2.0  1.630728  Sometimes    no  2.000000  no  1.000000  0.000000  Sometimes  Public_Transportation  Overweight_Level_II
+ 
+ [4152 rows x 18 columns])import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# 加载训练集和测试集
+train_df, test_df = train_df, test_df
+
+# 描述性分析
+train_description = train_df.describe()
+test_description = test_df.describe()
+
+# 特征处理 - 将分类变量转换为数字型特征
+label_encoders = {}
+for column in train_df.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    train_df[column] = le.fit_transform(train_df[column].astype(str))
+    test_df[column] = le.transform(test_df[column].astype(str))
+    label_encoders[column] = le
+
+# 特征选择 - 删除不需要的特征
+features_to_drop = ['id']
+train_df = train_df.drop(features_to_drop, axis=1)
+test_df = test_df.drop(features_to_drop, axis=1)
+
+# 分离特征和标签
+X_train = train_df.drop('NObeyesdad', axis=1)
+y_train = train_df['NObeyesdad']
+X_test = test_df.drop('NObeyesdad', axis=1)
+y_test = test_df['NObeyesdad']
+
+# 结果存储
+train_description, test_description, X_train, y_train, X_test, y_test, label_encoders
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                 id           Age        Height        Weight          FCVC           NCP          CH2O           FAF           TUE
+ count  16606.000000  16606.000000  16606.000000  16606.000000  16606.000000  16606.000000  16606.000000  16606.000000  16606.000000
+ mean   10363.210888     23.892845      1.700198     87.956749      2.443641      2.761547      2.028798      0.985767      0.619577
+ ...             ...           ...           ...           ...           ...           ...           ...           ...           ...
+ 75%    15542.500000     26.000000      1.762461    111.600553      3.000000      3.000000      2.533263      1.600536      1.000000
+ max    20757.000000     61.000000      1.975663    165.057269      3.000000      4.000000      3.000000      3.000000      2.000000
+ 
+ [8 rows x 9 columns],
+                  id          Age       Height       Weight         FCVC          NCP         CH2O          FAF          TUE
+ count   4152.000000  4152.000000  4152.000000  4152.000000  4152.000000  4152.000000  4152.000000  4152.000000  4152.000000
+ mean   10439.649085    23.637665     1.700431    87.611878     2.454978     2.760472     2.031898     0.965667     0.605473
+ ...             ...          ...          ...          ...          ...          ...          ...          ...          ...
+ 75%    15694.250000    26.000000     1.763280   111.818345     3.000000     3.000000     2.569713     1.541072     1.000000
+ max    20756.000000    55.137881     1.975663   165.057269     3.000000     4.000000     3.000000     3.000000     2.000000
+ 
+ [8 rows x 9 columns],
+        Gender        Age    Height      Weight  family_history_with_overweight  FAVC      FCVC       NCP  CAEC  SMOKE      CH2O  SCC       FAF       TUE  CALC  MTRANS
+ 0           1  17.000000  1.770000   97.000000                               1     1  3.000000  3.000000     0      0  2.000000    0  3.000000  1.000000     2       0
+ 1           1  22.667596  1.753389   54.877111                               1     1  2.000000  4.000000     2      0  2.000000    0  2.000000  1.000000     2       3
+ ...       ...        ...       ...         ...                             ...   ...       ...       ...   ...    ...       ...  ...       ...       ...   ...     ...
+ 16604       0  26.000000  1.650125  111.939671                               1     1  3.000000  3.000000     2      0  2.770732    0  0.000000  0.237307     1       3
+ 16605       1  37.997912  1.774330  107.998815                               1     1  2.964419  2.902766     2      0  2.745242    0  2.545707  0.000000     1       0
+ 
+ [16606 rows x 16 columns],
+ 0        2
+ 1        0
+         ..
+ 16604    4
+ 16605    2
+ Name: NObeyesdad, Length: 16606, dtype: int32,
+       Gender        Age    Height     Weight  family_history_with_overweight  FAVC  FCVC       NCP  CAEC  SMOKE      CH2O  SCC       FAF       TUE  CALC  MTRANS
+ 0          0  26.000000  1.649178  111.93301                               1     1   3.0  3.000000     2      0  1.292479    0  0.065264  0.711331     1       3
+ 1          1  18.000000  1.750000   80.00000                               0     1   2.0  3.000000     2      0  2.000000    0  1.000000  1.000000     1       3
+ ...      ...        ...       ...        ...                             ...   ...   ...       ...   ...    ...       ...  ...       ...       ...   ...     ...
+ 4150       1  33.185661  1.826970   87.00000                               1     1   2.0  1.000000     2      0  2.175632    0  2.000000  0.000000     1       0
+ 4151       1  21.024970  1.721854   80.00000                               1     1   2.0  1.630728     2      0  2.000000    0  1.000000  0.000000     1       3
+ 
+ [4152 rows x 16 columns],
+ 0       4
+ 1       5
+        ..
+ 4150    5
+ 4151    6
+ Name: NObeyesdad, Length: 4152, dtype: int32,
+ {'Gender': LabelEncoder(),
+  'family_history_with_overweight': LabelEncoder(),
+  'FAVC': LabelEncoder(),
+  'CAEC': LabelEncoder(),
+  'SMOKE': LabelEncoder(),
+  'SCC': LabelEncoder(),
+  'CALC': LabelEncoder(),
+  'MTRANS': LabelEncoder(),
+  'NObeyesdad': LabelEncoder()})from sklearn.ensemble import RandomForestClassifier
+from joblib import dump
+
+# 创延和训练模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 存储模型
+dump(model, 'random_forest_model.joblib')
+
+# 存储结果变量
+model, X_train, y_train, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+        Gender        Age    Height      Weight  family_history_with_overweight  FAVC      FCVC       NCP  CAEC  SMOKE      CH2O  SCC       FAF       TUE  CALC  MTRANS
+ 0           1  17.000000  1.770000   97.000000                               1     1  3.000000  3.000000     0      0  2.000000    0  3.000000  1.000000     2       0
+ 1           1  22.667596  1.753389   54.877111                               1     1  2.000000  4.000000     2      0  2.000000    0  2.000000  1.000000     2       3
+ ...       ...        ...       ...         ...                             ...   ...       ...       ...   ...    ...       ...  ...       ...       ...   ...     ...
+ 16604       0  26.000000  1.650125  111.939671                               1     1  3.000000  3.000000     2      0  2.770732    0  0.000000  0.237307     1       3
+ 16605       1  37.997912  1.774330  107.998815                               1     1  2.964419  2.902766     2      0  2.745242    0  2.545707  0.000000     1       0
+ 
+ [16606 rows x 16 columns],
+ 0        2
+ 1        0
+         ..
+ 16604    4
+ 16605    2
+ Name: NObeyesdad, Length: 16606, dtype: int32,
+       Gender        Age    Height     Weight  family_history_with_overweight  FAVC  FCVC       NCP  CAEC  SMOKE      CH2O  SCC       FAF       TUE  CALC  MTRANS
+ 0          0  26.000000  1.649178  111.93301                               1     1   3.0  3.000000     2      0  1.292479    0  0.065264  0.711331     1       3
+ 1          1  18.000000  1.750000   80.00000                               0     1   2.0  3.000000     2      0  2.000000    0  1.000000  1.000000     1       3
+ ...      ...        ...       ...        ...                             ...   ...   ...       ...   ...    ...       ...  ...       ...       ...   ...     ...
+ 4150       1  33.185661  1.826970   87.00000                               1     1   2.0  1.000000     2      0  2.175632    0  2.000000  0.000000     1       0
+ 4151       1  21.024970  1.721854   80.00000                               1     1   2.0  1.630728     2      0  2.000000    0  1.000000  0.000000     1       3
+ 
+ [4152 rows x 16 columns],
+ 0       4
+ 1       5
+        ..
+ 4150    5
+ 4151    6
+ Name: NObeyesdad, Length: 4152, dtype: int32)from sklearn.metrics import accuracy_score
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test)
+
+# 计算模型的准确率
+accuracy = accuracy_score(y_test, y_pred)
+
+# 存储评价结果
+y_pred, accuracy, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([4, 5, 2, ..., 2, 6, 6]),
+ 0.8959537572254336,
+       Gender        Age    Height     Weight  family_history_with_overweight  FAVC  FCVC       NCP  CAEC  SMOKE      CH2O  SCC       FAF       TUE  CALC  MTRANS
+ 0          0  26.000000  1.649178  111.93301                               1     1   3.0  3.000000     2      0  1.292479    0  0.065264  0.711331     1       3
+ 1          1  18.000000  1.750000   80.00000                               0     1   2.0  3.000000     2      0  2.000000    0  1.000000  1.000000     1       3
+ ...      ...        ...       ...        ...                             ...   ...   ...       ...   ...    ...       ...  ...       ...       ...   ...     ...
+ 4150       1  33.185661  1.826970   87.00000                               1     1   2.0  1.000000     2      0  2.175632    0  2.000000  0.000000     1       0
+ 4151       1  21.024970  1.721854   80.00000                               1     1   2.0  1.630728     2      0  2.000000    0  1.000000  0.000000     1       3
+ 
+ [4152 rows x 16 columns],
+ 0       4
+ 1       5
+        ..
+ 4150    5
+ 4151    6
+ Name: NObeyesdad, Length: 4152, dtype: int32)

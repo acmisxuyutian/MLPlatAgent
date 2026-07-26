@@ -1,0 +1,195 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_log_error
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+from sklearn.ensemble import RandomForestRegressor
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.nn import Dropout
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and initial setup
+def load_data():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    abalone_df = pd.read_csv(dataset_path)
+    return abalone_df
+
+# Data preprocessing
+def preprocess_data(abalone_df):
+    # Handle missing values
+    missing_values = abalone_df.isnull().sum()
+    print("Missing values:\n", missing_values)
+    
+    numerical_features = abalone_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = abalone_df.select_dtypes(include=['object']).columns
+    
+    # Impute missing values for numerical features
+    imputer = SimpleImputer(strategy='mean')
+    abalone_df[numerical_features] = imputer.fit_transform(abalone_df[numerical_features])
+    
+    # Impute missing values for categorical features
+    imputer = SimpleImputer(strategy='most_frequent')
+    abalone_df[categorical_features] = imputer.fit_transform(abalone_df[categorical_features])
+    
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse_output=False)
+    encoded_features = encoder.fit_transform(abalone_df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    abalone_df = pd.concat([abalone_df.drop(categorical_features, axis=1), encoded_df], axis=1)
+    
+    # Scale features
+    scaler = MinMaxScaler()
+    abalone_df[numerical_features] = scaler.fit_transform(abalone_df[numerical_features])
+    
+    # Feature engineering
+    abalone_df['shell_weight_to_body_weight_ratio'] = abalone_df['Shell weight'] / abalone_df['Whole weight']
+    
+    return abalone_df
+
+# Model selection and training
+class AbaloneModelWithDropout(nn.Module):
+    def __init__(self, input_size):
+        super(AbaloneModelWithDropout, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.dropout1 = Dropout(0.2)
+        self.fc2 = nn.Linear(64, 32)
+        self.dropout2 = Dropout(0.2)
+        self.fc3 = nn.Linear(32, 16)
+        self.dropout3 = Dropout(0.2)
+        self.fc4 = nn.Linear(16, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout1(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout2(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout3(x)
+        x = self.fc4(x)
+        return x
+
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100, learning_rate=0.001, batch_size=32):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.01)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = criterion(torch.log(outputs + 1), torch.log(y_train + 1))
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_val)
+                val_loss = criterion(torch.log(val_outputs + 1), torch.log(y_val + 1))
+                print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test)
+        test_rmlse = mean_squared_log_error(y_test, test_outputs, squared=False)
+        print(f'Test RMLSE: {test_rmlse:.4f}')
+    return {'RMLSE': test_rmlse}
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load data
+    abalone_df = load_data()
+    
+    # Step 2: Preprocess data
+    processed_data = preprocess_data(abalone_df)
+    
+    # Step 3: Split data
+    X = processed_data.drop('Rings', axis=1)  # Corrected target variable name
+    y = processed_data['Rings']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    # Convert to PyTorch tensors
+    X_train = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_test = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+    
+    # Step 4: Define and train model
+    input_size = X_train.shape[1]
+    model = AbaloneModelWithDropout(input_size)
+    model = train_model(model, X_train, y_train, X_val, y_val)
+    
+    # Step 5: Evaluate model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/abalone_model.pth"
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 149, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 136, in main
+    model = train_model(model, X_train, y_train, X_val, y_val)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 83, in train_model
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.01)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

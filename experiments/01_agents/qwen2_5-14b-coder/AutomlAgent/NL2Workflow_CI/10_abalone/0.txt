@@ -1,0 +1,203 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+# Set random seeds for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data loading
+def load_data():
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/test.csv')
+    return train_df, test_df
+
+# Exploratory Data Analysis (EDA)
+def check_missing_values(df):
+    return df.isnull().sum()
+
+# Feature engineering
+def preprocess_data(train_df, test_df):
+    # Create new feature: Volume
+    train_df['Volume'] = train_df['Length'] * train_df['Diameter'] * train_df['Height']
+    test_df['Volume'] = test_df['Length'] * test_df['Diameter'] * test_df['Height']
+    
+    # Log transformation for 'Weight' if it exists
+    if 'Weight' in train_df.columns:
+        train_df['Weight_log'] = np.log1p(train_df['Weight'])
+    else:
+        print("Weight column not found in train set. Skipping log transformation.")
+    
+    if 'Weight' in test_df.columns:
+        test_df['Weight_log'] = np.log1p(test_df['Weight'])
+    else:
+        print("Weight column not found in test set. Skipping log transformation.")
+    
+    return train_df, test_df
+
+# Data splitting
+def split_data(train_df):
+    train_df, val_df = train_test_split(train_df, test_size=0.3, random_state=SEED)
+    return train_df, val_df
+
+# Model definition
+class AbaloneAgePredictor(nn.Module):
+    def __init__(self):
+        super(AbaloneAgePredictor, self).__init__()
+        self.fc1 = nn.Linear(8, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 1)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+# Model training
+def train_model(model, train_loader, val_loader, num_epochs=100):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+        val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss:.4f}')
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    test_predictions = []
+    test_labels_list = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            test_predictions.extend(outputs.numpy().flatten())
+            test_labels_list.extend(labels.numpy().flatten())
+
+    test_predictions = np.array(test_predictions)
+    test_labels_list = np.array(test_labels_list)
+
+    mse = mean_squared_error(test_labels_list, test_predictions)
+    mae = mean_absolute_error(test_labels_list, test_predictions)
+    rmse = np.sqrt(mse)
+    rmlse = np.sqrt(np.mean((np.log1p(test_labels_list) - np.log1p(test_predictions)) ** 2))
+
+    performance_scores = {
+        "MAE": mae,
+        "MSE": mse,
+        "RMSE": rmse,
+        "RMLSE": rmlse
+    }
+
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1: Load data
+    train_df, test_df = load_data()
+
+    # Step 2: Check for missing values
+    print("Missing values in train set:\n", check_missing_values(train_df))
+    print("Missing values in test set:\n", check_missing_values(test_df))
+
+    # Step 3: Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 4: Split data
+    train_df, val_df = split_data(train_df)
+
+    # Step 5: Convert DataFrames to PyTorch tensors
+    train_features = torch.tensor(train_df.drop('Age', axis=1).values, dtype=torch.float32)
+    train_labels = torch.tensor(train_df['Age'].values, dtype=torch.float32).view(-1, 1)
+    val_features = torch.tensor(val_df.drop('Age', axis=1).values, dtype=torch.float32)
+    val_labels = torch.tensor(val_df['Age'].values, dtype=torch.float32).view(-1, 1)
+    test_features = torch.tensor(test_df.drop('Age', axis=1).values, dtype=torch.float32)
+    test_labels = torch.tensor(test_df['Age'].values, dtype=torch.float32).view(-1, 1)
+
+    # Step 6: Create DataLoader
+    train_dataset = TensorDataset(train_features, train_labels)
+    val_dataset = TensorDataset(val_features, val_labels)
+    test_dataset = TensorDataset(test_features, test_labels)
+
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    # Step 7: Define and train the model
+    model = AbaloneAgePredictor()
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 8: Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+
+    # Step 9: Save the trained model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/abalone_age_predictor.pth')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 178, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in main
+    train_features = torch.tensor(train_df.drop('Age', axis=1).values, dtype=torch.float32)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['Age'] not found in axis"

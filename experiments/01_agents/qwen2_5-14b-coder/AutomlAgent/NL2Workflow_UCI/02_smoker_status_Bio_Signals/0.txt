@@ -1,0 +1,114 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+import matplotlib.pyplot as plt
+import seaborn as sns
+import shap
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+    # Separate numerical and categorical features
+    numerical_features = df_imputed.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df_imputed.select_dtypes(include=['object']).columns
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    df_imputed[numerical_features] = scaler.fit_transform(df_imputed[numerical_features])
+
+    # Encode categorical features
+    encoder = OneHotEncoder(sparse=False)
+    encoded_features = encoder.fit_transform(df_imputed[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    df_cleaned = pd.concat([df_imputed.drop(categorical_features, axis=1), encoded_df], axis=1)
+    
+    return df_cleaned
+
+def train_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    performance_scores = {
+        'ACC': accuracy_score(y_val, y_val_pred),
+        'F1': f1_score(y_val, y_val_pred)
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    df = pd.read_csv(dataset_path)
+
+    # Check if 'smoker_status' column exists
+    if 'smoker_status' not in df.columns:
+        raise ValueError("The 'smoker_status' column is not found in the dataset. Please check the dataset and ensure it contains the target variable.")
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = df.drop('smoker_status', axis=1)
+    y = df['smoker_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train_cleaned = preprocess_data(X_train)
+    X_val_cleaned = preprocess_data(X_val)
+    X_test_cleaned = preprocess_data(X_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    model = train_model(model, X_train_cleaned, y_train)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val_cleaned, y_val)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/smoker_status_rf_model.pkl'
+    import joblib
+    joblib.dump(model, model_path)
+
+    # Step 8. Model Interpretability
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_val_cleaned)
+    shap.summary_plot(shap_values, X_val_cleaned)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 101, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 63, in main
+    raise ValueError("The 'smoker_status' column is not found in the dataset. Please check the dataset and ensure it contains the target variable.")
+ValueError: The 'smoker_status' column is not found in the dataset. Please check the dataset and ensure it contains the target variable.

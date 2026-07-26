@@ -1,0 +1,196 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data paths
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Drop rows with missing values and duplicates
+    train_df.dropna(inplace=True)
+    train_df.drop_duplicates(inplace=True)
+
+    test_df.dropna(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+
+    # Feature engineering: Calculate BMI and categorize it into 'BMI_Category'
+    if 'Weight' in train_df.columns and 'Height' in train_df.columns:
+        train_df['BMI'] = train_df['Weight'] / (train_df['Height'] ** 2)
+        train_df['BMI_Category'] = pd.cut(train_df['BMI'], bins=[0, 18.5, 24.9, 29.9, float('inf')],
+                                           labels=['Underweight', 'Normal weight', 'Overweight', 'Obesity'])
+    else:
+        print("Columns 'Weight' or 'Height' not found in the training dataset.")
+
+    if 'Weight' in test_df.columns and 'Height' in test_df.columns:
+        test_df['BMI'] = test_df['Weight'] / (test_df['Height'] ** 2)
+        test_df['BMI_Category'] = pd.cut(test_df['BMI'], bins=[0, 18.5, 24.9, 29.9, float('inf')],
+                                         labels=['Underweight', 'Normal weight', 'Overweight', 'Obesity'])
+    else:
+        print("Columns 'Weight' or 'Height' not found in the test dataset.")
+
+    # Drop BMI column as it's no longer needed
+    train_df.drop(columns=['BMI'], inplace=True)
+    test_df.drop(columns=['BMI'], inplace=True)
+
+    return train_df, test_df
+
+# Define the model architecture
+class HeartDiseaseModel(nn.Module):
+    def __init__(self, input_size):
+        super(HeartDiseaseModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(64, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, num_epochs, learning_rate, batch_size, regularization_strength):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=regularization_strength)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0.0
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                val_loss += loss.item()
+
+        val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss:.4f}')
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        all_preds = []
+        all_targets = []
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            all_preds.extend(outputs.numpy())
+            all_targets.extend(targets.numpy())
+
+    auc = roc_auc_score(all_targets, all_preds)
+    performance_scores = {
+        'AUC': auc
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    X_train = train_df.drop(columns=['Heart_Disease'])
+    y_train = train_df['Heart_Disease']
+
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.3, stratify=y_train, random_state=SEED)
+
+    # Ensure all columns are of numeric type
+    X_train = X_train.apply(pd.to_numeric, errors='coerce')
+    X_val = X_val.apply(pd.to_numeric, errors='coerce')
+    X_test = test_df.drop(columns=['Heart_Disease']).apply(pd.to_numeric, errors='coerce')
+
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_test = test_df.drop(columns=['Heart_Disease'])
+    y_test = test_df['Heart_Disease']
+
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = HeartDiseaseModel(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    num_epochs = 100
+    learning_rate = 0.01
+    batch_size = 32
+    regularization_strength = 0.01
+
+    model = train_model(model, train_loader, val_loader, num_epochs, learning_rate, batch_size, regularization_strength)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 182, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 141, in main
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't convert np.ndarray of type numpy.object_. The only supported types are: float64, float32, float16, complex64, complex128, int64, int32, int16, int8, uint64, uint32, uint16, uint8, and bool.

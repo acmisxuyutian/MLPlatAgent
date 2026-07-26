@@ -1,0 +1,145 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# Define file paths
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+predictions_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/predictions.csv'
+model_path = './agent_workspace/trained_models/crab_age_best_model.pkl'
+
+# Load datasets
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Check for missing values
+    print("Missing values in training dataset:\n", train_df.isnull().sum())
+    print("Missing values in test dataset:\n", test_df.isnull().sum())
+
+    # Check data types
+    print("Data types in training dataset:\n", train_df.dtypes)
+    print("Data types in test dataset:\n", test_df.dtypes)
+
+    # Identify categorical and numerical features
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+
+    print("Categorical features:", categorical_features)
+    print("Numerical features:", numerical_features)
+
+    # Define preprocessing steps
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    # Apply preprocessing to training and test datasets
+    X_train = train_df.drop(columns=['age'], errors='ignore')
+    y_train = train_df['age'] if 'age' in train_df.columns else None
+    X_test = test_df.drop(columns=['age'], errors='ignore')
+
+    if y_train is None:
+        raise KeyError("The 'age' column is missing in the training dataset.")
+
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    return X_train_preprocessed, y_train, X_test_preprocessed
+
+# Model training
+def train_model(X_train, y_train):
+    # Initialize the Random Forest Regressor
+    model = RandomForestRegressor(
+        n_estimators=200,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        random_state=42
+    )
+
+    # Train the model
+    model.fit(X_train, y_train)
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    # Generate predictions
+    y_pred = model.predict(X_test)
+
+    # Calculate MAE
+    mae = mean_absolute_error(y_test, y_pred)
+
+    # Print MAE
+    print("Mean Absolute Error (MAE):", mae)
+
+    # Save predictions to a CSV file
+    predictions_df = pd.DataFrame({'id': test_df.index, 'predicted_age': y_pred})
+    predictions_df.to_csv(predictions_path, index=False)
+
+    return mae
+
+# Main function to orchestrate the pipeline
+def main():
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Preprocess data
+    X_train, y_train, X_test = preprocess_data(train_df, test_df)
+
+    # Train model
+    model = train_model(X_train, y_train)
+
+    # Evaluate model
+    mae = evaluate_model(model, X_test, test_df['age'])
+
+    # Save the model
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return mae
+
+if __name__ == "__main__":
+    mae = main()
+    print("Model Performance on Test Set (MAE):", mae)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 129, in <module>
+    mae = main()
+          ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 114, in main
+    X_train, y_train, X_test = preprocess_data(train_df, test_df)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 69, in preprocess_data
+    raise KeyError("The 'age' column is missing in the training dataset.")
+KeyError: "The 'age' column is missing in the training dataset."

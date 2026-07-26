@@ -1,0 +1,134 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Identify missing values, outliers, or data inconsistencies
+    print(df.isnull().sum())
+    print(df.describe())
+
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+    # Normalize numerical features using Min-Max scaling
+    scaler = MinMaxScaler()
+    numerical_features = df_imputed.select_dtypes(include=['int64', 'float64']).columns
+    df_imputed[numerical_features] = scaler.fit_transform(df_imputed[numerical_features])
+
+    # Encode categorical variables using one-hot encoding
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    categorical_features = df_imputed.select_dtypes(include=['object']).columns
+    encoded_features = encoder.fit_transform(df_imputed[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    df_encoded = pd.concat([df_imputed.drop(categorical_features, axis=1), encoded_df], axis=1)
+
+    # Create interaction terms between features if necessary
+    # Example: Create interaction terms between two numerical features
+    # df_encoded['interaction_term'] = df_encoded['numerical_feature1'] * df_encoded['numerical_feature2']
+
+    return df_encoded
+
+def train_model(X_train, y_train, n_estimators=200, max_depth=20):
+    # Initialize the Random Forest model
+    rf_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=SEED)
+
+    # Train the model
+    rf_model.fit(X_train, y_train)
+
+    return rf_model
+
+def evaluate_model(model, X_val, y_val):
+    # Predict on the validation set
+    y_val_pred = model.predict(X_val)
+
+    # Calculate the F1 score
+    f1_val = f1_score(y_val, y_val_pred)
+    print(f'Validation F1 Score: {f1_val}')
+
+    return f1_val
+
+def test_model(model, X_test, y_test):
+    # Predict on the test set
+    y_test_pred = model.predict(X_test)
+
+    # Calculate the F1 score
+    f1_test = f1_score(y_test, y_test_pred)
+    print(f'Test F1 Score: {f1_test}')
+
+    return f1_test
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    df = pd.read_csv(train_data_path)
+
+    # Ensure the target column is present
+    if 'health_status' not in df.columns:
+        raise ValueError("The target column 'health_status' is not found in the dataset.")
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = df.drop('health_status', axis=1)
+    y = df['health_status']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_data_train = preprocess_data(X_train)
+    processed_data_val = preprocess_data(X_val)
+    processed_data_test = preprocess_data(X_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(processed_data_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, processed_data_val, y_val)
+
+    # Step 7. Test the model
+    test_model(model, processed_data_test, y_test)
+
+    # Step 8. Save the model
+    model_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/horse_health_random_forest_model.joblib'
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 121, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 88, in main
+    raise ValueError("The target column 'health_status' is not found in the dataset.")
+ValueError: The target column 'health_status' is not found in the dataset.

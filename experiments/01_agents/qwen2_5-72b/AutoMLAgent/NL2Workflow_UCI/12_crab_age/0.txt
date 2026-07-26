@@ -1,0 +1,212 @@
+######代码######
+
+import os
+import urllib.request
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1: Data Retrieval
+def download_dataset(dataset_url, dataset_path):
+    try:
+        urllib.request.urlretrieve(dataset_url, dataset_path)
+        print(f"Dataset downloaded successfully to {dataset_path}")
+    except urllib.error.URLError as e:
+        print(f"Error downloading dataset: {e}")
+        raise
+
+# Step 2: Data Loading
+def load_dataset(dataset_path):
+    return pd.read_csv(dataset_path)
+
+# Step 3: Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Data
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    
+    numerical_features = df.select_dtypes(include=['number']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+    
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+    
+    # Feature Engineering
+    df['interaction_feature'] = df['feature1'] * df['feature2']
+    
+    # Normalize/Standardize Numerical Features
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Encode Categorical Features
+    df = pd.get_dummies(df, columns=categorical_features)
+    
+    # Feature Selection
+    corr_matrix = df.corr()
+    high_corr_vars = [column for column in corr_matrix.columns if any(corr_matrix[column] > 0.8)]
+    df.drop(columns=high_corr_vars, inplace=True)
+    
+    model = RandomForestRegressor()
+    model.fit(df.drop(columns=['age']), df['age'])
+    feature_importances = model.feature_importances_
+    important_features = [feature for feature, importance in zip(df.columns, feature_importances) if importance > 0.05]
+    df = df[important_features + ['age']]
+    
+    return df
+
+# Step 4: Data Splitting
+def split_data(df):
+    X = df.drop(columns=['age'])
+    y = df['age']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5: Define the DNN Model
+class DNN(nn.Module):
+    def __init__(self, input_size, hidden_layers, neurons_per_layer):
+        super(DNN, self).__init__()
+        layers = []
+        layers.append(nn.Linear(input_size, neurons_per_layer))
+        layers.append(nn.ReLU())
+        for _ in range(hidden_layers - 1):
+            layers.append(nn.Linear(neurons_per_layer, neurons_per_layer))
+            layers.append(nn.ReLU())
+        layers.append(nn.Linear(neurons_per_layer, 1))
+        self.model = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.model(x)
+
+# Step 6: Define the Loss Function and Optimizer
+def define_loss_optimizer(model):
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    return criterion, optimizer
+
+# Step 7: Prepare the Data Loaders
+def prepare_data_loaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_size):
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, val_loader, test_loader
+
+# Step 8: Train the Model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+        
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0.0
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                val_loss += loss.item()
+            val_loss /= len(val_loader)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation MAE: {val_loss:.4f}')
+    
+    return model
+
+# Step 9: Evaluate the Model
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_loss = 0.0
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            test_loss += loss.item()
+        test_loss /= len(test_loader)
+    print(f'Test MAE: {test_loss:.4f}')
+    return {'MAE': test_loss}
+
+# Step 10: Save the Model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    dataset_url = 'https://user-provided-link.com/crab_age_train.csv'
+    dataset_path = './agent_workspace/datasets/crab_age_train.csv'
+    model_path = './agent_workspace/trained_models/crab_age_dnn.pth'
+    
+    # Ensure the directories exist
+    os.makedirs(os.path.dirname(dataset_path), exist_ok=True)
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    
+    # Step 1: Download the dataset
+    try:
+        download_dataset(dataset_url, dataset_path)
+    except urllib.error.URLError as e:
+        print(f"Failed to download dataset: {e}")
+        return
+    
+    # Step 2: Load the dataset
+    df = load_dataset(dataset_path)
+    
+    # Step 3: Preprocess the dataset
+    df = preprocess_data(df)
+    
+    # Step 4: Split the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+    
+    # Step 5: Define the DNN model
+    input_size = X_train.shape[1]
+    hidden_layers = 4
+    neurons_per_layer = 128
+    model = DNN(input_size, hidden_layers, neurons_per_layer)
+    
+    # Step 6: Define the loss function and optimizer
+    criterion, optimizer = define_loss_optimizer(model)
+    
+    # Step 7: Prepare the data loaders
+    batch_size = 32
+    train_loader, val_loader, test_loader = prepare_data_loaders(X_train, X_val, X_test, y_train, y_val, y_test, batch_size)
+    
+    # Step 8: Train the model
+    model = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=200)
+    
+    # Step 9: Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+    
+    # Step 10: Save the model
+    save_model(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error downloading dataset: <urlopen error [Errno -2] Name or service not known>
+Failed to download dataset: <urlopen error [Errno -2] Name or service not known>
+Model Performance on Test Set: None

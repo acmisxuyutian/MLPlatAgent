@@ -1,0 +1,206 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Inspect the dataset
+    print(f"Dataset shape: {df.shape}")
+    print(f"Data types:\n{df.dtypes}")
+    print(f"First few rows:\n{df.head()}")
+
+    # Identify the target variable
+    target = 'survival_status'
+    if target not in df.columns:
+        raise ValueError(f"Target variable '{target}' not found in the dataset.")
+
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+    # Feature encoding
+    label_encoder = LabelEncoder()
+    for column in df.select_dtypes(include=['object']).columns:
+        df_imputed[column] = label_encoder.fit_transform(df_imputed[column])
+
+    # Normalize continuous features
+    scaler = StandardScaler()
+    df_normalized = pd.DataFrame(scaler.fit_transform(df_imputed.drop(columns=[target])), columns=df_imputed.drop(columns=[target]).columns)
+    df_normalized[target] = df_imputed[target]
+
+    # Split the dataset into features and target
+    X = df_normalized.drop(columns=[target])
+    y = df_normalized[target]
+
+    return X, y
+
+# Define the Neural Logic Network (NLN) model
+class NLN(nn.Module):
+    def __init__(self, input_size, num_rule_modules, lambda_non_empty, lambda_sparsity):
+        super(NLN, self).__init__()
+        self.input_size = input_size
+        self.num_rule_modules = num_rule_modules
+        self.lambda_non_empty = lambda_non_empty
+        self.lambda_sparsity = lambda_sparsity
+
+        # Define rule modules
+        self.rule_modules = nn.ModuleList([nn.Linear(input_size, 1) for _ in range(num_rule_modules)])
+        self.output_layer = nn.Linear(num_rule_modules, 1)
+
+    def forward(self, x):
+        rule_outputs = [torch.sigmoid(rule(x)) for rule in self.rule_modules]
+        combined_output = torch.cat(rule_outputs, dim=1)
+        output = torch.sigmoid(self.output_layer(combined_output))
+        return output
+
+    def regularization_loss(self):
+        non_empty_loss = sum(torch.sum(torch.abs(rule.weight)) for rule in self.rule_modules)
+        sparsity_loss = sum(torch.sum(torch.abs(rule.weight)) for rule in self.rule_modules)
+        return self.lambda_non_empty * non_empty_loss + self.lambda_sparsity * sparsity_loss
+
+# Train the model
+def train_model(model, train_loader, valid_loader, num_epochs=100, learning_rate=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.unsqueeze(1)) + model.regularization_loss()
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        model.eval()
+        valid_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels.unsqueeze(1)) + model.regularization_loss()
+                valid_loss += loss.item()
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Train Loss: {running_loss/len(train_loader):.4f}, Valid Loss: {valid_loss/len(valid_loader):.4f}')
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            y_true.extend(labels.numpy())
+            y_pred.extend(outputs.numpy().flatten())
+
+    y_pred = np.where(y_pred > 0.5, 1, 0)
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'LogLoss': log_loss(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+    df = pd.read_csv(dataset_path, delimiter=';')
+
+    # Step 2. Create a train-valid-test split of the data
+    X, y = preprocess_data(df)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)
+    X_valid_tensor = torch.tensor(X_valid.values, dtype=torch.float32)
+    y_valid_tensor = torch.tensor(y_valid.values, dtype=torch.float32)
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32)
+
+    # Create DataLoader
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=32, shuffle=True)
+    valid_loader = DataLoader(TensorDataset(X_valid_tensor, y_valid_tensor), batch_size=32, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=32, shuffle=False)
+
+    # Step 3. Define required model
+    input_size = X_train.shape[1]
+    num_rule_modules = 128
+    lambda_non_empty = 1e-1
+    lambda_sparsity = 1e-3
+    model = NLN(input_size, num_rule_modules, lambda_non_empty, lambda_sparsity)
+
+    # Step 4. Train the model
+    model = train_model(model, train_loader, valid_loader)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the trained model
+    model_path = './agent_workspace/trained_models/liver_cirrhosis_model.pth'
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 174, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 134, in main
+    df = pd.read_csv(dataset_path, delimiter=';')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2061, in pandas._libs.parsers.raise_parser_error
+pandas.errors.ParserError: Error tokenizing data. C error: Expected 1 fields in line 7, saw 2
+

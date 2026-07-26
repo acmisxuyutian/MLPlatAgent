@@ -1,0 +1,220 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(data_path):
+    """
+    Load the dataset from the specified path and perform initial inspection.
+    """
+    df = pd.read_csv(data_path)
+    
+    # Initial inspection
+    print("Initial Inspection:")
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+    print(df.isnull().sum())
+    
+    return df
+
+# Data Preprocessing
+def preprocess_data(df, target_column='is_canceled'):
+    """
+    Preprocess the data by handling missing values, encoding categorical variables, and normalizing numerical features.
+    """
+    # Handle missing values
+    df.fillna(df.mean(), inplace=True)
+    
+    # Encode categorical variables
+    df = pd.get_dummies(df)
+    
+    # Split features and target
+    if target_column in df.columns:
+        X = df.drop(target_column, axis=1)
+        y = df[target_column]
+    else:
+        raise KeyError(f"The target column '{target_column}' is not found in the dataset.")
+    
+    # Normalize numerical features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    return X_train, X_test, y_train, y_test, scaler
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    """
+    Address class imbalance using SMOTE.
+    """
+    smote = SMOTE(random_state=42)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+    return X_train, y_train
+
+# Model Training and Evaluation
+def train_model(X_train, y_train, X_test, y_test):
+    """
+    Train the XGBoost model and evaluate its performance.
+    """
+    # Define the model
+    xgb = XGBClassifier()
+    
+    # Define the parameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 4, 5],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.5, 0.7, 1.0],
+        'colsample_bytree': [0.5, 0.7, 1.0]
+    }
+    
+    # Perform grid search with cross-validation
+    grid_search = GridSearchCV(xgb, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    # Get the best model
+    best_model = grid_search.best_estimator_
+    
+    # Evaluate the model
+    y_pred = best_model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred)
+    print(f'AUC-ROC Score: {auc_roc}')
+    
+    return best_model, auc_roc
+
+# Model Saving
+def save_model(model, scaler, model_path, scaler_path):
+    """
+    Save the trained model and scaler.
+    """
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from user's local storage
+    data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+    df = load_data(data_path)
+    
+    # Step 2. Preprocess the data
+    try:
+        X_train, X_test, y_train, y_test, scaler = preprocess_data(df, target_column='is_canceled')
+    except KeyError as e:
+        print(e)
+        return
+    
+    # Step 3. Augment the data
+    X_train, y_train = augment_data(X_train, y_train)
+    
+    # Step 4. Train the model
+    model, auc_roc = train_model(X_train, y_train, X_test, y_test)
+    
+    # Step 5. Save the model and scaler
+    model_path = './agent_workspace/trained_models/xgboost_model.pkl'
+    scaler_path = './agent_workspace/trained_models/scaler.pkl'
+    save_model(model, scaler, model_path, scaler_path)
+    
+    # Return model's performance scores
+    model_performance = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Initial Inspection:
+      id  no_of_adults  ...  no_of_special_requests  booking_status
+0  15559             2  ...                       2               0
+1  32783             2  ...                       1               0
+2  11797             3  ...                       0               1
+3  39750             2  ...                       1               1
+4  28711             2  ...                       0               1
+
+[5 rows x 19 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 33674 entries, 0 to 33673
+Data columns (total 19 columns):
+ #   Column                                Non-Null Count  Dtype  
+---  ------                                --------------  -----  
+ 0   id                                    33674 non-null  int64  
+ 1   no_of_adults                          33674 non-null  int64  
+ 2   no_of_children                        33674 non-null  int64  
+ 3   no_of_weekend_nights                  33674 non-null  int64  
+ 4   no_of_week_nights                     33674 non-null  int64  
+ 5   type_of_meal_plan                     33674 non-null  int64  
+ 6   required_car_parking_space            33674 non-null  int64  
+ 7   room_type_reserved                    33674 non-null  int64  
+ 8   lead_time                             33674 non-null  int64  
+ 9   arrival_year                          33674 non-null  int64  
+ 10  arrival_month                         33674 non-null  int64  
+ 11  arrival_date                          33674 non-null  int64  
+ 12  market_segment_type                   33674 non-null  int64  
+ 13  repeated_guest                        33674 non-null  int64  
+ 14  no_of_previous_cancellations          33674 non-null  int64  
+ 15  no_of_previous_bookings_not_canceled  33674 non-null  int64  
+ 16  avg_price_per_room                    33674 non-null  float64
+ 17  no_of_special_requests                33674 non-null  int64  
+ 18  booking_status                        33674 non-null  int64  
+dtypes: float64(1), int64(18)
+memory usage: 4.9 MB
+None
+                 id  no_of_adults  ...  no_of_special_requests  booking_status
+count  33674.000000  33674.000000  ...            33674.000000    33674.000000
+mean   21075.355527      1.919374  ...                0.572667        0.392974
+std    12120.816554      0.527116  ...                0.776184        0.488418
+min        0.000000      0.000000  ...                0.000000        0.000000
+25%    10616.250000      2.000000  ...                0.000000        0.000000
+50%    21082.500000      2.000000  ...                0.000000        0.000000
+75%    31534.750000      2.000000  ...                1.000000        1.000000
+max    42099.000000      4.000000  ...                5.000000        1.000000
+
+[8 rows x 19 columns]
+id                                      0
+no_of_adults                            0
+no_of_children                          0
+no_of_weekend_nights                    0
+no_of_week_nights                       0
+type_of_meal_plan                       0
+required_car_parking_space              0
+room_type_reserved                      0
+lead_time                               0
+arrival_year                            0
+arrival_month                           0
+arrival_date                            0
+market_segment_type                     0
+repeated_guest                          0
+no_of_previous_cancellations            0
+no_of_previous_bookings_not_canceled    0
+avg_price_per_room                      0
+no_of_special_requests                  0
+booking_status                          0
+dtype: int64
+"The target column 'is_canceled' is not found in the dataset."
+Model Performance on Test Set: None

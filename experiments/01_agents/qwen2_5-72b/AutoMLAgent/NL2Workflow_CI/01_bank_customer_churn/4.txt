@@ -1,0 +1,167 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix, precision_score, recall_score
+from joblib import dump
+
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Ensure the target variable 'churn' is present in the datasets
+    if 'churn' not in train_df.columns:
+        raise KeyError("The target variable 'churn' is not present in the training dataset.")
+    if 'churn' not in test_df.columns:
+        raise KeyError("The target variable 'churn' is not present in the test dataset.")
+
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+
+    # Define preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    # Define preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Extract the target variable
+    train_labels = train_df.pop('churn')
+    test_labels = test_df.pop('churn')
+
+    # Apply preprocessing to the training and test datasets
+    train_df_preprocessed = preprocessor.fit_transform(train_df)
+    test_df_preprocessed = preprocessor.transform(test_df)
+
+    # Convert preprocessed data back to DataFrames
+    feature_names = numerical_cols.tolist() + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_cols).tolist()
+    train_df_preprocessed = pd.DataFrame(train_df_preprocessed.toarray(), columns=feature_names)
+    test_df_preprocessed = pd.DataFrame(test_df_preprocessed.toarray(), columns=feature_names)
+
+    return train_df_preprocessed, test_df_preprocessed, train_labels, test_labels
+
+# Model Configuration
+def configure_model():
+    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=SEED)
+    return model
+
+# Hyperparameter Tuning
+def tune_hyperparameters(model, train_df_preprocessed, train_labels):
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(train_df_preprocessed, train_labels)
+
+    best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+
+    return best_model, best_params
+
+# Model Training
+def train_model(model, train_df_preprocessed, train_labels):
+    model.fit(train_df_preprocessed, train_labels)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, test_df_preprocessed, test_labels):
+    y_pred = model.predict(test_df_preprocessed)
+    y_pred_proba = model.predict_proba(test_df_preprocessed)[:, 1]
+
+    performance_scores = {
+        'AUC-ROC': roc_auc_score(test_labels, y_pred_proba),
+        'Accuracy': accuracy_score(test_labels, y_pred),
+        'F1': f1_score(test_labels, y_pred),
+        'Precision': precision_score(test_labels, y_pred),
+        'Recall': recall_score(test_labels, y_pred),
+        'Confusion Matrix': confusion_matrix(test_labels, y_pred)
+    }
+
+    return performance_scores
+
+# Save Prediction Results
+def save_predictions(test_df, y_pred, output_path):
+    predictions_df = pd.DataFrame({'id': test_df.index, 'churn': y_pred})
+    predictions_df.to_csv(output_path, index=False)
+
+# Save the Trained Model
+def save_model(model, output_path):
+    dump(model, output_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load datasets
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2: Preprocess data
+    train_df_preprocessed, test_df_preprocessed, train_labels, test_labels = preprocess_data(train_df, test_df)
+
+    # Step 3: Configure and tune the model
+    model = configure_model()
+    best_model, best_params = tune_hyperparameters(model, train_df_preprocessed, train_labels)
+
+    # Step 4: Train the model
+    best_model = train_model(best_model, train_df_preprocessed, train_labels)
+
+    # Step 5: Evaluate the model
+    performance_scores = evaluate_model(best_model, test_df_preprocessed, test_labels)
+
+    # Step 6: Save predictions
+    y_pred = best_model.predict(test_df_preprocessed)
+    save_predictions(test_df, y_pred, '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/predictions.csv')
+
+    # Step 7: Save the trained model
+    save_model(best_model, './agent_workspace/trained_models/random_forest_model.joblib')
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 151, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 129, in main
+    train_df_preprocessed, test_df_preprocessed, train_labels, test_labels = preprocess_data(train_df, test_df)
+                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 27, in preprocess_data
+    raise KeyError("The target variable 'churn' is not present in the training dataset.")
+KeyError: "The target variable 'churn' is not present in the training dataset."

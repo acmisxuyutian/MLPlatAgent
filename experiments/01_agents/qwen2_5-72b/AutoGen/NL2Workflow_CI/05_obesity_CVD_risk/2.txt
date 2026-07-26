@@ -1,0 +1,280 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据的基本信息
+print("训练集基本信息:")
+print(train_df.info())
+print("\n测试集基本信息:")
+print(test_df.info())
+
+# 查看数据的前几行
+print("\n训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 16606 entries, 0 to 16605
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              16606 non-null  int64  
+ 1   Gender                          16606 non-null  object 
+ 2   Age                             16606 non-null  float64
+ 3   Height                          16606 non-null  float64
+ 4   Weight                          16606 non-null  float64
+ 5   family_history_with_overweight  16606 non-null  object 
+ 6   FAVC                            16606 non-null  object 
+ 7   FCVC                            16606 non-null  float64
+ 8   NCP                             16606 non-null  float64
+ 9   CAEC                            16606 non-null  object 
+ 10  SMOKE                           16606 non-null  object 
+ 11  CH2O                            16606 non-null  float64
+ 12  SCC                             16606 non-null  object 
+ 13  FAF                             16606 non-null  float64
+ 14  TUE                             16606 non-null  float64
+ 15  CALC                            16606 non-null  object 
+ 16  MTRANS                          16606 non-null  object 
+ 17  NObeyesdad                      16606 non-null  object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 2.3+ MB
+None
+
+测试集基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 4152 entries, 0 to 4151
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              4152 non-null   int64  
+ 1   Gender                          4152 non-null   object 
+ 2   Age                             4152 non-null   float64
+ 3   Height                          4152 non-null   float64
+ 4   Weight                          4152 non-null   float64
+ 5   family_history_with_overweight  4152 non-null   object 
+ 6   FAVC                            4152 non-null   object 
+ 7   FCVC                            4152 non-null   float64
+ 8   NCP                             4152 non-null   float64
+ 9   CAEC                            4152 non-null   object 
+ 10  SMOKE                           4152 non-null   object 
+ 11  CH2O                            4152 non-null   float64
+ 12  SCC                             4152 non-null   object 
+ 13  FAF                             4152 non-null   float64
+ 14  TUE                             4152 non-null   float64
+ 15  CALC                            4152 non-null   object 
+ 16  MTRANS                          4152 non-null   object 
+ 17  NObeyesdad                      4152 non-null   object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 584.0+ KB
+None
+
+训练集前几行:
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+
+测试集前几行:
+      id  Gender  ...                 MTRANS           NObeyesdad
+0  10317  Female  ...  Public_Transportation     Obesity_Type_III
+1   4074    Male  ...  Public_Transportation   Overweight_Level_I
+2   9060  Female  ...  Public_Transportation       Obesity_Type_I
+3  11286    Male  ...  Public_Transportation      Obesity_Type_II
+4   8254    Male  ...  Public_Transportation  Insufficient_Weight
+
+[5 rows x 18 columns]
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 特征构建
+def build_features(df):
+    # 计算BMI
+    df['BMI'] = df['Weight'] / (df['Height'] / 100) ** 2
+    
+    # 年龄分段
+    bins = [0, 18, 30, 45, 60, 100]
+    labels = ['0-18', '19-30', '31-45', '46-60', '61+']
+    df['Age_Bin'] = pd.cut(df['Age'], bins=bins, labels=labels, right=False)
+    
+    # 生活方式评分
+    df['Lifestyle_Score'] = df['FAF'] + df['TUE'] + (df['SMOKE'].map({'no': 0, 'yes': 1}))
+    
+    return df
+
+# 应用特征构建
+train_df = build_features(train_df)
+test_df = build_features(test_df)
+
+# 查看构建后的数据
+print("训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0   9958    Male  17.000000  ...  309617.287497     0-18        4.000000
+1   7841    Male  22.667596  ...  178498.546735    19-30        3.000000
+2   9293    Male  21.838323  ...  368442.188055    19-30        0.739881
+3  15209  Female  41.000000  ...  320461.464509    31-45        0.000000
+4  16515    Male  23.000000  ...  293209.876543    19-30        3.000000
+
+[5 rows x 21 columns]
+
+测试集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0  10317  Female  26.000000  ...  411550.484395    19-30        0.776595
+1   4074    Male  18.000000  ...  261224.489796    19-30        2.000000
+2   9060  Female  23.360307  ...  288595.763271    19-30        2.002600
+3  11286    Male  30.002029  ...  401272.789982    31-45        0.114457
+4   8254    Male  17.000000  ...  192893.792678     0-18        2.000000
+
+[5 rows x 21 columns]
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 特征构建
+def build_features(df):
+    # 确保身高以米为单位，体重以千克为单位
+    df['Height'] = df['Height'] / 100  # 将身高从厘米转换为米
+    
+    # 计算BMI
+    df['BMI'] = df['Weight'] / (df['Height'] ** 2)
+    
+    # 年龄分段
+    bins = [0, 18, 30, 45, 60, 100]
+    labels = ['0-18', '19-30', '31-45', '46-60', '61+']
+    df['Age_Bin'] = pd.cut(df['Age'], bins=bins, labels=labels, right=False)
+    
+    # 生活方式评分
+    df['Lifestyle_Score'] = df['FAF'] + df['TUE'] + (df['SMOKE'].map({'no': 0, 'yes': 1}))
+    
+    return df
+
+# 应用特征构建
+train_df = build_features(train_df)
+test_df = build_features(test_df)
+
+# 查看构建后的数据
+print("训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0   9958    Male  17.000000  ...  309617.287497     0-18        4.000000
+1   7841    Male  22.667596  ...  178498.546735    19-30        3.000000
+2   9293    Male  21.838323  ...  368442.188055    19-30        0.739881
+3  15209  Female  41.000000  ...  320461.464509    31-45        0.000000
+4  16515    Male  23.000000  ...  293209.876543    19-30        3.000000
+
+[5 rows x 21 columns]
+
+测试集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0  10317  Female  26.000000  ...  411550.484395    19-30        0.776595
+1   4074    Male  18.000000  ...  261224.489796    19-30        2.000000
+2   9060  Female  23.360307  ...  288595.763271    19-30        2.002600
+3  11286    Male  30.002029  ...  401272.789982    31-45        0.114457
+4   8254    Male  17.000000  ...  192893.792678     0-18        2.000000
+
+[5 rows x 21 columns]
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 特征构建
+def build_features(df):
+    # 确保身高以米为单位，体重以千克为单位
+    df['Height'] = df['Height'] / 100  # 将身高从厘米转换为米
+    
+    # 计算BMI
+    df['BMI'] = df['Weight'] / (df['Height'] ** 2)
+    
+    # 年龄分段
+    bins = [0, 18, 30, 45, 60, 100]
+    labels = ['0-18', '19-30', '31-45', '46-60', '61+']
+    df['Age_Bin'] = pd.cut(df['Age'], bins=bins, labels=labels, right=False)
+    
+    # 生活方式评分
+    df['Lifestyle_Score'] = df['FAF'] + df['TUE'] + (df['SMOKE'].map({'no': 0, 'yes': 1}))
+    
+    return df
+
+# 应用特征构建
+train_df = build_features(train_df)
+test_df = build_features(test_df)
+
+# 查看构建后的数据
+print("训练集前几行:")
+print(train_df.head())
+print("\n测试集前几行:")
+print(test_df.head())
+
+
+执行结果：
+训练集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0   9958    Male  17.000000  ...  309617.287497     0-18        4.000000
+1   7841    Male  22.667596  ...  178498.546735    19-30        3.000000
+2   9293    Male  21.838323  ...  368442.188055    19-30        0.739881
+3  15209  Female  41.000000  ...  320461.464509    31-45        0.000000
+4  16515    Male  23.000000  ...  293209.876543    19-30        3.000000
+
+[5 rows x 21 columns]
+
+测试集前几行:
+      id  Gender        Age  ...            BMI  Age_Bin Lifestyle_Score
+0  10317  Female  26.000000  ...  411550.484395    19-30        0.776595
+1   4074    Male  18.000000  ...  261224.489796    19-30        2.000000
+2   9060  Female  23.360307  ...  288595.763271    19-30        2.002600
+3  11286    Male  30.002029  ...  401272.789982    31-45        0.114457
+4   8254    Male  17.000000  ...  192893.792678     0-18        2.000000
+
+[5 rows x 21 columns]

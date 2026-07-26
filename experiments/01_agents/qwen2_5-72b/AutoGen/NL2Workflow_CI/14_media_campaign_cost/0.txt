@@ -1,0 +1,258 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+
+# 加载训练数据和测试数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据的基本信息
+print("训练数据基本信息:")
+print(train_df.info())
+print("\n训练数据前5行:")
+print(train_df.head())
+
+print("\n测试数据基本信息:")
+print(test_df.info())
+print("\n测试数据前5行:")
+print(test_df.head())
+
+# 检查缺失值
+print("\n训练数据缺失值情况:")
+print(train_df.isnull().sum())
+print("\n测试数据缺失值情况:")
+print(test_df.isnull().sum())
+
+
+执行结果：
+训练数据基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 28827 entries, 0 to 28826
+Data columns (total 17 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    28827 non-null  int64  
+ 1   store_sales           28827 non-null  float64
+ 2   unit_sales            28827 non-null  int64  
+ 3   total_children        28827 non-null  int64  
+ 4   num_children_at_home  28827 non-null  int64  
+ 5   avg_cars_at_home      28827 non-null  int64  
+ 6   gross_weight          28827 non-null  float64
+ 7   recyclable_package    28827 non-null  int64  
+ 8   low_fat               28827 non-null  int64  
+ 9   units_per_case        28827 non-null  int64  
+ 10  store_sqft            28827 non-null  int64  
+ 11  coffee_bar            28827 non-null  int64  
+ 12  video_store           28827 non-null  int64  
+ 13  salad_bar             28827 non-null  int64  
+ 14  prepared_food         28827 non-null  int64  
+ 15  florist               28827 non-null  int64  
+ 16  cost                  28827 non-null  float64
+dtypes: float64(3), int64(14)
+memory usage: 3.7 MB
+None
+
+训练数据前5行:
+       id  store_sales  unit_sales  ...  prepared_food  florist    cost
+0  177400         8.49           3  ...              0        0  133.42
+1   35064         4.47           3  ...              0        0  109.06
+2  268168         6.84           3  ...              1        1   91.58
+3  177181         4.54           2  ...              0        0  124.36
+4  271461         8.34           3  ...              1        1   96.55
+
+[5 rows x 17 columns]
+
+测试数据基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 7207 entries, 0 to 7206
+Data columns (total 17 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    7207 non-null   int64  
+ 1   store_sales           7207 non-null   float64
+ 2   unit_sales            7207 non-null   int64  
+ 3   total_children        7207 non-null   int64  
+ 4   num_children_at_home  7207 non-null   int64  
+ 5   avg_cars_at_home      7207 non-null   int64  
+ 6   gross_weight          7207 non-null   float64
+ 7   recyclable_package    7207 non-null   int64  
+ 8   low_fat               7207 non-null   int64  
+ 9   units_per_case        7207 non-null   int64  
+ 10  store_sqft            7207 non-null   int64  
+ 11  coffee_bar            7207 non-null   int64  
+ 12  video_store           7207 non-null   int64  
+ 13  salad_bar             7207 non-null   int64  
+ 14  prepared_food         7207 non-null   int64  
+ 15  florist               7207 non-null   int64  
+ 16  cost                  7207 non-null   float64
+dtypes: float64(3), int64(14)
+memory usage: 957.3 KB
+None
+
+测试数据前5行:
+       id  store_sales  unit_sales  ...  prepared_food  florist    cost
+0  173608         2.50           2  ...              0        1   75.44
+1  282214         3.90           3  ...              1        1  131.75
+2    6199         3.60           3  ...              0        0   59.19
+3  245725        14.56           4  ...              0        0   86.42
+4   35669         1.74           3  ...              0        0  123.63
+
+[5 rows x 17 columns]
+
+训练数据缺失值情况:
+id                      0
+store_sales             0
+unit_sales              0
+total_children          0
+num_children_at_home    0
+avg_cars_at_home        0
+gross_weight            0
+recyclable_package      0
+low_fat                 0
+units_per_case          0
+store_sqft              0
+coffee_bar              0
+video_store             0
+salad_bar               0
+prepared_food           0
+florist                 0
+cost                    0
+dtype: int64
+
+测试数据缺失值情况:
+id                      0
+store_sales             0
+unit_sales              0
+total_children          0
+num_children_at_home    0
+avg_cars_at_home        0
+gross_weight            0
+recyclable_package      0
+low_fat                 0
+units_per_case          0
+store_sqft              0
+coffee_bar              0
+video_store             0
+salad_bar               0
+prepared_food           0
+florist                 0
+cost                    0
+dtype: int64
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# 选择特征和目标变量
+features = train_df.columns.difference(['id', 'cost'])
+X_train = train_df[features]
+y_train = train_df['cost']
+
+X_test = test_df[features]
+y_test = test_df['cost']
+
+# 特征标准化
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 将标准化后的特征转换回 DataFrame
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=features)
+X_test_scaled_df = pd.DataFrame(X_test_scaled, columns=features)
+
+print("标准化后的训练数据前5行:")
+print(X_train_scaled_df.head())
+print("\n标准化后的测试数据前5行:")
+print(X_test_scaled_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_eca81d685485aff8ee5b235f50b26fb130eb88ffc43a9a91a565052dd027d190.py", line 5, in <module>
+    features = train_df.columns.difference(['id', 'cost'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# 加载训练数据和测试数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 选择特征和目标变量
+features = train_df.columns.difference(['id', 'cost'])
+X_train = train_df[features]
+y_train = train_df['cost']
+
+X_test = test_df[features]
+y_test = test_df['cost']
+
+# 特征标准化
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 将标准化后的特征转换回 DataFrame
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=features)
+X_test_scaled_df = pd.DataFrame(X_test_scaled, columns=features)
+
+print("标准化后的训练数据前5行:")
+print(X_train_scaled_df.head())
+print("\n标准化后的测试数据前5行:")
+print(X_test_scaled_df.head())
+
+
+执行结果：
+标准化后的训练数据前5行:
+   avg_cars_at_home  coffee_bar  ...  units_per_case  video_store
+0          1.646594   -1.140375  ...        1.465197    -0.617359
+1          0.728554    0.876905  ...        1.269212    -0.617359
+2         -1.107528    0.876905  ...        0.485272     1.619802
+3         -1.107528    0.876905  ...       -1.572571    -0.617359
+4         -0.189487    0.876905  ...       -0.494654     1.619802
+
+[5 rows x 15 columns]
+
+标准化后的测试数据前5行:
+   avg_cars_at_home  coffee_bar  ...  units_per_case  video_store
+0         -0.189487    0.876905  ...       -0.102684    -0.617359
+1         -0.189487    0.876905  ...        0.975234     1.619802
+2          0.728554    0.876905  ...        0.681257    -0.617359
+3         -1.107528   -1.140375  ...        0.681257    -0.617359
+4         -0.189487   -1.140375  ...       -1.474579    -0.617359
+
+[5 rows x 15 columns]
+
+生成的代码：
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+
+# 初始化随机森林回归模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train_scaled_df, y_train)
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test_scaled_df)
+
+# 计算 RMLSE
+rmlse = np.sqrt(mean_squared_log_error(y_test, y_pred))
+print(f"RMLSE: {rmlSE}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_dfc0d6653b0518d15647b1c326dc745e51eff0c72f4beecd88ed45781a445684.py", line 8, in <module>
+    model.fit(X_train_scaled_df, y_train)
+NameError: name 'X_train_scaled_df' is not defined

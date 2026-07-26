@@ -1,0 +1,209 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.metrics import log_loss
+import optuna
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preprocessing
+def preprocess_data(train_data, test_data):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    train_data_imputed = imputer.fit_transform(train_data)
+    test_data_imputed = imputer.transform(test_data)
+
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    train_data_encoded = encoder.fit_transform(train_data_imputed)
+    test_data_encoded = encoder.transform(test_data_imputed)
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    train_data_scaled = scaler.fit_transform(train_data_encoded)
+    test_data_scaled = scaler.transform(test_data_encoded)
+
+    return train_data_scaled, test_data_scaled
+
+# Define the model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc2(out)
+        return out
+
+# Hyperparameter optimization
+def objective(trial):
+    # Hyperparameters to tune
+    hidden_size = trial.suggest_int('hidden_size', 64, 256, step=64)
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-3, 1e-5)
+
+    # Define the model
+    model = FNN(input_size=X_train.shape[1], hidden_size=hidden_size, num_classes=len(y_train.unique()))
+
+    # Define the optimizer
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Define the loss function
+    criterion = nn.CrossEntropyLoss()
+
+    # Training loop
+    for epoch in range(10):
+        model.train()
+        for X, y in DataLoader(TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.long)), batch_size=64, shuffle=True):
+            optimizer.zero_grad()
+            outputs = model(X)
+            loss = criterion(outputs, y)
+            loss.backward()
+            optimizer.step()
+
+    # Validation loop
+    model.eval()
+    val_loss = 0
+    with torch.no_grad():
+        for X, y in DataLoader(TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.long)), batch_size=64, shuffle=False):
+            outputs = model(X)
+            val_loss += criterion(outputs, y).item()
+    val_loss /= len(DataLoader(TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.long)), batch_size=64, shuffle=False))
+
+    return val_loss
+
+# Train the model
+def train_model(model, train_loader, optimizer, criterion, num_epochs=50):
+    for epoch in range(num_epochs):
+        model.train()
+        for X, y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(X)
+            loss = criterion(outputs, y)
+            loss.backward()
+            optimizer.step()
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for X, y in test_loader:
+            outputs = model(X)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(y.numpy())
+            y_pred.extend(predicted.numpy())
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted')
+    }
+    return performance_scores
+
+# Make predictions
+def make_predictions(model, test_loader):
+    model.eval()
+    predictions = []
+    with torch.no_grad():
+        for X, _ in test_loader:
+            outputs = model(X)
+            _, predicted = torch.max(outputs.data, 1)
+            predictions.extend(predicted.numpy())
+    return predictions
+
+# Save the model
+def save_model(model, path):
+    torch.save(model.state_dict(), path)
+
+# Main function
+def main():
+    # Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_url = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    test_url = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+    train_data = pd.read_csv(train_url)
+    test_data = pd.read_csv(test_url)
+
+    # Step 2: Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_temp, y_train, y_temp = train_test_split(train_data.drop('crime_category', axis=1), train_data['crime_category'], test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3: With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train_scaled, X_test_scaled = preprocess_data(X_train, X_test)
+
+    # Step 4: Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_scaled.shape[1]
+    num_classes = len(y_train.unique())
+    model = FNN(input_size, 128, num_classes)
+
+    # Step 5: train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=5)
+
+    best_params = study.best_params
+    best_model = FNN(input_size, best_params['hidden_size'], num_classes)
+    optimizer = optim.Adam(best_model.parameters(), lr=best_params['learning_rate'])
+    criterion = nn.CrossEntropyLoss()
+
+    train_loader = DataLoader(TensorDataset(torch.tensor(X_train_scaled, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.long)), batch_size=64, shuffle=True)
+    val_loader = DataLoader(TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.long)), batch_size=64, shuffle=False)
+    test_loader = DataLoader(TensorDataset(torch.tensor(X_test_scaled, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.long)), batch_size=64, shuffle=False)
+
+    best_model = train_model(best_model, train_loader, optimizer, criterion)
+
+    # Step 6: evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(best_model, test_loader)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 7: Make predictions
+    predictions = make_predictions(best_model, test_loader)
+    predictions_df = pd.DataFrame({'predicted_crime_category': predictions})
+    predictions_df.to_csv('crime_category_predictions.csv', index=False)
+
+    # Step 8: Save the model
+    save_model(best_model, './agent_workspace/trained_models/crime_prediction_model.pth')
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 189, in <module>
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in main
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['crime_category'] not found in axis"

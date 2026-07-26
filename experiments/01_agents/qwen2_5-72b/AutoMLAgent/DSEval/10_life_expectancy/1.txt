@@ -1,0 +1,148 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the paths
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+model_path = './agent_workspace/trained_models/linear_regression_life_expectancy.pkl'
+scaler_path = './agent_workspace/trained_models/scaler.pkl'
+
+# Ensure the directory exists
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+
+# Function to load datasets
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Function to preprocess data
+def preprocess_data(train_df, test_df):
+    # Check for missing values
+    print("Training dataset missing values:\n", train_df.isnull().sum())
+    print("Test dataset missing values:\n", test_df.isnull().sum())
+    
+    # Check data types
+    print("Training dataset data types:\n", train_df.dtypes)
+    print("Test dataset data types:\n", test_df.dypes)
+    
+    # Ensure the presence of the target variable
+    print("Training dataset columns:\n", train_df.columns)
+    
+    # Handle missing values
+    numerical_features = train_df.select_dtypes(include=['number']).columns
+    train_df[numerical_features] = train_df[numerical_features].fillna(train_df[numerical_features].mean())
+    test_df[numerical_features] = test_df[numerical_features].fillna(test_df[numerical_features].mean())
+    
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    if not categorical_features.empty:
+        train_df[categorical_features] = train_df[categorical_features].fillna(train_df[categorical_features].mode().iloc[0])
+        test_df[categorical_features] = test_df[categorical_features].fillna(test_df[categorical_features].mode().iloc[0])
+    
+    # Feature scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+    
+    return train_df, test_df, scaler
+
+# Function for feature engineering
+def feature_engineering(train_df, test_df):
+    # Categorize GDP into bins
+    bins = [0, 1000, 10000, float('inf')]
+    labels = ['Low GDP', 'Medium GDP', 'High GDP']
+    train_df['GDP_bin'] = pd.cut(train_df['GDP'], bins=bins, labels=labels, include_lowest=True)
+    test_df['GDP_bin'] = pd.cut(test_df['GDP'], bins=bins, labels=labels, include_lowest=True)
+    
+    # Feature construction
+    if 'Healthcare Spending' in train_df.columns:
+        train_df['Healthcare_Spending_Ratio'] = train_df['Healthcare Spending'] / train_df['GDP']
+        test_df['Healthcare_Spending_Ratio'] = test_df['Healthcare Spending'] / test_df['GDP']
+    
+    return train_df, test_df
+
+# Function to train and evaluate the model
+def train_and_evaluate_model(train_df, test_df):
+    # Ensure the target variable is correctly named
+    target_variable = 'Life expectancy'
+    if target_variable not in train_df.columns:
+        raise ValueError(f"Target variable '{target_variable}' not found in the training dataset.")
+    
+    # Prepare data for modeling
+    X_train = train_df.drop(columns=[target_variable])
+    y_train = train_df[target_variable]
+    X_test = test_df.drop(columns=[target_variable])
+    y_test = test_df[target_variable]
+    
+    # Train the linear regression model
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    
+    # Make predictions
+    y_pred = model.predict(X_test)
+    
+    # Evaluate the model
+    r2 = r2_score(y_test, y_pred)
+    print(f'R² Score: {r2}')
+    
+    return model, r2
+
+# Function to save the model and scaler
+def save_model(model, scaler, model_path, scaler_path):
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Preprocess data
+    train_df, test_df, scaler = preprocess_data(train_df, test_df)
+    
+    # Feature engineering
+    train_df, test_df = feature_engineering(train_df, test_df)
+    
+    # Train and evaluate the model
+    model, r2 = train_and_evaluate_model(train_df, test_df)
+    
+    # Save the model and scaler
+    save_model(model, scaler, model_path, scaler_path)
+    
+    return r2
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 128, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 114, in main
+    train_df, test_df, scaler = preprocess_data(train_df, test_df)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 40, in preprocess_data
+    print("Test dataset data types:\n", test_df.dypes)
+                                        ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'dypes'. Did you mean: 'dtypes'?

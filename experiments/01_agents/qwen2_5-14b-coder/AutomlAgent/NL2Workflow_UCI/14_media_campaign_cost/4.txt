@@ -1,0 +1,236 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+from sklearn.metrics import mean_squared_log_error
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1: Retrieve and Load the Dataset
+def load_dataset(url):
+    response = requests.get(url)
+    with open('media_campaign_cost.csv', 'wb') as file:
+        file.write(response.content)
+    df = pd.read_csv('media_campaign_cost.csv')
+    return df
+
+# Step 2: Inspect Data Structure
+def inspect_data(df):
+    print(df.head())
+    print(df.dtypes)
+    print(df.describe())
+
+# Step 3: Handle Missing Values
+def handle_missing_values(df):
+    print(df.isnull().sum())
+    df.fillna(df.mean(), inplace=True)
+    return df
+
+# Step 4: Feature Engineering
+def feature_engineering(df):
+    # Interaction term
+    df['ad_duration_frequency'] = df['ad_duration'] * df['ad_frequency']
+    
+    # Polynomial features
+    poly = PolynomialFeatures(degree=2, include_bias=False)
+    df_poly = poly.fit_transform(df[['ad_duration', 'ad_frequency']])
+    df_poly = pd.DataFrame(df_poly, columns=poly.get_feature_names_out(['ad_duration', 'ad_frequency']))
+    df = pd.concat([df, df_poly], axis=1)
+    
+    # One-hot encoding
+    df = pd.get_dummies(df, columns=['campaign_type'])
+    return df
+
+# Step 5: Normalize/Standardize Features
+def normalize_features(df):
+    scaler = MinMaxScaler()
+    df[['ad_duration', 'ad_frequency']] = scaler.fit_transform(df[['ad_duration', 'ad_frequency']])
+    return df
+
+# Step 6: Split the Data
+def split_data(df):
+    X = df.drop('media_cost', axis=1)
+    y = df['media_cost']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 1: Define the Neural Network Model
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(input_size, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(16, 1)
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
+# Step 2: Define Loss Function and Optimizer
+def define_loss_optimizer(model):
+    loss_fn = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.005)
+    return loss_fn, optimizer
+
+# Step 3: Train the Model
+def train_model(model, train_dataloader, loss_fn, optimizer, epochs):
+    for t in range(epochs):
+        print(f"Epoch {t+1}\n-------------------------------")
+        model.train()
+        for batch, (X, y) in enumerate(train_dataloader):
+            pred = model(X.float())
+            loss = loss_fn(pred.squeeze(), y.float())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if batch % 100 == 0:
+                loss, current = loss.item(), batch * len(X)
+                print(f"loss: {loss:>7f}  [{current:>5d}/{len(train_dataloader.dataset):>5d}]")
+
+# Step 4: Evaluate the Model
+def evaluate_model(model, test_dataloader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for X, y in test_dataloader:
+            pred = model(X.float()).numpy()
+            y_true.extend(y.numpy())
+            y_pred.extend(pred)
+    rmlse = np.sqrt(mean_squared_log_error(y_true, y_pred))
+    return rmlse
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    url = 'https://remote-home.cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    df = load_dataset(url)
+    inspect_data(df)
+    df = handle_missing_values(df)
+    df = feature_engineering(df)
+    df = normalize_features(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    model = NeuralNetwork(input_size=X_train.shape[1])
+    loss_fn, optimizer = define_loss_optimizer(model)
+
+    train_dataloader = torch.utils.data.DataLoader(list(zip(X_train.values, y_train.values)), batch_size=64, shuffle=True)
+    val_dataloader = torch.utils.data.DataLoader(list(zip(X_val.values, y_val.values)), batch_size=64, shuffle=False)
+    test_dataloader = torch.utils.data.DataLoader(list(zip(X_test.values, y_test.values)), batch_size=64, shuffle=False)
+
+    epochs = 100
+    train_model(model, train_dataloader, loss_fn, optimizer, epochs)
+
+    rmlse = evaluate_model(model, test_dataloader)
+    print(f"RMLSE: {rmlse}")
+
+    # Save the trained model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/neural_network_model.pth')
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/socket.py", line 974, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -2] Name or service not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 753, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x7f9e98f9fe10>: Failed to resolve 'remote-home.cs_acmis_xyt' ([Errno -2] Name or service not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/adapters.py", line 589, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/urllib3/util/retry.py", line 519, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='remote-home.cs_acmis_xyt', port=443): Max retries exceeded with url: /AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f9e98f9fe10>: Failed to resolve 'remote-home.cs_acmis_xyt' ([Errno -2] Name or service not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in <module>
+    main()
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 135, in main
+    df = load_dataset(url)
+         ^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 23, in load_dataset
+    response = requests.get(url)
+               ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/adapters.py", line 622, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='remote-home.cs_acmis_xyt', port=443): Max retries exceeded with url: /AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f9e98f9fe10>: Failed to resolve 'remote-home.cs_acmis_xyt' ([Errno -2] Name or service not known)"))

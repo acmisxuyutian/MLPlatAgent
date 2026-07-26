@@ -1,0 +1,252 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_log_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preparation
+def retrieve_data(url, local_path):
+    # This function is a placeholder for retrieving data from a URL
+    # In practice, you would use a library like requests to download the file
+    # For demonstration, we assume the data is already downloaded and saved locally
+    pass
+
+# Data preprocessing and feature engineering
+def preprocess_data(local_path, train_path, valid_path, test_path):
+    # Load the dataset
+    df = pd.read_csv(local_path)
+    
+    # Split the dataset into features and target
+    X = df.iloc[:, :-1].values
+    y = df.iloc[:, -1].values
+    
+    # Split the dataset into training, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    # Save the splits to local paths
+    pd.DataFrame(X_train, columns=df.columns[:-1]).to_csv(train_path, index=False)
+    pd.DataFrame(X_valid, columns=df.columns[:-1]).to_csv(valid_path, index=False)
+    pd.DataFrame(X_test, columns=df.columns[:-1]).to_csv(test_path, index=False)
+    
+    return X_train, y_train, X_valid, y_valid, X_test, y_test
+
+# Feature engineering
+def feature_engineering(X_train, X_valid, X_test, enhanced_path):
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_valid_scaled = scaler.transform(X_valid)
+    X_test_scaled = scaler.transform(X_test)
+    
+    # Save the enhanced dataset
+    df_train = pd.DataFrame(X_train_scaled, columns=['feature_{}'.format(i) for i in range(X_train_scaled.shape[1])])
+    df_valid = pd.DataFrame(X_valid_scaled, columns=['feature_{}'.format(i) for i in range(X_valid_scaled.shape[1])])
+    df_test = pd.DataFrame(X_test_scaled, columns=['feature_{}'.format(i) for i in range(X_test_scaled.shape[1])])
+    
+    df_train.to_csv(enhanced_path, index=False)
+    
+    return X_train_scaled, X_valid_scaled, X_test_scaled
+
+# Exploratory Data Analysis (EDA)
+def perform_eda(df, eda_path):
+    # Calculate descriptive statistics
+    stats = df.describe()
+    
+    # Compute the correlation matrix
+    corr_matrix = df.corr()
+    
+    # Save the EDA results
+    with open(eda_path, 'w') as f:
+        f.write("Descriptive Statistics:\n")
+        f.write(stats.to_string())
+        f.write("\n\nCorrelation Matrix:\n")
+        f.write(corr_matrix.to_string())
+
+# Model design and training
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 1)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(64)
+    
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.bn1(x)
+        x = self.dropout(x)
+        x = self.relu(self.fc2(x))
+        x = self.bn2(x)
+        x = self.dropout(x)
+        x = self.relu(self.fc3(x))
+        x = self.bn3(x)
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+def train_model(model, train_loader, valid_loader, epochs=100, patience=10):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+    
+    best_val_loss = float('inf')
+    patience_counter = 0
+    
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, targets in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                val_loss += loss.item()
+        
+        val_loss /= len(valid_loader)
+        print(f'Epoch {epoch+1}, Train Loss: {running_loss/len(train_loader)}, Validation Loss: {val_loss}')
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+            torch.save(model.state_dict(), '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/abalone_age_prediction_model.pth')
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print("Early stopping")
+                break
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    criterion = nn.MSELoss()
+    
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            y_true.extend(targets.numpy())
+            y_pred.extend(outputs.numpy())
+    
+    rmlse = np.sqrt(mean_squared_log_error(y_true, y_pred))
+    performance_scores = {
+        "RMLSE": rmlse
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_url = "https://example.com/abalone.csv"  # Replace with the correct URL
+    local_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/abalone.csv"
+    retrieve_data(dataset_url, local_path)
+    
+    # Step 2: Create a train-valid-test split of the data
+    train_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv"
+    valid_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/validation.csv"
+    test_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/test.csv"
+    X_train, y_train, X_valid, y_valid, X_test, y_test = preprocess_data(local_path, train_path, valid_path, test_path)
+    
+    # Step 3: Feature engineering
+    enhanced_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/enhanced_dataset.csv"
+    X_train_scaled, X_valid_scaled, X_test_scaled = feature_engineering(X_train, X_valid, X_test, enhanced_path)
+    
+    # Step 4: Exploratory Data Analysis (EDA)
+    df = pd.read_csv(local_path)
+    eda_path = "/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/eda_results.csv"
+    perform_eda(df, eda_path)
+    
+    # Step 5: Define and train the model
+    input_size = X_train_scaled.shape[1]
+    model = NeuralNetwork(input_size)
+    
+    train_dataset = TensorDataset(torch.tensor(X_train_scaled, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32).view(-1, 1))
+    valid_dataset = TensorDataset(torch.tensor(X_valid_scaled, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.float32).view(-1, 1))
+    test_dataset = TensorDataset(torch.tensor(X_test_scaled, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32).view(-1, 1))
+    
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    
+    model = train_model(model, train_loader, valid_loader)
+    
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 211, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 184, in main
+    X_train_scaled, X_valid_scaled, X_test_scaled = feature_engineering(X_train, X_valid, X_test, enhanced_path)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 52, in feature_engineering
+    X_train_scaled = scaler.fit_transform(X_train)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 907, in fit
+    return self.partial_fit(X, y, sample_weight)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 943, in partial_fit
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 1053, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_array_api.py", line 757, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'M'

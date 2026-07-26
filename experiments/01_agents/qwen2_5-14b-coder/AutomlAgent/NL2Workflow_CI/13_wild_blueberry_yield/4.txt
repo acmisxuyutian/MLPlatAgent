@@ -1,0 +1,215 @@
+######代码######
+
+# The following code is for "tabular regression" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from scipy import stats
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    dataset_imputed = imputer.fit_transform(dataset)
+    dataset_imputed_df = pd.DataFrame(dataset_imputed, columns=dataset.columns)
+
+    # Detect and handle outliers
+    z_scores = stats.zscore(dataset_imputed_df.select_dtypes(include=[np.number]))
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    dataset_cleaned = dataset_imputed_df[filtered_entries]
+
+    # Normalize the data
+    scaler = StandardScaler()
+    dataset_normalized = scaler.fit_transform(dataset_cleaned)
+    dataset_normalized_df = pd.DataFrame(dataset_normalized, columns=dataset_cleaned.columns)
+
+    # Feature engineering
+    correlation_matrix = dataset_normalized_df.corr()
+    top_features = correlation_matrix['yield'].abs().sort_values(ascending=False).head(11).index.tolist()
+    dataset_selected = dataset_normalized_df[top_features]
+
+    # Create interaction terms
+    if 'feature1' in dataset_selected.columns and 'feature2' in dataset_selected.columns:
+        dataset_selected['interaction_feature'] = dataset_selected['feature1'] * dataset_selected['feature2']
+
+    return dataset_selected
+
+def train_model(model, train_loader, val_loader, num_epochs=150, patience=10):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+
+    best_val_loss = float('inf')
+    early_stopping_counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets.view(-1, 1))
+                val_loss += loss.item()
+
+        val_loss /= len(val_loader)
+        print(f'Epoch {epoch+1}, Train Loss: {running_loss/len(train_loader)}, Val Loss: {val_loss}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/best_model.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print('Early stopping triggered')
+                break
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.load_state_dict(torch.load('./agent_workspace/trained_models/best_model.pth'))
+    model.eval()
+
+    predictions = []
+    true_values = []
+
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            predictions.extend(outputs.numpy().flatten())
+            true_values.extend(targets.numpy().flatten())
+
+    mae = mean_absolute_error(true_values, predictions)
+    performance_scores = {
+        "MAE": mae
+    }
+    return performance_scores
+
+# Define the Fully Connected Neural Network (FCN)
+class FCN(nn.Module):
+    def __init__(self, input_size):
+        super(FCN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, 1)
+        self.dropout = nn.Dropout(0.2)
+        self.bn1 = nn.BatchNorm1d(128)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(32)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.bn1(x)
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.bn2(x)
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.bn3(x)
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 15% of the `dataset`, and the test_loader contains 15% of the `dataset`.
+    X = dataset.drop('yield', axis=1)
+    y = dataset['yield']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_train = preprocess_data(X_train)
+    processed_val = preprocess_data(X_val)
+    processed_test = preprocess_data(X_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = processed_train.shape[1]
+    model = FCN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    train_dataset = TensorDataset(torch.tensor(processed_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(processed_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    test_dataset = TensorDataset(torch.tensor(processed_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'yield'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 181, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 154, in main
+    processed_train = preprocess_data(X_train)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 42, in preprocess_data
+    top_features = correlation_matrix['yield'].abs().sort_values(ascending=False).head(11).index.tolist()
+                   ~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'yield'

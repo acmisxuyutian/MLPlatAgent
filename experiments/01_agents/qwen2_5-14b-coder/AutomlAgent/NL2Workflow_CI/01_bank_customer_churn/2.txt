@@ -1,0 +1,137 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='median')
+    train_data_imputed = imputer.fit_transform(train_data)
+    test_data_imputed = imputer.transform(test_data)
+
+    # Encode categorical variables
+    categorical_features = ['gender', 'country']
+    numerical_features = ['age', 'balance']
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_features),
+            ('cat', OneHotEncoder(), categorical_features)
+        ])
+
+    # Fit and transform the training data
+    train_data_encoded = preprocessor.fit_transform(train_data_imputed)
+    test_data_encoded = preprocessor.transform(test_data_imputed)
+
+    return train_data_encoded, test_data_encoded
+
+def train_model(train_data, train_labels):
+    # Initialize and train the Random Forest model
+    rf_model = RandomForestClassifier(n_estimators=100, max_depth=20, min_samples_split=5, min_samples_leaf=2, random_state=SEED)
+    rf_model.fit(train_data, train_labels)
+    return rf_model
+
+def evaluate_model(model, test_data, test_labels):
+    # Predict probabilities on the test dataset
+    y_pred_proba = model.predict_proba(test_data)[:, 1]
+
+    # Calculate AUC-ROC
+    auc_roc = roc_auc_score(test_labels, y_pred_proba)
+
+    # Generate confusion matrix
+    y_pred = model.predict(test_data)
+    cm = confusion_matrix(test_labels, y_pred)
+
+    # Generate classification report
+    cr = classification_report(test_labels, y_pred)
+
+    # Return performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': cm,
+        'Classification Report': cr
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+    test_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop('churn', axis=1), train_data['churn'], test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_val, y_val, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train_encoded, X_test_encoded = preprocess_data(X_train, X_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train_encoded, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test_encoded, y_test)
+
+    # Save the trained model
+    joblib.dump(model, './agent_workspace/trained_models/random_forest_churn_model.pkl')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 112, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 90, in main
+    X_train, X_val, y_train, y_val = train_test_split(train_data.drop('churn', axis=1), train_data['churn'], test_size=0.3, random_state=SEED)
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['churn'] not found in axis"

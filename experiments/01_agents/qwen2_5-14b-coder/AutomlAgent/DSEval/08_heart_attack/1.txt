@@ -1,0 +1,123 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import make_scorer
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Convert the 'Diet' column to numerical values using label encoding
+    label_encoder = LabelEncoder()
+    train_df['Diet'] = label_encoder.fit_transform(train_df['Diet'])
+    test_df['Diet'] = label_encoder.transform(test_df['Diet'])
+    
+    # Handle non-numeric values in the dataset
+    def handle_non_numeric(df):
+        for column in df.select_dtypes(include=['object']).columns:
+            df[column] = pd.to_numeric(df[column], errors='coerce')
+        return df
+    
+    train_df = handle_non_numeric(train_df)
+    test_df = handle_non_numeric(test_df)
+    
+    # Fill missing values with the median of each column
+    train_df.fillna(train_df.median(), inplace=True)
+    test_df.fillna(train_df.median(), inplace=True)
+    
+    # Split the training dataset into training, validation, and test sets
+    X = train_df.drop('Heart Attack Risk', axis=1)
+    y = train_df['Heart Attack Risk']
+    
+    # Split the dataset into training and temporary sets (80% training, 20% temporary)
+    X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=SEED)
+    
+    # Split the temporary set into validation and test sets (50% validation, 50% test)
+    X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+def train_model(X_train, y_train):
+    # Initialize the RandomForest classifier
+    rf_model = RandomForestClassifier(random_state=SEED)
+    
+    # Define the hyperparameter grid
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    
+    # Perform Grid Search
+    grid_search = GridSearchCV(estimator=rf_model, param_grid=param_grid, scoring=make_scorer(roc_auc_score), cv=3, n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    # Get the best model
+    best_rf_model = grid_search.best_estimator_
+    
+    return best_rf_model
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model on the test set
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+    
+    performance_scores = {
+        'ROC AUC': roc_auc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/08_heart_attack/test.csv'
+    
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(train_df, test_df)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in the preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Hyperparameter optimization is already done in the train_model function
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Step 7. Save the model
+    model_path = './agent_workspace/trained_models/heart_attack_risk_rf_model.joblib'
+    joblib.dump(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'ROC AUC': 0.4978223149958604}

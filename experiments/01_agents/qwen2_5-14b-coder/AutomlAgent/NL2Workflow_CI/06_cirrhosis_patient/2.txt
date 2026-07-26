@@ -1,0 +1,184 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.utils.data as data
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data paths
+train_dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+model_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/cirrhosis_patient_model.pth'
+
+# Data retrieval and preparation
+def preprocess_data(train_df, test_df):
+    # Initial data exploration
+    print(train_df.head())
+    print(train_df.info())
+    print(train_df.describe())
+    print(train_df.isnull().sum())
+
+    # Feature engineering
+    # Discretization of continuous features
+    continuous_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    for col in continuous_features:
+        train_df[col] = pd.qcut(train_df[col], q=5, labels=False, duplicates='drop')
+        test_df[col] = pd.qcut(test_df[col], q=5, labels=False, duplicates='drop')
+
+    # Handling missing values
+    for col in continuous_features:
+        train_df[col].fillna(train_df[col].mean(), inplace=True)
+        test_df[col].fillna(test_df[col].mean(), inplace=True)
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns
+    for col in categorical_features:
+        train_df[col].fillna(train_df[col].mode()[0], inplace=True)
+        test_df[col].fillna(test_df[col].mode()[0], inplace=True)
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    train_df[continuous_features] = scaler.fit_transform(train_df[continuous_features])
+    test_df[continuous_features] = scaler.transform(test_df[continuous_features])
+
+    # Encode target variable
+    label_encoder = LabelEncoder()
+    train_df['survival_status'] = label_encoder.fit_transform(train_df['survival_status'])
+    test_df['survival_status'] = label_encoder.transform(test_df['survival_status'])
+
+    # Split into features and target
+    X_train = train_df.drop('survival_status', axis=1)
+    y_train = train_df['survival_status']
+    X_test = test_df.drop('survival_status', axis=1)
+    y_test = test_df['survival_status']
+
+    return X_train, y_train, X_test, y_test
+
+# Model architecture definition
+class NLN(nn.Module):
+    def __init__(self, input_size):
+        super(NLN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 16)
+        self.fc4 = nn.Linear(16, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Model training
+def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
+    model.train()
+    for epoch in range(num_epochs):
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f'Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}')
+    return model
+
+# Model evaluation
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_loss = 0.0
+        y_true = []
+        y_pred = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
+            y_true.extend(labels.numpy())
+            y_pred.extend((outputs > 0.5).numpy())
+        print(f'Test Loss: {test_loss/len(test_loader)}')
+        performance_scores = {
+            'ACC': accuracy_score(y_true, y_pred),
+            'F1': f1_score(y_true, y_pred)
+        }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load a dataset from user's local storage
+    train_df = pd.read_csv(train_dataset_path)
+    test_df = pd.read_csv(test_dataset_path)
+
+    # Step 2: Create a train-valid-test split of the data
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=SEED)
+
+    # Step 3: Convert to PyTorch datasets and loaders
+    train_dataset = data.TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1))
+    val_dataset = data.TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1))
+    test_dataset = data.TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1))
+
+    train_loader = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = data.DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4: Define required model
+    input_size = X_train.shape[1]
+    model = NLN(input_size)
+
+    # Step 5: Train the model
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+    model = train_model(model, train_loader, criterion, optimizer)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+
+    # Step 7: Save the trained model
+    torch.save(model.state_dict(), model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 105, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 83, in main
+    train_df, test_df = preprocess_data(train_df, test_df)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 31, in preprocess_data
+    train_df.drop(columns=columns_to_drop, inplace=True)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['Unnamed: 0'] not found in axis"

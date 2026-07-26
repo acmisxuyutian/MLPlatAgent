@@ -1,0 +1,172 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from tabpfn import TabPFNClassifier
+from peft import get_peft_config, get_peft_model, TaskType
+import mlflow
+import prometheus_client as prom
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preprocessing
+def preprocess_data(dataset):
+    # Data splitting
+    train_set, temp_set = train_test_split(dataset, test_size=0.3, random_state=SEED)
+    validation_set, test_set = train_test_split(temp_set, test_size=0.5, random_state=SEED)
+    
+    # Data serialization
+    def serialize_data(df):
+        serialized_data = []
+        for index, row in df.iterrows():
+            serialized_row = []
+            for column in df.columns:
+                serialized_row.append(f"The {column} is {row[column]}")
+            serialized_data.append(" ".join(serialized_row))
+        return serialized_data
+
+    train_serialized = serialize_data(train_set)
+    validation_serialized = serialize_data(validation_set)
+    test_serialized = serialize_data(test_set)
+    
+    return train_set, validation_set, test_set
+
+# Model training
+def train_model(model, train_features, train_labels, epochs=100, lr=0.001):
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    
+    model.train()
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        output = model(train_features)
+        loss = criterion(output, train_labels)
+        loss.backward()
+        optimizer.step()
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, features, labels):
+    model.eval()
+    with torch.no_grad():
+        output = model(features)
+        y_pred = torch.argmax(output, dim=1)
+        y_true = labels
+    
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC_AUC': roc_auc_score(y_true, output[:, 1].numpy())
+    }
+    
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1: Retrieve the dataset
+    url = "https://example.com/kidney_stone_dataset.csv"
+    response = requests.get(url)
+    with open("kidney_stone_dataset.csv", "wb") as file:
+        file.write(response.content)
+    dataset = pd.read_csv("kidney_stone_dataset.csv")
+    
+    # Step 2: Preprocess the dataset
+    train_set, validation_set, test_set = preprocess_data(dataset)
+    
+    # Step 3: Encode target variable
+    label_encoder = LabelEncoder()
+    train_set['has_kidney_stone'] = label_encoder.fit_transform(train_set['has_kidney_stone'])
+    validation_set['has_kidney_stone'] = label_encoder.transform(validation_set['has_kidney_stone'])
+    test_set['has_kidney_stone'] = label_encoder.transform(test_set['has_kidney_stone'])
+    
+    # Step 4: Convert to PyTorch tensors
+    train_features = torch.tensor(train_set.drop('has_kidney_stone', axis=1).values, dtype=torch.float32)
+    train_labels = torch.tensor(train_set['has_kidney_stone'].values, dtype=torch.long)
+    validation_features = torch.tensor(validation_set.drop('has_kidney_stone', axis=1).values, dtype=torch.float32)
+    validation_labels = torch.tensor(validation_set['has_kidney_stone'].values, dtype=torch.long)
+    test_features = torch.tensor(test_set.drop('has_kidney_stone', axis=1).values, dtype=torch.float32)
+    test_labels = torch.tensor(test_set['has_kidney_stone'].values, dtype=torch.long)
+    
+    # Step 5: Model selection and fine-tuning
+    model = TabPFNClassifier(device='cuda')  # Use 'cpu' if GPU is not available
+    
+    peft_config = get_peft_config({
+        "task_type": TaskType.CLASSIFICATION,
+        "target_modules": ["q_proj", "v_proj"],
+        "lora_alpha": 16,
+        "lora_dropout": 0.1,
+        "r": 8,
+        "bias": "none"
+    })
+    
+    model = get_peft_model(model, peft_config)
+    
+    # Step 6: Train the model
+    model = train_model(model, train_features, train_labels)
+    
+    # Step 7: Evaluate the model on validation set
+    validation_performance = evaluate_model(model, validation_features, validation_labels)
+    print("Validation Performance:", validation_performance)
+    
+    # Step 8: Evaluate the model on test set
+    test_performance = evaluate_model(model, test_features, test_labels)
+    print("Test Performance:", test_performance)
+    
+    # Step 9: Log model and parameters using MLflow
+    with mlflow.start_run():
+        mlflow.log_param("model", "TabPFN")
+        mlflow.log_param("lr", 0.001)
+        mlflow.log_param("epochs", 100)
+        mlflow.log_metric("validation_acc", validation_performance['ACC'])
+        mlflow.log_metric("validation_f1", validation_performance['F1'])
+        mlflow.log_metric("validation_roc_auc", validation_performance['ROC_AUC'])
+        mlflow.log_metric("test_acc", test_performance['ACC'])
+        mlflow.log_metric("test_f1", test_performance['F1'])
+        mlflow.log_metric("test_roc_auc", test_performance['ROC_AUC'])
+        mlflow.log_artifact("kidney_stone_dataset.csv")
+        mlflow.pytorch.log_model(model, "model")
+    
+    # Step 10: Local stability measure
+    predictions = []
+    for _ in range(5):  # Repeat fine-tuning 5 times
+        model = train_model(model, train_features, train_labels)
+        model.eval()
+        with torch.no_grad():
+            output = model(validation_features)
+            predictions.append(output[:, 1].numpy())
+    
+    predictions = np.array(predictions)
+    stability = np.std(predictions, axis=0).mean()
+    print(f"Local Stability Measure: {stability}")
+    
+    # Step 11: Define and update metrics using Prometheus
+    auc_roc_metric = prom.Gauge('kidney_stone_model_auc_roc', 'AUC-ROC score of the kidney stone model')
+    auc_roc_metric.set(test_performance['ROC_AUC'])
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 17, in <module>
+    from tabpfn import TabPFNClassifier
+ModuleNotFoundError: No module named 'tabpfn'

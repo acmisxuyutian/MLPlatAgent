@@ -1,0 +1,191 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.model_selection import GridSearchCV
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+
+# Data preprocessing and feature engineering
+def preprocess_data(data):
+    # Data Overview
+    print(data.head())
+    print(data.info())
+    print(data.describe())
+
+    # Data Cleaning
+    print(data.isnull().sum())
+    print(data.duplicated().sum())
+    data = data.drop_duplicates()
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    features = data.drop(columns=['target', 'species'])
+    scaled_features = scaler.fit_transform(features)
+    data_scaled = pd.DataFrame(scaled_features, columns=features.columns)
+    data_scaled['target'] = data['target']
+    data_scaled['species'] = data['species']
+
+    # Feature Engineering
+    # Optional: Create Interaction Terms or Polynomial Features
+    poly = PolynomialFeatures(degree=2, interaction_only=True)
+    interaction_features = poly.fit_transform(features)
+    interaction_data = pd.DataFrame(interaction_features, columns=poly.get_feature_names_out(features.columns))
+    interaction_data['target'] = data['target']
+    interaction_data['species'] = data['species']
+
+    return data_scaled, interaction_data
+
+# Data Visualization
+def visualize_data(data_scaled):
+    sns.pairplot(data_scaled, hue='species')
+    plt.show()
+    plt.savefig('iris_pairplot.png')
+
+# Model Training
+def train_model(X_train, y_train):
+    model = RandomForestClassifier(random_state=SEED)
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10]
+    }
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_pred = model.predict(X_val)
+    performance_scores = {
+        'ACC': accuracy_score(y_val, y_pred),
+        'F1': f1_score(y_val, y_pred, average='weighted')
+    }
+    print(classification_report(y_val, y_pred))
+    print(confusion_matrix(y_val, y_pred))
+    return performance_scores
+
+# Feature Importance
+def plot_feature_importance(model, X):
+    feature_importances = model.feature_importances_
+    plt.barh(X.columns, feature_importances)
+    plt.xlabel('Feature Importance')
+    plt.ylabel('Features')
+    plt.title('Feature Importance in Random Forest Model')
+    plt.show()
+    plt.savefig('feature_importance.png')
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    iris = load_iris()
+    data = pd.DataFrame(data=np.c_[iris['data'], iris['target']], columns=iris['feature_names'] + ['target'])
+    data['species'] = pd.Categorical.from_codes(iris.target, iris.target_names)
+
+    # Step 2. Create a train-valid-test split of the data
+    X = data.drop(columns=['target', 'species'])
+    y = data['target']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED, stratify=y_temp)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable)
+    data_scaled, interaction_data = preprocess_data(data)
+
+    # Step 4. Define required model
+    model = RandomForestClassifier(random_state=SEED)
+
+    # Step 5. Train the retrieved/loaded model
+    best_model = train_model(X_train, y_train)
+
+    # Step 6. Evaluate the trained model
+    model_performance = evaluate_model(best_model, X_val, y_val)
+
+    # Step 7. Plot feature importance
+    plot_feature_importance(best_model, X_train)
+
+    # Step 8. Save the trained model
+    model_path = "./agent_workspace/trained_models"
+    os.makedirs(model_path, exist_ok=True)
+    joblib.dump(best_model, os.path.join(model_path, 'random_forest_model.pkl'))
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+   sepal length (cm)  sepal width (cm)  ...  target  species
+0                5.1               3.5  ...     0.0   setosa
+1                4.9               3.0  ...     0.0   setosa
+2                4.7               3.2  ...     0.0   setosa
+3                4.6               3.1  ...     0.0   setosa
+4                5.0               3.6  ...     0.0   setosa
+
+[5 rows x 6 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 150 entries, 0 to 149
+Data columns (total 6 columns):
+ #   Column             Non-Null Count  Dtype   
+---  ------             --------------  -----   
+ 0   sepal length (cm)  150 non-null    float64 
+ 1   sepal width (cm)   150 non-null    float64 
+ 2   petal length (cm)  150 non-null    float64 
+ 3   petal width (cm)   150 non-null    float64 
+ 4   target             150 non-null    float64 
+ 5   species            150 non-null    category
+dtypes: category(1), float64(5)
+memory usage: 6.3 KB
+None
+       sepal length (cm)  sepal width (cm)  ...  petal width (cm)      target
+count         150.000000        150.000000  ...        150.000000  150.000000
+mean            5.843333          3.057333  ...          1.199333    1.000000
+std             0.828066          0.435866  ...          0.762238    0.819232
+min             4.300000          2.000000  ...          0.100000    0.000000
+25%             5.100000          2.800000  ...          0.300000    0.000000
+50%             5.800000          3.000000  ...          1.300000    1.000000
+75%             6.400000          3.300000  ...          1.800000    2.000000
+max             7.900000          4.400000  ...          2.500000    2.000000
+
+[8 rows x 5 columns]
+sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+target               0
+species              0
+dtype: int64
+1
+              precision    recall  f1-score   support
+
+         0.0       1.00      1.00      1.00        10
+         1.0       0.75      0.90      0.82        10
+         2.0       0.88      0.70      0.78        10
+
+    accuracy                           0.87        30
+   macro avg       0.88      0.87      0.87        30
+weighted avg       0.88      0.87      0.87        30
+
+[[10  0  0]
+ [ 0  9  1]
+ [ 0  3  7]]
+Model Performance on Test Set: {'ACC': 0.8666666666666667, 'F1': 0.8653198653198653}

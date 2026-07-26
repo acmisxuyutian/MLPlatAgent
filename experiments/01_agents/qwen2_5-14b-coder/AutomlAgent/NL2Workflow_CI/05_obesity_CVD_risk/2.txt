@@ -1,0 +1,181 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def retrieve_data():
+    # Load the dataset
+    df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/obesity_CVD_risk.csv')
+    
+    # Identify the target variable (assuming the last column is the target variable)
+    target_variable = df.columns[-1]
+    
+    return df, target_variable
+
+# Data preprocessing and feature engineering
+def preprocess_data(df, target_variable):
+    # Identify numerical and categorical features
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+    
+    # Apply Min-Max scaling to numerical features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Handle missing values with mean imputation for numerical features
+    imputer_num = SimpleImputer(strategy='mean')
+    df[numerical_features] = pd.DataFrame(imputer_num.fit_transform(df[numerical_features]), columns=numerical_features)
+    
+    # Handle missing values with mode imputation for categorical features
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+    df[categorical_features] = pd.DataFrame(imputer_cat.fit_transform(df[categorical_features]), columns=categorical_features)
+    
+    # One-hot encode categorical features
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    encoded_features = encoder.fit_transform(df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    
+    # Concatenate numerical and encoded features
+    df = pd.concat([df[numerical_features], encoded_df], axis=1)
+    
+    # Feature construction: Convert each row of the dataset into a string representation
+    df['text_representation'] = df.apply(lambda row: ' '.join(str(row[col]) for col in df.columns if col != target_variable), axis=1)
+    
+    # Tokenize and preprocess the text data
+    stop_words = set(stopwords.words('english'))
+    df['text_representation'] = df['text_representation'].apply(lambda x: ' '.join([word for word in word_tokenize(x) if word.isalnum() and word.lower() not in stop_words]))
+    
+    # Feature selection using mutual information
+    selector = SelectKBest(score_func=mutual_info_classif, k=10)
+    X_selected = selector.fit_transform(df.drop(target_variable, axis=1), df[target_variable])
+    
+    # Get the selected feature names
+    selected_features = df.drop(target_variable, axis=1).columns[selector.get_support()]
+    
+    return X_selected, df[target_variable], selected_features
+
+# Define the feedforward neural network (FNN) architecture
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Train the model
+def train_model(model, train_loader, valid_loader, num_epochs=100, learning_rate=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(train_loader)
+        loss = criterion(outputs, valid_loader)
+        loss.backward()
+        optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(test_loader)
+        predictions = (outputs > 0.5).float()
+    
+    y_true = test_loader[:, -1]
+    y_pred = predictions.squeeze()
+    
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df, target_variable = retrieve_data()
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X, y = preprocess_data(df, target_variable)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = FNN(input_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train_tensor, y_train_tensor)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test_tensor)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 164, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    X, y = preprocess_data(df, target_variable)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 56, in preprocess_data
+    encoder = OneHotEncoder(sparse=False, drop='first')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'

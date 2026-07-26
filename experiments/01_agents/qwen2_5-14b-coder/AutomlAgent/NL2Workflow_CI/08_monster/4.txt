@@ -1,0 +1,228 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.utils.data as data
+from sklearn.metrics import accuracy_score, f1_score, roc_curve, auc
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, f_classif
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(monster_train, monster_test):
+    # Data Inspection
+    print(monster_train.info())
+    print(monster_train.describe())
+    print(monster_train.isnull().sum())
+
+    # Data Cleaning
+    monster_train = monster_train.dropna()
+    monster_test = monster_test.dropna()
+
+    # Normalization
+    scaler = StandardScaler()
+    numerical_features = monster_train.select_dtypes(include=['float64', 'int64']).columns
+    monster_train[numerical_features] = scaler.fit_transform(monster_train[numerical_features])
+    monster_test[numerical_features] = scaler.transform(monster_test[numerical_features])
+
+    # Encoding Categorical Variables
+    encoder = OneHotEncoder(sparse=False)
+    categorical_features = monster_train.select_dtypes(include=['object']).columns
+    monster_train_encoded = encoder.fit_transform(monster_train[categorical_features])
+    monster_test_encoded = encoder.transform(monster_test[categorical_features])
+
+    monster_train = pd.concat([monster_train.drop(categorical_features, axis=1), pd.DataFrame(monster_train_encoded)], axis=1)
+    monster_test = pd.concat([monster_test.drop(categorical_features, axis=1), pd.DataFrame(monster_test_encoded)], axis=1)
+
+    # Feature Selection
+    X_train = monster_train.drop('monster_type', axis=1)
+    y_train = monster_train['monster_type']
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+
+    X_test_selected = selector.transform(monster_test.drop('monster_type', axis=1))
+
+    return X_train_selected, y_train, X_test_selected
+
+# Define the model
+class MonsterClassifier(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(MonsterClassifier, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc2(out)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc3(out)
+        return out
+
+# Train the model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs):
+    best_val_accuracy = 0.0
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+            val_accuracy = 100 * correct / total
+            if val_accuracy > best_val_accuracy:
+                best_val_accuracy = val_accuracy
+                torch.save(model.state_dict(), './agent_workspace/trained_models/monster_classifier.pth')
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation Accuracy: {val_accuracy:.2f}%')
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    correct = 0
+    total = 0
+    all_predictions = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            all_predictions.extend(predicted.numpy())
+
+    test_accuracy = 100 * correct / total
+    performance_scores = {
+        'ACC': test_accuracy,
+        'F1': f1_score(test_loader.dataset.tensors[1].numpy(), all_predictions, average='weighted')
+    }
+
+    return performance_scores, all_predictions
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    monster_train = pd.read_csv('./data/monster_train.csv')
+    monster_test = pd.read_csv('./data/monster_test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train_selected, y_train, X_test_selected = preprocess_data(monster_train, monster_test)
+    X_train, X_val, y_train, y_val = train_test_split(X_train_selected, y_train, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_val, y_val, test_size=0.33, random_state=SEED)
+
+    train_dataset = data.TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.long))
+    train_loader = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    val_dataset = data.TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val, dtype=torch.long))
+    val_loader = data.DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    test_dataset = data.TensorDataset(torch.tensor(X_test_selected, dtype=torch.float32), torch.tensor(y_test, dtype=torch.long))
+    test_loader = data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in preprocess_data function
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_selected.shape[1]
+    hidden_size = 64
+    num_classes = len(y_train.unique())
+    model = MonsterClassifier(input_size, hidden_size, num_classes)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 50
+
+    model = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance, all_predictions = evaluate_model(model, test_loader)
+
+    # Save predictions
+    np.save('./predictions/monster_predictions.npy', all_predictions)
+
+    # Generate visualizations
+    y_test_one_hot = pd.get_dummies(y_test)
+    y_pred_prob = model(torch.tensor(X_test_selected, dtype=torch.float32)).softmax(dim=1).numpy()
+    fpr, tpr, _ = roc_curve(y_test_one_hot.ravel(), y_pred_prob.ravel())
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.show()
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 199, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    monster_train = pd.read_csv('./data/monster_train.csv')
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './data/monster_train.csv'

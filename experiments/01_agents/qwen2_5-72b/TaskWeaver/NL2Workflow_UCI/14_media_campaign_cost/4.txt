@@ -1,0 +1,98 @@
+import pandas as pd
+
+# Load the training data
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first few rows and the data types of the columns
+train_df.head(), train_df.dtypes
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       id  store_sales  unit_sales  total_children  num_children_at_home  avg_cars_at_home  gross_weight  recyclable_package  low_fat  units_per_case  store_sqft  coffee_bar  video_store  salad_bar  prepared_food  florist    cost
+ 0  177400         8.49           3               1                     0                 4          17.7                   0        1              34       30268           0            0          0              0        0  133.42
+ 1   35064         4.47           3               2                     0                 3          11.3                   1        0              32       28206           1            0          0              0        0  109.06
+ 2  268168         6.84           3               0                     0                 1          10.5                   1        1              24       30584           1            1          1              1        1   91.58
+ 3  177181         4.54           2               3                     0                 1          12.3                   0        1               3       28206           1            0          0              0        0  124.36
+ 4  271461         8.34           3               1                     0                 2          16.1                   1        0              14       23688           1            1          1              1        1   96.55,
+ id               int64
+ store_sales    float64
+                 ...   
+ florist          int64
+ cost           float64
+ Length: 17, dtype: object)import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+import numpy as np
+
+# Preprocess the data
+# Handle missing values if any
+train_df.fillna(train_df.mean(), inplace=True)
+
+# Encode categorical variables if any (for simplicity, assuming all features are numerical)
+# No categorical encoding needed based on the provided schema
+
+# Scale the features
+scaler = StandardScaler()
+features = train_df.drop(columns=['cost'])
+target = train_df['cost']
+scaled_features = scaler.fit_transform(features)
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(scaled_features, target, test_size=0.2, random_state=42)
+
+# Train the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate the model on the validation set
+y_pred = model.predict(X_val)
+rmlse = np.sqrt(mean_squared_log_error(y_val, y_pred))
+
+# Report the RMLSE
+rmlse, X_train, X_val, y_train, y_val, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.3176716219748084,
+ array([[-1.01029592, -1.02636719, -1.32562136, ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [-0.90733166, -1.49307864, -1.32562136, ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [-0.7201327 ,  1.21324161, -0.0528924 , ...,  0.99650246,
+          0.99643332,  0.99325823],
+        ...,
+        [ 0.69315668,  1.50720921,  1.21983655, ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [-1.67335096, -0.13234203, -0.0528924 , ..., -1.00350982,
+         -1.00357945, -1.00678753],
+        [ 0.31039805, -0.23841281,  1.21983655, ..., -1.00350982,
+         -1.00357945, -1.00678753]]),
+ array([[-1.33908642,  0.16768676, -0.0528924 , ...,  0.99650246,
+          0.99643332, -1.00678753],
+        [-1.21638855,  0.46771554, -0.0528924 , ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [-1.12688254,  1.51933159,  1.21983655, ...,  0.99650246,
+          0.99643332, -1.00678753],
+        ...,
+        [-0.39679695,  0.25860457,  1.21983655, ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [-0.3709521 , -0.97787769,  1.21983655, ...,  0.99650246,
+          0.99643332,  0.99325823],
+        [ 0.36812175, -1.28699826, -0.0528924 , ...,  0.99650246,
+          0.99643332,  0.99325823]]),
+ 6914     95.78
+ 8119     75.76
+          ...  
+ 15795    72.61
+ 23654    91.28
+ Name: cost, Length: 23061, dtype: float64,
+ 28039    145.52
+ 9061     117.86
+           ...  
+ 23720    146.72
+ 11812     53.21
+ Name: cost, Length: 5766, dtype: float64,
+ array([102.3881, 106.553 ,  81.2136, ...,  95.8432, 107.2077, 102.5445]))

@@ -1,0 +1,187 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetClassifier
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    print(df.head())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Normalize numerical features
+    numerical_features = ['bone_length', 'rotting_flesh', 'hair_length']
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Encode categorical features
+    df = pd.get_dummies(df, columns=['color'])
+
+    # Impute missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    
+    # Ensure categorical columns are of object type
+    categorical_features = [col for col in df.columns if col.startswith('color_')]
+    df[categorical_features] = df[categorical_features].astype(object)
+    
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+
+    return df
+
+# Data Augmentation
+def augment_data(df):
+    X = df.drop(columns=['type'])
+    y = df['type']
+
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    df_resampled = pd.concat([X_resampled, y_resampled], axis=1)
+    return df_resampled
+
+# Data Splitting
+def split_data(df):
+    X = df.drop(columns=['type'])
+    y = df['type']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training
+def train_model(X_train, y_train, X_val, y_val):
+    model = TabNetClassifier(
+        n_d=64,
+        n_a=64,
+        n_steps=5,
+        gamma=1.3,
+        n_independent=2,
+        n_shared=2,
+        momentum=0.02,
+        mask_type="sparsemax",
+        device_name='cpu'  # Use CPU to avoid CUDA out of memory error
+    )
+
+    model.fit(
+        X_train=X_train.values, y_train=y_train,
+        eval_set=[(X_train.values, y_train), (X_val.values, y_val)],
+        eval_name=['train', 'valid'],
+        eval_metric=['accuracy'],
+        max_epochs=1000,
+        patience=50,
+        batch_size=64,
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False
+    )
+
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test.values)
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+    print(f'Test Accuracy: {performance_scores["ACC"]}')
+    print(f'Test F1-Score: {performance_scores["F1"]}')
+    return performance_scores
+
+# Save Model
+def save_model(model, model_save_path):
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    model.save_model(model_save_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    df = load_dataset(dataset_path)
+
+    df = preprocess_data(df)
+    df_resampled = augment_data(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df_resampled)
+
+    model = train_model(X_train, y_train, X_val, y_val)
+    performance_scores = evaluate_model(model, X_test, y_test)
+
+    model_save_path = './agent_workspace/trained_models/monster_classification_tabnet'
+    save_model(model, model_save_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning:
+
+Device used : cpu
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 124, in main
+    model = train_model(X_train, y_train, X_val, y_val)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 84, in train_model
+    model.fit(
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py", line 243, in fit
+    self._set_optimizer()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py", line 708, in _set_optimizer
+    self._optimizer = self.optimizer_fn(
+                      ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

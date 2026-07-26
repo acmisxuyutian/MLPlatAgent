@@ -1,0 +1,989 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from submission import submit_predictions_for_test_set
+import lightgbm as lgb
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = roc_auc_score(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Define the LightGBM dataset
+    lgb_train = lgb.Dataset(X_train, y_train)
+    lgb_valid = lgb.Dataset(X_valid, y_valid, reference=lgb_train)
+    
+    # Define the parameters for the LightGBM model
+    params = {
+        'objective': 'binary',
+        'metric': 'auc',
+        'boosting_type': 'gbdt',
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'feature_fraction': 0.9,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'verbose': 0
+    }
+    
+    # Train the model
+    model = lgb.train(params, lgb_train, valid_sets=[lgb_train, lgb_valid], num_boost_round=100, early_stopping_rounds=10)
+    return model
+
+
+def predict(model, X):
+    # Generate predictions
+    y_pred = model.predict(X, num_iteration=model.best_iteration)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['booking_status'], axis=1)
+    y = data_df['booking_status'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final auc_roc on validation set: ", score)
+
+    # save the model and validation set predictions
+    model.save_model('lightgbm_model.txt')
+    np.save('validation_predictions.npy', y_valid_pred)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['booking_status'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.003499 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.862584	valid_1's auc: 0.847141
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.866472	valid_1's auc: 0.849357
+[3]	training's auc: 0.87083	valid_1's auc: 0.854261
+[4]	training's auc: 0.874177	valid_1's auc: 0.857324
+[5]	training's auc: 0.875519	valid_1's auc: 0.858671
+[6]	training's auc: 0.878463	valid_1's auc: 0.863533
+[7]	training's auc: 0.878399	valid_1's auc: 0.862971
+[8]	training's auc: 0.878384	valid_1's auc: 0.86286
+[9]	training's auc: 0.878364	valid_1's auc: 0.862849
+[10]	training's auc: 0.879086	valid_1's auc: 0.863022
+[11]	training's auc: 0.879298	valid_1's auc: 0.863411
+[12]	training's auc: 0.879539	valid_1's auc: 0.863498
+[13]	training's auc: 0.879527	valid_1's auc: 0.863563
+[14]	training's auc: 0.8801	valid_1's auc: 0.864159
+[15]	training's auc: 0.880137	valid_1's auc: 0.864167
+[16]	training's auc: 0.880208	valid_1's auc: 0.864499
+[17]	training's auc: 0.880571	valid_1's auc: 0.865084
+[18]	training's auc: 0.880556	valid_1's auc: 0.865319
+[19]	training's auc: 0.881522	valid_1's auc: 0.866514
+[20]	training's auc: 0.881635	valid_1's auc: 0.866875
+[21]	training's auc: 0.881852	valid_1's auc: 0.866887
+[22]	training's auc: 0.882399	valid_1's auc: 0.86742
+[23]	training's auc: 0.882509	valid_1's auc: 0.867598
+[24]	training's auc: 0.882629	valid_1's auc: 0.86768
+[25]	training's auc: 0.882781	valid_1's auc: 0.867672
+[26]	training's auc: 0.883175	valid_1's auc: 0.867931
+[27]	training's auc: 0.883554	valid_1's auc: 0.868309
+[28]	training's auc: 0.883859	valid_1's auc: 0.86844
+[29]	training's auc: 0.884285	valid_1's auc: 0.868772
+[30]	training's auc: 0.884506	valid_1's auc: 0.86889
+[31]	training's auc: 0.885154	valid_1's auc: 0.869692
+[32]	training's auc: 0.88526	valid_1's auc: 0.869787
+[33]	training's auc: 0.885417	valid_1's auc: 0.869894
+[34]	training's auc: 0.885969	valid_1's auc: 0.870074
+[35]	training's auc: 0.886085	valid_1's auc: 0.870107
+[36]	training's auc: 0.886405	valid_1's auc: 0.870394
+[37]	training's auc: 0.886642	valid_1's auc: 0.870575
+[38]	training's auc: 0.886931	valid_1's auc: 0.87083
+[39]	training's auc: 0.887384	valid_1's auc: 0.870968
+[40]	training's auc: 0.88766	valid_1's auc: 0.871178
+[41]	training's auc: 0.887911	valid_1's auc: 0.871455
+[42]	training's auc: 0.88814	valid_1's auc: 0.8717
+[43]	training's auc: 0.888316	valid_1's auc: 0.871935
+[44]	training's auc: 0.888929	valid_1's auc: 0.872453
+[45]	training's auc: 0.889445	valid_1's auc: 0.87277
+[46]	training's auc: 0.889715	valid_1's auc: 0.872837
+[47]	training's auc: 0.889974	valid_1's auc: 0.873183
+[48]	training's auc: 0.890265	valid_1's auc: 0.873421
+[49]	training's auc: 0.89046	valid_1's auc: 0.873614
+[50]	training's auc: 0.890809	valid_1's auc: 0.873861
+[51]	training's auc: 0.891256	valid_1's auc: 0.874054
+[52]	training's auc: 0.891531	valid_1's auc: 0.87431
+[53]	training's auc: 0.891863	valid_1's auc: 0.874476
+[54]	training's auc: 0.892115	valid_1's auc: 0.874684
+[55]	training's auc: 0.89245	valid_1's auc: 0.874771
+[56]	training's auc: 0.892809	valid_1's auc: 0.874892
+[57]	training's auc: 0.893065	valid_1's auc: 0.875108
+[58]	training's auc: 0.893291	valid_1's auc: 0.875209
+[59]	training's auc: 0.893688	valid_1's auc: 0.87555
+[60]	training's auc: 0.894036	valid_1's auc: 0.875806
+[61]	training's auc: 0.894335	valid_1's auc: 0.875944
+[62]	training's auc: 0.894651	valid_1's auc: 0.876291
+[63]	training's auc: 0.894908	valid_1's auc: 0.87661
+[64]	training's auc: 0.895213	valid_1's auc: 0.876888
+[65]	training's auc: 0.895521	valid_1's auc: 0.877047
+[66]	training's auc: 0.89583	valid_1's auc: 0.877361
+[67]	training's auc: 0.896058	valid_1's auc: 0.877442
+[68]	training's auc: 0.89632	valid_1's auc: 0.877569
+[69]	training's auc: 0.896523	valid_1's auc: 0.877633
+[70]	training's auc: 0.896875	valid_1's auc: 0.877864
+[71]	training's auc: 0.897165	valid_1's auc: 0.877908
+[72]	training's auc: 0.897389	valid_1's auc: 0.878171
+[73]	training's auc: 0.897627	valid_1's auc: 0.878419
+[74]	training's auc: 0.89786	valid_1's auc: 0.878329
+[75]	training's auc: 0.898071	valid_1's auc: 0.878417
+[76]	training's auc: 0.898302	valid_1's auc: 0.878486
+[77]	training's auc: 0.898606	valid_1's auc: 0.878719
+[78]	training's auc: 0.898895	valid_1's auc: 0.878931
+[79]	training's auc: 0.89918	valid_1's auc: 0.87915
+[80]	training's auc: 0.899422	valid_1's auc: 0.879323
+[81]	training's auc: 0.899586	valid_1's auc: 0.879453
+[82]	training's auc: 0.899791	valid_1's auc: 0.879568
+[83]	training's auc: 0.899985	valid_1's auc: 0.87961
+[84]	training's auc: 0.900114	valid_1's auc: 0.87963
+[85]	training's auc: 0.900313	valid_1's auc: 0.879616
+[86]	training's auc: 0.900552	valid_1's auc: 0.879687
+[87]	training's auc: 0.900771	valid_1's auc: 0.879713
+[88]	training's auc: 0.900976	valid_1's auc: 0.879818
+[89]	training's auc: 0.901146	valid_1's auc: 0.879895
+[90]	training's auc: 0.901312	valid_1's auc: 0.879934
+[91]	training's auc: 0.901456	valid_1's auc: 0.879976
+[92]	training's auc: 0.901666	valid_1's auc: 0.880101
+[93]	training's auc: 0.901851	valid_1's auc: 0.880202
+[94]	training's auc: 0.901988	valid_1's auc: 0.880319
+[95]	training's auc: 0.902118	valid_1's auc: 0.880362
+[96]	training's auc: 0.902307	valid_1's auc: 0.880372
+[97]	training's auc: 0.902516	valid_1's auc: 0.880489
+[98]	training's auc: 0.902687	valid_1's auc: 0.880549
+[99]	training's auc: 0.902912	valid_1's auc: 0.88058
+[100]	training's auc: 0.903081	valid_1's auc: 0.880631
+Did not meet early stopping. Best iteration is:
+[100]	training's auc: 0.903081	valid_1's auc: 0.880631
+Final auc_roc on validation set:  0.8806313371954784
+Final auc_roc on test set:  0.8930846768207593
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from submission import submit_predictions_for_test_set
+import lightgbm as lgb
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = roc_auc_score(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid, params):
+    # Define the LightGBM dataset
+    lgb_train = lgb.Dataset(X_train, y_train)
+    lgb_valid = lgb.Dataset(X_valid, y_valid, reference=lgb_train)
+    
+    # Train the model
+    model = lgb.train(params, lgb_train, valid_sets=[lgb_train, lgb_valid], num_boost_round=100, early_stopping_rounds=10)
+    return model
+
+
+def predict(model, X):
+    # Generate predictions
+    y_pred = model.predict(X, num_iteration=model.best_iteration)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['booking_status'], axis=1)
+    y = data_df['booking_status'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define the grid of hyperparameters to search
+    learning_rates = [0.01, 0.05, 0.1]
+    num_leaves = [15, 31, 63]
+
+    best_score = 0
+    best_model = None
+    best_params = None
+
+    for lr in learning_rates:
+        for nl in num_leaves:
+            params = {
+                'objective': 'binary',
+                'metric': 'auc',
+                'boosting_type': 'gbdt',
+                'num_leaves': nl,
+                'learning_rate': lr,
+                'feature_fraction': 0.9,
+                'bagging_fraction': 0.8,
+                'bagging_freq': 5,
+                'verbose': 0
+            }
+            
+            # define and train the model
+            model = train_model(X_train, y_train, X_valid, y_valid, params)
+
+            # evaluate the model on the valid set using compute_metrics
+            y_valid_pred = predict(model, X_valid)
+            score = compute_metrics(y_valid, y_valid_pred)
+            print(f"Validation AUC-ROC for learning_rate={lr}, num_leaves={nl}: {score}")
+
+            # update the best model and score if this one is better
+            if score > best_score:
+                best_score = score
+                best_model = model
+                best_params = params
+
+    print(f"Best AUC-ROC: {best_score} with params: {best_params}")
+
+    # save the best model and validation set predictions
+    best_model.save_model('lightgbm_model.txt')
+    np.save('validation_predictions.npy', y_valid_pred)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['booking_status'], axis=1)
+    y_test_pred = predict(best_model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.003933 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.847938	valid_1's auc: 0.834261
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.847938	valid_1's auc: 0.834261
+[3]	training's auc: 0.858303	valid_1's auc: 0.845725
+[4]	training's auc: 0.861232	valid_1's auc: 0.847917
+[5]	training's auc: 0.862405	valid_1's auc: 0.849134
+[6]	training's auc: 0.864759	valid_1's auc: 0.853427
+[7]	training's auc: 0.864986	valid_1's auc: 0.853839
+[8]	training's auc: 0.864808	valid_1's auc: 0.853451
+[9]	training's auc: 0.864121	valid_1's auc: 0.852711
+[10]	training's auc: 0.864571	valid_1's auc: 0.852968
+[11]	training's auc: 0.864611	valid_1's auc: 0.853043
+[12]	training's auc: 0.864525	valid_1's auc: 0.853045
+[13]	training's auc: 0.864426	valid_1's auc: 0.852807
+[14]	training's auc: 0.865477	valid_1's auc: 0.853046
+[15]	training's auc: 0.865293	valid_1's auc: 0.852748
+[16]	training's auc: 0.865046	valid_1's auc: 0.852436
+[17]	training's auc: 0.864477	valid_1's auc: 0.851715
+Early stopping, best iteration is:
+[7]	training's auc: 0.864986	valid_1's auc: 0.853839
+Validation AUC-ROC for learning_rate=0.01, num_leaves=15: 0.853838951138276
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001820 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.862584	valid_1's auc: 0.847141
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.864155	valid_1's auc: 0.848645
+[3]	training's auc: 0.868805	valid_1's auc: 0.854038
+[4]	training's auc: 0.872502	valid_1's auc: 0.857174
+[5]	training's auc: 0.87294	valid_1's auc: 0.857053
+[6]	training's auc: 0.876471	valid_1's auc: 0.862876
+[7]	training's auc: 0.876632	valid_1's auc: 0.862354
+[8]	training's auc: 0.876649	valid_1's auc: 0.861787
+[9]	training's auc: 0.876687	valid_1's auc: 0.861763
+[10]	training's auc: 0.876728	valid_1's auc: 0.861678
+[11]	training's auc: 0.876858	valid_1's auc: 0.862083
+[12]	training's auc: 0.877066	valid_1's auc: 0.861982
+[13]	training's auc: 0.876937	valid_1's auc: 0.861816
+[14]	training's auc: 0.877525	valid_1's auc: 0.862641
+[15]	training's auc: 0.877294	valid_1's auc: 0.862402
+[16]	training's auc: 0.877127	valid_1's auc: 0.862031
+Early stopping, best iteration is:
+[6]	training's auc: 0.876471	valid_1's auc: 0.862876
+Validation AUC-ROC for learning_rate=0.01, num_leaves=31: 0.8628762227411889
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001801 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.874238	valid_1's auc: 0.85397
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.878499	valid_1's auc: 0.85962
+[3]	training's auc: 0.881316	valid_1's auc: 0.861562
+[4]	training's auc: 0.88456	valid_1's auc: 0.864698
+[5]	training's auc: 0.884907	valid_1's auc: 0.865004
+[6]	training's auc: 0.887956	valid_1's auc: 0.870485
+[7]	training's auc: 0.888131	valid_1's auc: 0.86985
+[8]	training's auc: 0.887988	valid_1's auc: 0.869644
+[9]	training's auc: 0.887784	valid_1's auc: 0.869714
+[10]	training's auc: 0.888169	valid_1's auc: 0.86914
+[11]	training's auc: 0.888138	valid_1's auc: 0.868981
+[12]	training's auc: 0.888048	valid_1's auc: 0.868875
+[13]	training's auc: 0.887837	valid_1's auc: 0.868754
+[14]	training's auc: 0.888269	valid_1's auc: 0.869847
+[15]	training's auc: 0.88806	valid_1's auc: 0.869781
+[16]	training's auc: 0.888031	valid_1's auc: 0.869905
+Early stopping, best iteration is:
+[6]	training's auc: 0.887956	valid_1's auc: 0.870485
+Validation AUC-ROC for learning_rate=0.01, num_leaves=63: 0.8704848202222545
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001858 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.847938	valid_1's auc: 0.834261
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.848891	valid_1's auc: 0.834069
+[3]	training's auc: 0.858386	valid_1's auc: 0.843851
+[4]	training's auc: 0.862044	valid_1's auc: 0.847973
+[5]	training's auc: 0.862356	valid_1's auc: 0.848202
+[6]	training's auc: 0.865476	valid_1's auc: 0.853875
+[7]	training's auc: 0.865512	valid_1's auc: 0.854223
+[8]	training's auc: 0.865081	valid_1's auc: 0.853492
+[9]	training's auc: 0.864705	valid_1's auc: 0.853749
+[10]	training's auc: 0.865781	valid_1's auc: 0.853275
+[11]	training's auc: 0.866233	valid_1's auc: 0.854088
+[12]	training's auc: 0.866676	valid_1's auc: 0.854455
+[13]	training's auc: 0.866724	valid_1's auc: 0.854458
+[14]	training's auc: 0.867907	valid_1's auc: 0.855302
+[15]	training's auc: 0.868115	valid_1's auc: 0.855718
+[16]	training's auc: 0.86834	valid_1's auc: 0.855634
+[17]	training's auc: 0.868383	valid_1's auc: 0.855705
+[18]	training's auc: 0.868772	valid_1's auc: 0.855527
+[19]	training's auc: 0.870143	valid_1's auc: 0.857278
+[20]	training's auc: 0.870368	valid_1's auc: 0.857324
+[21]	training's auc: 0.870668	valid_1's auc: 0.857527
+[22]	training's auc: 0.871118	valid_1's auc: 0.857808
+[23]	training's auc: 0.871489	valid_1's auc: 0.857799
+[24]	training's auc: 0.87166	valid_1's auc: 0.858031
+[25]	training's auc: 0.871691	valid_1's auc: 0.857762
+[26]	training's auc: 0.871906	valid_1's auc: 0.858136
+[27]	training's auc: 0.872034	valid_1's auc: 0.858275
+[28]	training's auc: 0.872498	valid_1's auc: 0.859275
+[29]	training's auc: 0.87281	valid_1's auc: 0.859555
+[30]	training's auc: 0.87298	valid_1's auc: 0.859649
+[31]	training's auc: 0.873747	valid_1's auc: 0.860294
+[32]	training's auc: 0.873819	valid_1's auc: 0.860498
+[33]	training's auc: 0.873845	valid_1's auc: 0.860327
+[34]	training's auc: 0.874335	valid_1's auc: 0.860738
+[35]	training's auc: 0.874659	valid_1's auc: 0.860858
+[36]	training's auc: 0.874935	valid_1's auc: 0.861075
+[37]	training's auc: 0.875075	valid_1's auc: 0.861144
+[38]	training's auc: 0.875304	valid_1's auc: 0.86157
+[39]	training's auc: 0.875712	valid_1's auc: 0.86179
+[40]	training's auc: 0.875882	valid_1's auc: 0.861915
+[41]	training's auc: 0.876293	valid_1's auc: 0.862375
+[42]	training's auc: 0.876571	valid_1's auc: 0.862714
+[43]	training's auc: 0.876918	valid_1's auc: 0.862973
+[44]	training's auc: 0.877633	valid_1's auc: 0.863598
+[45]	training's auc: 0.878207	valid_1's auc: 0.864337
+[46]	training's auc: 0.878513	valid_1's auc: 0.864549
+[47]	training's auc: 0.878768	valid_1's auc: 0.864818
+[48]	training's auc: 0.879169	valid_1's auc: 0.86521
+[49]	training's auc: 0.879333	valid_1's auc: 0.865439
+[50]	training's auc: 0.879553	valid_1's auc: 0.865723
+[51]	training's auc: 0.880054	valid_1's auc: 0.866295
+[52]	training's auc: 0.880252	valid_1's auc: 0.866345
+[53]	training's auc: 0.880459	valid_1's auc: 0.866494
+[54]	training's auc: 0.880711	valid_1's auc: 0.86676
+[55]	training's auc: 0.880864	valid_1's auc: 0.866782
+[56]	training's auc: 0.881292	valid_1's auc: 0.867032
+[57]	training's auc: 0.881564	valid_1's auc: 0.867345
+[58]	training's auc: 0.881789	valid_1's auc: 0.867569
+[59]	training's auc: 0.882021	valid_1's auc: 0.867749
+[60]	training's auc: 0.882277	valid_1's auc: 0.867918
+[61]	training's auc: 0.882513	valid_1's auc: 0.868247
+[62]	training's auc: 0.882789	valid_1's auc: 0.86857
+[63]	training's auc: 0.883152	valid_1's auc: 0.868858
+[64]	training's auc: 0.883407	valid_1's auc: 0.868988
+[65]	training's auc: 0.883681	valid_1's auc: 0.869313
+[66]	training's auc: 0.883986	valid_1's auc: 0.869554
+[67]	training's auc: 0.88417	valid_1's auc: 0.869624
+[68]	training's auc: 0.884405	valid_1's auc: 0.869747
+[69]	training's auc: 0.88457	valid_1's auc: 0.869872
+[70]	training's auc: 0.884738	valid_1's auc: 0.870059
+[71]	training's auc: 0.884959	valid_1's auc: 0.870285
+[72]	training's auc: 0.885199	valid_1's auc: 0.87054
+[73]	training's auc: 0.885497	valid_1's auc: 0.870831
+[74]	training's auc: 0.88569	valid_1's auc: 0.870861
+[75]	training's auc: 0.88587	valid_1's auc: 0.871079
+[76]	training's auc: 0.886024	valid_1's auc: 0.871269
+[77]	training's auc: 0.886187	valid_1's auc: 0.871463
+[78]	training's auc: 0.886362	valid_1's auc: 0.871542
+[79]	training's auc: 0.886572	valid_1's auc: 0.871728
+[80]	training's auc: 0.886803	valid_1's auc: 0.871879
+[81]	training's auc: 0.887022	valid_1's auc: 0.872063
+[82]	training's auc: 0.887272	valid_1's auc: 0.872271
+[83]	training's auc: 0.887472	valid_1's auc: 0.872452
+[84]	training's auc: 0.887605	valid_1's auc: 0.872593
+[85]	training's auc: 0.887777	valid_1's auc: 0.872715
+[86]	training's auc: 0.88798	valid_1's auc: 0.872907
+[87]	training's auc: 0.888123	valid_1's auc: 0.873041
+[88]	training's auc: 0.888308	valid_1's auc: 0.873056
+[89]	training's auc: 0.88853	valid_1's auc: 0.873238
+[90]	training's auc: 0.888699	valid_1's auc: 0.873357
+[91]	training's auc: 0.888845	valid_1's auc: 0.873493
+[92]	training's auc: 0.88905	valid_1's auc: 0.873669
+[93]	training's auc: 0.889191	valid_1's auc: 0.873839
+[94]	training's auc: 0.889354	valid_1's auc: 0.873932
+[95]	training's auc: 0.889495	valid_1's auc: 0.874105
+[96]	training's auc: 0.889694	valid_1's auc: 0.874168
+[97]	training's auc: 0.889827	valid_1's auc: 0.8742
+[98]	training's auc: 0.889968	valid_1's auc: 0.874224
+[99]	training's auc: 0.890114	valid_1's auc: 0.874246
+[100]	training's auc: 0.89027	valid_1's auc: 0.874488
+Did not meet early stopping. Best iteration is:
+[100]	training's auc: 0.89027	valid_1's auc: 0.874488
+Validation AUC-ROC for learning_rate=0.05, num_leaves=15: 0.8744879094466491
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.002167 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.862584	valid_1's auc: 0.847141
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.866472	valid_1's auc: 0.849357
+[3]	training's auc: 0.87083	valid_1's auc: 0.854261
+[4]	training's auc: 0.874177	valid_1's auc: 0.857324
+[5]	training's auc: 0.875519	valid_1's auc: 0.858671
+[6]	training's auc: 0.878463	valid_1's auc: 0.863533
+[7]	training's auc: 0.878399	valid_1's auc: 0.862971
+[8]	training's auc: 0.878384	valid_1's auc: 0.86286
+[9]	training's auc: 0.878364	valid_1's auc: 0.862849
+[10]	training's auc: 0.879086	valid_1's auc: 0.863022
+[11]	training's auc: 0.879298	valid_1's auc: 0.863411
+[12]	training's auc: 0.879539	valid_1's auc: 0.863498
+[13]	training's auc: 0.879527	valid_1's auc: 0.863563
+[14]	training's auc: 0.8801	valid_1's auc: 0.864159
+[15]	training's auc: 0.880137	valid_1's auc: 0.864167
+[16]	training's auc: 0.880208	valid_1's auc: 0.864499
+[17]	training's auc: 0.880571	valid_1's auc: 0.865084
+[18]	training's auc: 0.880556	valid_1's auc: 0.865319
+[19]	training's auc: 0.881522	valid_1's auc: 0.866514
+[20]	training's auc: 0.881635	valid_1's auc: 0.866875
+[21]	training's auc: 0.881852	valid_1's auc: 0.866887
+[22]	training's auc: 0.882399	valid_1's auc: 0.86742
+[23]	training's auc: 0.882509	valid_1's auc: 0.867598
+[24]	training's auc: 0.882629	valid_1's auc: 0.86768
+[25]	training's auc: 0.882781	valid_1's auc: 0.867672
+[26]	training's auc: 0.883175	valid_1's auc: 0.867931
+[27]	training's auc: 0.883554	valid_1's auc: 0.868309
+[28]	training's auc: 0.883859	valid_1's auc: 0.86844
+[29]	training's auc: 0.884285	valid_1's auc: 0.868772
+[30]	training's auc: 0.884506	valid_1's auc: 0.86889
+[31]	training's auc: 0.885154	valid_1's auc: 0.869692
+[32]	training's auc: 0.88526	valid_1's auc: 0.869787
+[33]	training's auc: 0.885417	valid_1's auc: 0.869894
+[34]	training's auc: 0.885969	valid_1's auc: 0.870074
+[35]	training's auc: 0.886085	valid_1's auc: 0.870107
+[36]	training's auc: 0.886405	valid_1's auc: 0.870394
+[37]	training's auc: 0.886642	valid_1's auc: 0.870575
+[38]	training's auc: 0.886931	valid_1's auc: 0.87083
+[39]	training's auc: 0.887384	valid_1's auc: 0.870968
+[40]	training's auc: 0.88766	valid_1's auc: 0.871178
+[41]	training's auc: 0.887911	valid_1's auc: 0.871455
+[42]	training's auc: 0.88814	valid_1's auc: 0.8717
+[43]	training's auc: 0.888316	valid_1's auc: 0.871935
+[44]	training's auc: 0.888929	valid_1's auc: 0.872453
+[45]	training's auc: 0.889445	valid_1's auc: 0.87277
+[46]	training's auc: 0.889715	valid_1's auc: 0.872837
+[47]	training's auc: 0.889974	valid_1's auc: 0.873183
+[48]	training's auc: 0.890265	valid_1's auc: 0.873421
+[49]	training's auc: 0.89046	valid_1's auc: 0.873614
+[50]	training's auc: 0.890809	valid_1's auc: 0.873861
+[51]	training's auc: 0.891256	valid_1's auc: 0.874054
+[52]	training's auc: 0.891531	valid_1's auc: 0.87431
+[53]	training's auc: 0.891863	valid_1's auc: 0.874476
+[54]	training's auc: 0.892115	valid_1's auc: 0.874684
+[55]	training's auc: 0.89245	valid_1's auc: 0.874771
+[56]	training's auc: 0.892809	valid_1's auc: 0.874892
+[57]	training's auc: 0.893065	valid_1's auc: 0.875108
+[58]	training's auc: 0.893291	valid_1's auc: 0.875209
+[59]	training's auc: 0.893688	valid_1's auc: 0.87555
+[60]	training's auc: 0.894036	valid_1's auc: 0.875806
+[61]	training's auc: 0.894335	valid_1's auc: 0.875944
+[62]	training's auc: 0.894651	valid_1's auc: 0.876291
+[63]	training's auc: 0.894908	valid_1's auc: 0.87661
+[64]	training's auc: 0.895213	valid_1's auc: 0.876888
+[65]	training's auc: 0.895521	valid_1's auc: 0.877047
+[66]	training's auc: 0.89583	valid_1's auc: 0.877361
+[67]	training's auc: 0.896058	valid_1's auc: 0.877442
+[68]	training's auc: 0.89632	valid_1's auc: 0.877569
+[69]	training's auc: 0.896523	valid_1's auc: 0.877633
+[70]	training's auc: 0.896875	valid_1's auc: 0.877864
+[71]	training's auc: 0.897165	valid_1's auc: 0.877908
+[72]	training's auc: 0.897389	valid_1's auc: 0.878171
+[73]	training's auc: 0.897627	valid_1's auc: 0.878419
+[74]	training's auc: 0.89786	valid_1's auc: 0.878329
+[75]	training's auc: 0.898071	valid_1's auc: 0.878417
+[76]	training's auc: 0.898302	valid_1's auc: 0.878486
+[77]	training's auc: 0.898606	valid_1's auc: 0.878719
+[78]	training's auc: 0.898895	valid_1's auc: 0.878931
+[79]	training's auc: 0.89918	valid_1's auc: 0.87915
+[80]	training's auc: 0.899422	valid_1's auc: 0.879323
+[81]	training's auc: 0.899586	valid_1's auc: 0.879453
+[82]	training's auc: 0.899791	valid_1's auc: 0.879568
+[83]	training's auc: 0.899985	valid_1's auc: 0.87961
+[84]	training's auc: 0.900114	valid_1's auc: 0.87963
+[85]	training's auc: 0.900313	valid_1's auc: 0.879616
+[86]	training's auc: 0.900552	valid_1's auc: 0.879687
+[87]	training's auc: 0.900771	valid_1's auc: 0.879713
+[88]	training's auc: 0.900976	valid_1's auc: 0.879818
+[89]	training's auc: 0.901146	valid_1's auc: 0.879895
+[90]	training's auc: 0.901312	valid_1's auc: 0.879934
+[91]	training's auc: 0.901456	valid_1's auc: 0.879976
+[92]	training's auc: 0.901666	valid_1's auc: 0.880101
+[93]	training's auc: 0.901851	valid_1's auc: 0.880202
+[94]	training's auc: 0.901988	valid_1's auc: 0.880319
+[95]	training's auc: 0.902118	valid_1's auc: 0.880362
+[96]	training's auc: 0.902307	valid_1's auc: 0.880372
+[97]	training's auc: 0.902516	valid_1's auc: 0.880489
+[98]	training's auc: 0.902687	valid_1's auc: 0.880549
+[99]	training's auc: 0.902912	valid_1's auc: 0.88058
+[100]	training's auc: 0.903081	valid_1's auc: 0.880631
+Did not meet early stopping. Best iteration is:
+[100]	training's auc: 0.903081	valid_1's auc: 0.880631
+Validation AUC-ROC for learning_rate=0.05, num_leaves=31: 0.8806313371954784
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.002010 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.874238	valid_1's auc: 0.85397
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.879429	valid_1's auc: 0.860439
+[3]	training's auc: 0.882631	valid_1's auc: 0.862685
+[4]	training's auc: 0.885919	valid_1's auc: 0.865914
+[5]	training's auc: 0.886915	valid_1's auc: 0.867861
+[6]	training's auc: 0.889873	valid_1's auc: 0.872965
+[7]	training's auc: 0.88985	valid_1's auc: 0.872158
+[8]	training's auc: 0.889891	valid_1's auc: 0.872347
+[9]	training's auc: 0.88999	valid_1's auc: 0.872564
+[10]	training's auc: 0.890766	valid_1's auc: 0.872243
+[11]	training's auc: 0.890912	valid_1's auc: 0.872177
+[12]	training's auc: 0.89091	valid_1's auc: 0.872318
+[13]	training's auc: 0.891112	valid_1's auc: 0.872341
+[14]	training's auc: 0.891795	valid_1's auc: 0.873119
+[15]	training's auc: 0.891667	valid_1's auc: 0.873002
+[16]	training's auc: 0.891792	valid_1's auc: 0.872974
+[17]	training's auc: 0.891833	valid_1's auc: 0.873175
+[18]	training's auc: 0.892018	valid_1's auc: 0.873331
+[19]	training's auc: 0.892875	valid_1's auc: 0.874284
+[20]	training's auc: 0.892872	valid_1's auc: 0.87442
+[21]	training's auc: 0.893207	valid_1's auc: 0.874434
+[22]	training's auc: 0.893667	valid_1's auc: 0.874921
+[23]	training's auc: 0.894153	valid_1's auc: 0.875144
+[24]	training's auc: 0.894454	valid_1's auc: 0.875245
+[25]	training's auc: 0.894702	valid_1's auc: 0.875433
+[26]	training's auc: 0.895141	valid_1's auc: 0.875499
+[27]	training's auc: 0.895546	valid_1's auc: 0.875734
+[28]	training's auc: 0.895883	valid_1's auc: 0.87583
+[29]	training's auc: 0.896201	valid_1's auc: 0.876003
+[30]	training's auc: 0.896519	valid_1's auc: 0.876023
+[31]	training's auc: 0.897243	valid_1's auc: 0.8766
+[32]	training's auc: 0.897457	valid_1's auc: 0.876731
+[33]	training's auc: 0.897636	valid_1's auc: 0.876791
+[34]	training's auc: 0.898184	valid_1's auc: 0.877051
+[35]	training's auc: 0.898366	valid_1's auc: 0.877144
+[36]	training's auc: 0.898615	valid_1's auc: 0.877152
+[37]	training's auc: 0.898919	valid_1's auc: 0.877213
+[38]	training's auc: 0.899175	valid_1's auc: 0.877452
+[39]	training's auc: 0.899613	valid_1's auc: 0.877671
+[40]	training's auc: 0.89992	valid_1's auc: 0.877802
+[41]	training's auc: 0.900171	valid_1's auc: 0.877872
+[42]	training's auc: 0.900413	valid_1's auc: 0.877913
+[43]	training's auc: 0.900698	valid_1's auc: 0.878111
+[44]	training's auc: 0.901209	valid_1's auc: 0.878501
+[45]	training's auc: 0.901655	valid_1's auc: 0.878728
+[46]	training's auc: 0.901959	valid_1's auc: 0.878897
+[47]	training's auc: 0.902225	valid_1's auc: 0.878874
+[48]	training's auc: 0.902492	valid_1's auc: 0.878979
+[49]	training's auc: 0.902784	valid_1's auc: 0.879023
+[50]	training's auc: 0.903173	valid_1's auc: 0.87933
+[51]	training's auc: 0.903586	valid_1's auc: 0.87968
+[52]	training's auc: 0.903848	valid_1's auc: 0.879966
+[53]	training's auc: 0.904146	valid_1's auc: 0.880088
+[54]	training's auc: 0.904427	valid_1's auc: 0.880081
+[55]	training's auc: 0.904695	valid_1's auc: 0.880235
+[56]	training's auc: 0.905118	valid_1's auc: 0.880459
+[57]	training's auc: 0.905464	valid_1's auc: 0.880586
+[58]	training's auc: 0.905871	valid_1's auc: 0.880723
+[59]	training's auc: 0.906177	valid_1's auc: 0.880901
+[60]	training's auc: 0.90651	valid_1's auc: 0.881134
+[61]	training's auc: 0.906873	valid_1's auc: 0.881294
+[62]	training's auc: 0.907186	valid_1's auc: 0.881353
+[63]	training's auc: 0.907496	valid_1's auc: 0.881649
+[64]	training's auc: 0.907779	valid_1's auc: 0.881766
+[65]	training's auc: 0.908163	valid_1's auc: 0.881934
+[66]	training's auc: 0.908468	valid_1's auc: 0.882117
+[67]	training's auc: 0.908719	valid_1's auc: 0.882303
+[68]	training's auc: 0.909045	valid_1's auc: 0.88234
+[69]	training's auc: 0.909267	valid_1's auc: 0.882494
+[70]	training's auc: 0.909658	valid_1's auc: 0.882676
+[71]	training's auc: 0.910027	valid_1's auc: 0.882758
+[72]	training's auc: 0.910207	valid_1's auc: 0.882801
+[73]	training's auc: 0.910527	valid_1's auc: 0.882931
+[74]	training's auc: 0.9108	valid_1's auc: 0.882879
+[75]	training's auc: 0.911039	valid_1's auc: 0.882829
+[76]	training's auc: 0.911305	valid_1's auc: 0.882748
+[77]	training's auc: 0.911641	valid_1's auc: 0.882854
+[78]	training's auc: 0.911984	valid_1's auc: 0.882798
+[79]	training's auc: 0.912319	valid_1's auc: 0.882956
+[80]	training's auc: 0.912621	valid_1's auc: 0.883057
+[81]	training's auc: 0.912873	valid_1's auc: 0.883112
+[82]	training's auc: 0.91313	valid_1's auc: 0.88317
+[83]	training's auc: 0.913361	valid_1's auc: 0.883123
+[84]	training's auc: 0.913589	valid_1's auc: 0.883074
+[85]	training's auc: 0.913866	valid_1's auc: 0.883073
+[86]	training's auc: 0.914174	valid_1's auc: 0.883069
+[87]	training's auc: 0.914427	valid_1's auc: 0.882985
+[88]	training's auc: 0.914669	valid_1's auc: 0.883041
+[89]	training's auc: 0.91497	valid_1's auc: 0.882934
+[90]	training's auc: 0.91533	valid_1's auc: 0.882991
+[91]	training's auc: 0.915599	valid_1's auc: 0.88314
+[92]	training's auc: 0.915919	valid_1's auc: 0.883129
+Early stopping, best iteration is:
+[82]	training's auc: 0.91313	valid_1's auc: 0.88317
+Validation AUC-ROC for learning_rate=0.05, num_leaves=63: 0.8831698096514302
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001937 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.847938	valid_1's auc: 0.834261
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.852454	valid_1's auc: 0.837559
+[3]	training's auc: 0.859708	valid_1's auc: 0.846285
+[4]	training's auc: 0.864159	valid_1's auc: 0.850429
+[5]	training's auc: 0.865402	valid_1's auc: 0.851195
+[6]	training's auc: 0.868174	valid_1's auc: 0.856271
+[7]	training's auc: 0.86813	valid_1's auc: 0.855963
+[8]	training's auc: 0.868396	valid_1's auc: 0.856176
+[9]	training's auc: 0.868892	valid_1's auc: 0.856845
+[10]	training's auc: 0.869379	valid_1's auc: 0.856561
+[11]	training's auc: 0.869841	valid_1's auc: 0.856993
+[12]	training's auc: 0.870692	valid_1's auc: 0.857799
+[13]	training's auc: 0.871522	valid_1's auc: 0.858486
+[14]	training's auc: 0.872105	valid_1's auc: 0.859256
+[15]	training's auc: 0.872443	valid_1's auc: 0.859498
+[16]	training's auc: 0.872554	valid_1's auc: 0.859463
+[17]	training's auc: 0.8734	valid_1's auc: 0.860239
+[18]	training's auc: 0.873734	valid_1's auc: 0.860719
+[19]	training's auc: 0.87513	valid_1's auc: 0.862366
+[20]	training's auc: 0.875647	valid_1's auc: 0.862872
+[21]	training's auc: 0.876107	valid_1's auc: 0.863394
+[22]	training's auc: 0.876632	valid_1's auc: 0.863973
+[23]	training's auc: 0.877165	valid_1's auc: 0.864084
+[24]	training's auc: 0.877771	valid_1's auc: 0.86464
+[25]	training's auc: 0.87847	valid_1's auc: 0.865154
+[26]	training's auc: 0.879139	valid_1's auc: 0.866278
+[27]	training's auc: 0.879698	valid_1's auc: 0.866698
+[28]	training's auc: 0.880399	valid_1's auc: 0.867473
+[29]	training's auc: 0.88094	valid_1's auc: 0.867933
+[30]	training's auc: 0.881552	valid_1's auc: 0.868393
+[31]	training's auc: 0.882296	valid_1's auc: 0.868989
+[32]	training's auc: 0.882889	valid_1's auc: 0.869412
+[33]	training's auc: 0.883302	valid_1's auc: 0.869799
+[34]	training's auc: 0.883646	valid_1's auc: 0.869967
+[35]	training's auc: 0.884135	valid_1's auc: 0.870377
+[36]	training's auc: 0.884576	valid_1's auc: 0.870905
+[37]	training's auc: 0.885115	valid_1's auc: 0.871326
+[38]	training's auc: 0.885526	valid_1's auc: 0.871579
+[39]	training's auc: 0.886152	valid_1's auc: 0.872003
+[40]	training's auc: 0.88675	valid_1's auc: 0.872336
+[41]	training's auc: 0.887324	valid_1's auc: 0.872704
+[42]	training's auc: 0.887684	valid_1's auc: 0.873151
+[43]	training's auc: 0.887973	valid_1's auc: 0.873277
+[44]	training's auc: 0.888289	valid_1's auc: 0.873259
+[45]	training's auc: 0.888735	valid_1's auc: 0.873799
+[46]	training's auc: 0.889088	valid_1's auc: 0.874093
+[47]	training's auc: 0.88942	valid_1's auc: 0.874212
+[48]	training's auc: 0.88971	valid_1's auc: 0.874573
+[49]	training's auc: 0.89025	valid_1's auc: 0.875012
+[50]	training's auc: 0.890595	valid_1's auc: 0.875186
+[51]	training's auc: 0.890906	valid_1's auc: 0.875402
+[52]	training's auc: 0.891207	valid_1's auc: 0.875612
+[53]	training's auc: 0.891548	valid_1's auc: 0.875708
+[54]	training's auc: 0.892024	valid_1's auc: 0.875922
+[55]	training's auc: 0.89248	valid_1's auc: 0.875956
+[56]	training's auc: 0.892897	valid_1's auc: 0.87642
+[57]	training's auc: 0.893172	valid_1's auc: 0.876567
+[58]	training's auc: 0.893434	valid_1's auc: 0.876766
+[59]	training's auc: 0.893658	valid_1's auc: 0.87718
+[60]	training's auc: 0.893908	valid_1's auc: 0.877416
+[61]	training's auc: 0.894197	valid_1's auc: 0.877605
+[62]	training's auc: 0.89442	valid_1's auc: 0.877842
+[63]	training's auc: 0.894611	valid_1's auc: 0.87812
+[64]	training's auc: 0.894902	valid_1's auc: 0.878191
+[65]	training's auc: 0.895102	valid_1's auc: 0.878169
+[66]	training's auc: 0.895422	valid_1's auc: 0.878118
+[67]	training's auc: 0.895596	valid_1's auc: 0.878018
+[68]	training's auc: 0.895891	valid_1's auc: 0.878036
+[69]	training's auc: 0.896102	valid_1's auc: 0.878204
+[70]	training's auc: 0.896407	valid_1's auc: 0.878458
+[71]	training's auc: 0.896799	valid_1's auc: 0.878689
+[72]	training's auc: 0.8969	valid_1's auc: 0.878639
+[73]	training's auc: 0.897096	valid_1's auc: 0.87879
+[74]	training's auc: 0.897371	valid_1's auc: 0.878767
+[75]	training's auc: 0.897599	valid_1's auc: 0.878777
+[76]	training's auc: 0.89786	valid_1's auc: 0.878926
+[77]	training's auc: 0.898276	valid_1's auc: 0.87917
+[78]	training's auc: 0.898611	valid_1's auc: 0.879394
+[79]	training's auc: 0.898903	valid_1's auc: 0.879773
+[80]	training's auc: 0.899067	valid_1's auc: 0.879857
+[81]	training's auc: 0.899172	valid_1's auc: 0.879995
+[82]	training's auc: 0.899331	valid_1's auc: 0.880042
+[83]	training's auc: 0.899536	valid_1's auc: 0.880022
+[84]	training's auc: 0.899656	valid_1's auc: 0.880071
+[85]	training's auc: 0.89977	valid_1's auc: 0.880163
+[86]	training's auc: 0.899928	valid_1's auc: 0.880046
+[87]	training's auc: 0.900065	valid_1's auc: 0.880129
+[88]	training's auc: 0.900194	valid_1's auc: 0.880018
+[89]	training's auc: 0.900479	valid_1's auc: 0.880032
+[90]	training's auc: 0.900635	valid_1's auc: 0.880047
+[91]	training's auc: 0.900853	valid_1's auc: 0.880169
+[92]	training's auc: 0.90103	valid_1's auc: 0.880244
+[93]	training's auc: 0.901181	valid_1's auc: 0.880218
+[94]	training's auc: 0.901304	valid_1's auc: 0.880294
+[95]	training's auc: 0.901484	valid_1's auc: 0.880372
+[96]	training's auc: 0.901661	valid_1's auc: 0.880466
+[97]	training's auc: 0.901889	valid_1's auc: 0.880621
+[98]	training's auc: 0.902005	valid_1's auc: 0.880679
+[99]	training's auc: 0.902159	valid_1's auc: 0.880772
+[100]	training's auc: 0.902331	valid_1's auc: 0.880608
+Did not meet early stopping. Best iteration is:
+[100]	training's auc: 0.902331	valid_1's auc: 0.880608
+Validation AUC-ROC for learning_rate=0.1, num_leaves=15: 0.8806084813586689
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001773 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.862584	valid_1's auc: 0.847141
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.867064	valid_1's auc: 0.849866
+[3]	training's auc: 0.871952	valid_1's auc: 0.854698
+[4]	training's auc: 0.87558	valid_1's auc: 0.858576
+[5]	training's auc: 0.876914	valid_1's auc: 0.85961
+[6]	training's auc: 0.880133	valid_1's auc: 0.865239
+[7]	training's auc: 0.880371	valid_1's auc: 0.864964
+[8]	training's auc: 0.880399	valid_1's auc: 0.86482
+[9]	training's auc: 0.880667	valid_1's auc: 0.864513
+[10]	training's auc: 0.8815	valid_1's auc: 0.864836
+[11]	training's auc: 0.881913	valid_1's auc: 0.865803
+[12]	training's auc: 0.882624	valid_1's auc: 0.866957
+[13]	training's auc: 0.882981	valid_1's auc: 0.867491
+[14]	training's auc: 0.883679	valid_1's auc: 0.868293
+[15]	training's auc: 0.884751	valid_1's auc: 0.868699
+[16]	training's auc: 0.885009	valid_1's auc: 0.869126
+[17]	training's auc: 0.885134	valid_1's auc: 0.869506
+[18]	training's auc: 0.885418	valid_1's auc: 0.869709
+[19]	training's auc: 0.886711	valid_1's auc: 0.870898
+[20]	training's auc: 0.887159	valid_1's auc: 0.87122
+[21]	training's auc: 0.887683	valid_1's auc: 0.871935
+[22]	training's auc: 0.888284	valid_1's auc: 0.872268
+[23]	training's auc: 0.888805	valid_1's auc: 0.872588
+[24]	training's auc: 0.889226	valid_1's auc: 0.873116
+[25]	training's auc: 0.889875	valid_1's auc: 0.873448
+[26]	training's auc: 0.890897	valid_1's auc: 0.874459
+[27]	training's auc: 0.891588	valid_1's auc: 0.874951
+[28]	training's auc: 0.892219	valid_1's auc: 0.87502
+[29]	training's auc: 0.89286	valid_1's auc: 0.875518
+[30]	training's auc: 0.89336	valid_1's auc: 0.875652
+[31]	training's auc: 0.893921	valid_1's auc: 0.876124
+[32]	training's auc: 0.894471	valid_1's auc: 0.876184
+[33]	training's auc: 0.895034	valid_1's auc: 0.876319
+[34]	training's auc: 0.8958	valid_1's auc: 0.876658
+[35]	training's auc: 0.896315	valid_1's auc: 0.876798
+[36]	training's auc: 0.896713	valid_1's auc: 0.876813
+[37]	training's auc: 0.89727	valid_1's auc: 0.877034
+[38]	training's auc: 0.897709	valid_1's auc: 0.877368
+[39]	training's auc: 0.898282	valid_1's auc: 0.877719
+[40]	training's auc: 0.898664	valid_1's auc: 0.877796
+[41]	training's auc: 0.899166	valid_1's auc: 0.878092
+[42]	training's auc: 0.89948	valid_1's auc: 0.878293
+[43]	training's auc: 0.899916	valid_1's auc: 0.878582
+[44]	training's auc: 0.900313	valid_1's auc: 0.878793
+[45]	training's auc: 0.900656	valid_1's auc: 0.879235
+[46]	training's auc: 0.901185	valid_1's auc: 0.87951
+[47]	training's auc: 0.901551	valid_1's auc: 0.879786
+[48]	training's auc: 0.901887	valid_1's auc: 0.879966
+[49]	training's auc: 0.902351	valid_1's auc: 0.880155
+[50]	training's auc: 0.9027	valid_1's auc: 0.88041
+[51]	training's auc: 0.90311	valid_1's auc: 0.880669
+[52]	training's auc: 0.90344	valid_1's auc: 0.880971
+[53]	training's auc: 0.903837	valid_1's auc: 0.881073
+[54]	training's auc: 0.90414	valid_1's auc: 0.881178
+[55]	training's auc: 0.904541	valid_1's auc: 0.881499
+[56]	training's auc: 0.905015	valid_1's auc: 0.881716
+[57]	training's auc: 0.905432	valid_1's auc: 0.881966
+[58]	training's auc: 0.905776	valid_1's auc: 0.882271
+[59]	training's auc: 0.906124	valid_1's auc: 0.882463
+[60]	training's auc: 0.906438	valid_1's auc: 0.882565
+[61]	training's auc: 0.906792	valid_1's auc: 0.882585
+[62]	training's auc: 0.907119	valid_1's auc: 0.882416
+[63]	training's auc: 0.90744	valid_1's auc: 0.882431
+[64]	training's auc: 0.907686	valid_1's auc: 0.882592
+[65]	training's auc: 0.908167	valid_1's auc: 0.882867
+[66]	training's auc: 0.908482	valid_1's auc: 0.882688
+[67]	training's auc: 0.908712	valid_1's auc: 0.882843
+[68]	training's auc: 0.909063	valid_1's auc: 0.883046
+[69]	training's auc: 0.909343	valid_1's auc: 0.883038
+[70]	training's auc: 0.909622	valid_1's auc: 0.883148
+[71]	training's auc: 0.910039	valid_1's auc: 0.883235
+[72]	training's auc: 0.910282	valid_1's auc: 0.883308
+[73]	training's auc: 0.910583	valid_1's auc: 0.883113
+[74]	training's auc: 0.910869	valid_1's auc: 0.882973
+[75]	training's auc: 0.911174	valid_1's auc: 0.883097
+[76]	training's auc: 0.911464	valid_1's auc: 0.883131
+[77]	training's auc: 0.911811	valid_1's auc: 0.883289
+[78]	training's auc: 0.91206	valid_1's auc: 0.883238
+[79]	training's auc: 0.912299	valid_1's auc: 0.883388
+[80]	training's auc: 0.912537	valid_1's auc: 0.883354
+[81]	training's auc: 0.912717	valid_1's auc: 0.883533
+[82]	training's auc: 0.912967	valid_1's auc: 0.883595
+[83]	training's auc: 0.913208	valid_1's auc: 0.883478
+[84]	training's auc: 0.913511	valid_1's auc: 0.883599
+[85]	training's auc: 0.91371	valid_1's auc: 0.883376
+[86]	training's auc: 0.913969	valid_1's auc: 0.88332
+[87]	training's auc: 0.914326	valid_1's auc: 0.883342
+[88]	training's auc: 0.914546	valid_1's auc: 0.883258
+[89]	training's auc: 0.914786	valid_1's auc: 0.883317
+[90]	training's auc: 0.915015	valid_1's auc: 0.883047
+[91]	training's auc: 0.915288	valid_1's auc: 0.882996
+[92]	training's auc: 0.915575	valid_1's auc: 0.883001
+[93]	training's auc: 0.915786	valid_1's auc: 0.8829
+[94]	training's auc: 0.91599	valid_1's auc: 0.882921
+Early stopping, best iteration is:
+[84]	training's auc: 0.913511	valid_1's auc: 0.883599
+Validation AUC-ROC for learning_rate=0.1, num_leaves=31: 0.8835990938766634
+[LightGBM] [Warning] Auto-choosing row-wise multi-threading, the overhead of testing was 0.001763 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[1]	training's auc: 0.874238	valid_1's auc: 0.85397
+Training until validation scores don't improve for 10 rounds
+[2]	training's auc: 0.879781	valid_1's auc: 0.861324
+[3]	training's auc: 0.883798	valid_1's auc: 0.863398
+[4]	training's auc: 0.887625	valid_1's auc: 0.866662
+[5]	training's auc: 0.88981	valid_1's auc: 0.869428
+[6]	training's auc: 0.892223	valid_1's auc: 0.873974
+[7]	training's auc: 0.892549	valid_1's auc: 0.873765
+[8]	training's auc: 0.892824	valid_1's auc: 0.874408
+[9]	training's auc: 0.893019	valid_1's auc: 0.874236
+[10]	training's auc: 0.894097	valid_1's auc: 0.874557
+[11]	training's auc: 0.894398	valid_1's auc: 0.874561
+[12]	training's auc: 0.894539	valid_1's auc: 0.874649
+[13]	training's auc: 0.894973	valid_1's auc: 0.874897
+[14]	training's auc: 0.895723	valid_1's auc: 0.875765
+[15]	training's auc: 0.89635	valid_1's auc: 0.87644
+[16]	training's auc: 0.896943	valid_1's auc: 0.876569
+[17]	training's auc: 0.897522	valid_1's auc: 0.87709
+[18]	training's auc: 0.897868	valid_1's auc: 0.877658
+[19]	training's auc: 0.898929	valid_1's auc: 0.878401
+[20]	training's auc: 0.899449	valid_1's auc: 0.878712
+[21]	training's auc: 0.899991	valid_1's auc: 0.878613
+[22]	training's auc: 0.900713	valid_1's auc: 0.878784
+[23]	training's auc: 0.901311	valid_1's auc: 0.879003
+[24]	training's auc: 0.90174	valid_1's auc: 0.878969
+[25]	training's auc: 0.90258	valid_1's auc: 0.879297
+[26]	training's auc: 0.903174	valid_1's auc: 0.8794
+[27]	training's auc: 0.903871	valid_1's auc: 0.880002
+[28]	training's auc: 0.904438	valid_1's auc: 0.880054
+[29]	training's auc: 0.905088	valid_1's auc: 0.880227
+[30]	training's auc: 0.905768	valid_1's auc: 0.880455
+[31]	training's auc: 0.906504	valid_1's auc: 0.880751
+[32]	training's auc: 0.907146	valid_1's auc: 0.88081
+[33]	training's auc: 0.907823	valid_1's auc: 0.881054
+[34]	training's auc: 0.908468	valid_1's auc: 0.881184
+[35]	training's auc: 0.909033	valid_1's auc: 0.881329
+[36]	training's auc: 0.909618	valid_1's auc: 0.88145
+[37]	training's auc: 0.910111	valid_1's auc: 0.881513
+[38]	training's auc: 0.910687	valid_1's auc: 0.881919
+[39]	training's auc: 0.911334	valid_1's auc: 0.882004
+[40]	training's auc: 0.911832	valid_1's auc: 0.882327
+[41]	training's auc: 0.912501	valid_1's auc: 0.882555
+[42]	training's auc: 0.913048	valid_1's auc: 0.882807
+[43]	training's auc: 0.913603	valid_1's auc: 0.8829
+[44]	training's auc: 0.914131	valid_1's auc: 0.883111
+[45]	training's auc: 0.914537	valid_1's auc: 0.883436
+[46]	training's auc: 0.915061	valid_1's auc: 0.883446
+[47]	training's auc: 0.915636	valid_1's auc: 0.883632
+[48]	training's auc: 0.916127	valid_1's auc: 0.883758
+[49]	training's auc: 0.916691	valid_1's auc: 0.883698
+[50]	training's auc: 0.917197	valid_1's auc: 0.883822
+[51]	training's auc: 0.917856	valid_1's auc: 0.883971
+[52]	training's auc: 0.918418	valid_1's auc: 0.884352
+[53]	training's auc: 0.918976	valid_1's auc: 0.884648
+[54]	training's auc: 0.919516	valid_1's auc: 0.884751
+[55]	training's auc: 0.920029	valid_1's auc: 0.884874
+[56]	training's auc: 0.920514	valid_1's auc: 0.884882
+[57]	training's auc: 0.921111	valid_1's auc: 0.885038
+[58]	training's auc: 0.92156	valid_1's auc: 0.885038
+[59]	training's auc: 0.922053	valid_1's auc: 0.885271
+[60]	training's auc: 0.9225	valid_1's auc: 0.885366
+[61]	training's auc: 0.922956	valid_1's auc: 0.885275
+[62]	training's auc: 0.923394	valid_1's auc: 0.885238
+[63]	training's auc: 0.923844	valid_1's auc: 0.885325
+[64]	training's auc: 0.924192	valid_1's auc: 0.885464
+[65]	training's auc: 0.924711	valid_1's auc: 0.885386
+[66]	training's auc: 0.925103	valid_1's auc: 0.88532
+[67]	training's auc: 0.925484	valid_1's auc: 0.885357
+[68]	training's auc: 0.925945	valid_1's auc: 0.885372
+[69]	training's auc: 0.926354	valid_1's auc: 0.885604
+[70]	training's auc: 0.926718	valid_1's auc: 0.885497
+[71]	training's auc: 0.927194	valid_1's auc: 0.885525
+[72]	training's auc: 0.927602	valid_1's auc: 0.885339
+[73]	training's auc: 0.927948	valid_1's auc: 0.88536
+[74]	training's auc: 0.928415	valid_1's auc: 0.885472
+[75]	training's auc: 0.928769	valid_1's auc: 0.88549
+[76]	training's auc: 0.929205	valid_1's auc: 0.88551
+[77]	training's auc: 0.929655	valid_1's auc: 0.885748
+[78]	training's auc: 0.930084	valid_1's auc: 0.885772
+[79]	training's auc: 0.930513	valid_1's auc: 0.885783
+[80]	training's auc: 0.930955	valid_1's auc: 0.885584
+[81]	training's auc: 0.931306	valid_1's auc: 0.885568
+[82]	training's auc: 0.93171	valid_1's auc: 0.885513
+[83]	training's auc: 0.932098	valid_1's auc: 0.885542
+[84]	training's auc: 0.932424	valid_1's auc: 0.88544
+[85]	training's auc: 0.932737	valid_1's auc: 0.885395
+[86]	training's auc: 0.933151	valid_1's auc: 0.88543
+[87]	training's auc: 0.933535	valid_1's auc: 0.885423
+[88]	training's auc: 0.933876	valid_1's auc: 0.885341
+[89]	training's auc: 0.934206	valid_1's auc: 0.885223
+Early stopping, best iteration is:
+[79]	training's auc: 0.930513	valid_1's auc: 0.885783
+Validation AUC-ROC for learning_rate=0.1, num_leaves=63: 0.885783485183335
+Best AUC-ROC: 0.885783485183335 with params: {'objective': 'binary', 'metric': 'auc', 'boosting_type': 'gbdt', 'num_leaves': 63, 'learning_rate': 0.1, 'feature_fraction': 0.9, 'bagging_fraction': 0.8, 'bagging_freq': 5, 'verbose': 0}
+Final auc_roc on test set:  0.8958717080846768
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

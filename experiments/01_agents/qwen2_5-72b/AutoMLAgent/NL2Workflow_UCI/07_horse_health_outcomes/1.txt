@@ -1,0 +1,174 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_path):
+    """
+    Load the dataset from the specified path.
+    """
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    """
+    Preprocess the dataset by handling missing values, standardizing numerical features, and ensuring the target variable is present.
+    """
+    # Check for missing values
+    missing_values = df.isnull().sum()
+    print("Missing values:\n", missing_values)
+
+    # Impute missing values
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    df[numerical_features] = df[numerical_features].fillna(df[numerical_features].mean())
+    df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+
+    # Standardize numerical features
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Ensure target variable is present
+    if 'health_status' not in df.columns:
+        raise ValueError("The dataset does not contain the 'health_status' column.")
+
+    return df
+
+# Data Augmentation
+def balance_classes(df):
+    """
+    Balance the classes in the dataset using SMOTE.
+    """
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop('health_status', axis=1), df['health_status'])
+    df_resampled = pd.DataFrame(X_resampled, columns=df.drop('health_status', axis=1).columns)
+    df_resampled['health_status'] = y_resampled
+    return df_resampled
+
+# Data Splitting
+def split_data(df_resampled):
+    """
+    Split the dataset into training, validation, and test sets.
+    """
+    X = df_resampled.drop('health_status', axis=1)
+    y = df_resampled['health_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    """
+    Train the Random Forest model with hyperparameter tuning using grid search with 5-fold cross-validation.
+    """
+    rf = RandomForestClassifier()
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2']
+    }
+    grid_search = GridSearchCV(rf, param_grid, cv=5, scoring='f1', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_rf = grid_search.best_estimator_
+    return best_rf, grid_search.best_params_
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    """
+    Evaluate the model on the validation and test sets.
+    """
+    y_val_pred = model.predict(X_val)
+    val_f1 = f1_score(y_val, y_val_pred)
+    val_accuracy = accuracy_score(y_val, y_val_pred)
+    val_precision = precision_score(y_val, y_val_pred)
+    val_recall = recall_score(y_val, y_val_pred)
+
+    y_test_pred = model.predict(X_test)
+    test_f1 = f1_score(y_test, y_test_pred)
+    test_accuracy = accuracy_score(y_test, y_test_pred)
+    test_precision = precision_score(y_test, y_test_pred)
+    test_recall = recall_score(y_test, y_test_pred)
+
+    performance_scores = {
+        'Validation F1 Score': val_f1,
+        'Validation Accuracy': val_accuracy,
+        'Validation Precision': val_precision,
+        'Validation Recall': val_recall,
+        'Test F1 Score': test_f1,
+        'Test Accuracy': test_accuracy,
+        'Test Precision': test_precision,
+        'Test Recall': test_recall
+    }
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    df = load_dataset(dataset_path)
+    
+    try:
+        df_resampled = preprocess_data(df)
+        df_resampled = balance_classes(df_resampled)
+        X_train, X_val, X_test, y_train, y_val, y_test = split_data(df_resampled)
+        best_rf, best_params = train_model(X_train, y_train)
+        performance_scores = evaluate_model(best_rf, X_val, y_val, X_test, y_test)
+
+        # Save the best model
+        model_path = './agent_workspace/trained_models/horse_health_outcomes_random_forest.pkl'
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        joblib.dump(best_rf, model_path)
+
+        # Final report
+        final_report = {
+            'Model': 'Random Forest',
+            'Best Hyperparameters': best_params,
+            **performance_scores
+        }
+        print("Final Report:\n", final_report)
+
+        return final_report
+
+    except ValueError as e:
+        print(f"Error: {e}")
+        return None
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Missing values:
+ surgery                   0
+hospital_number           0
+rectal_temp               0
+pulse                     0
+respiratory_rate          0
+peripheral_pulse         48
+mucous_membrane          15
+capillary_refill_time     4
+outcome                   0
+dtype: int64
+Error: The dataset does not contain the 'health_status' column.

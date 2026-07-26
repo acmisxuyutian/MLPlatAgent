@@ -1,0 +1,206 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first few rows of the dataset
+train_df.head(), train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage Status
+ 0  6703    1153          Placebo  14772   F       N            Y       N     N        1.4        420.0     3.83    79.0     976.0   97.65           55.0      236.0          9.9    3.0     CL
+ 1  5815    1447          Placebo  14754   F       N            N       N     N        0.8        578.0     3.35    77.0     976.0  116.25          177.0      306.0          9.5    2.0      C
+ 2  3429    2891          Placebo  14899   F       N            N       N     N        0.6        578.0     3.37    78.0     976.0  116.25          177.0      322.0          9.5    2.0      C
+ 3  2405     334  D-penicillamine  22369   F       N            Y       N     N        0.9        360.0     3.66   123.0    1812.0  155.00          154.0      156.0         11.0    2.0      C
+ 4  1410    3820          Placebo  20597   F       N            Y       Y     N        3.6        448.0     3.23    65.0    1072.0   60.45          213.0      119.0         11.7    4.0      D,
+         id  N_Days             Drug    Age Sex Ascites Hepatomegaly Spiders Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage Status
+ 0     6703    1153          Placebo  14772   F       N            Y       N     N        1.4        420.0     3.83    79.0     976.0   97.65           55.0      236.0          9.9    3.0     CL
+ 1     5815    1447          Placebo  14754   F       N            N       N     N        0.8        578.0     3.35    77.0     976.0  116.25          177.0      306.0          9.5    2.0      C
+ ...    ...     ...              ...    ...  ..     ...          ...     ...   ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...    ...
+ 6322  7603    2527  D-penicillamine  17664   F       N            N       N     N        1.1        256.0     3.54    42.0    1132.0   74.40           94.0      192.0         10.5    4.0      C
+ 6323  7270    4050  D-penicillamine  16279   F       N            Y       N     N        0.5        201.0     3.93    42.0     661.0   54.25           90.0      234.0         10.7    4.0      C
+ 
+ [6324 rows x 20 columns])import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Handle missing values
+train_df.fillna(train_df.median(), inplace=True)
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['Drug', 'Sex', 'Ascites', 'Hepatomegaly', 'Spiders', 'Edema', 'Status']
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    label_encoders[col] = le
+
+# Split the data into features and target
+X = train_df.drop(['id', 'N_Days', 'Status'], axis=1)
+y = train_df['Status']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 10
+    train_df.fillna(train_df.median(), inplace=True)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11706 in median
+    result = super().median(axis, skipna, numeric_only, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:12431 in median
+    return self._stat_function(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:12377 in _stat_function
+    return self._reduce(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11562 in _reduce
+    res = df._mgr.reduce(blk_func)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1500 in reduce
+    nbs = blk.reduce(func)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\blocks.py:404 in reduce
+    result = func(self.values)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11481 in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\nanops.py:147 in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\expe
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Handle missing values
+numeric_columns = train_df.select_dtypes(include=[np.number]).columns
+train_df[numeric_columns] = train_df[numeric_columns].fillna(train_df[numeric_columns].median())
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['Drug', 'Sex', 'Ascites', 'Hepatomegaly', 'Spiders', 'Edema', 'Status']
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    label_encoders[col] = le
+
+# Split the data into features and target
+X = train_df.drop(['id', 'N_Days', 'Status'], axis=1)
+y = train_df['Status']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      Drug    Age  Sex  Ascites  Hepatomegaly  Spiders  Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 1170     1  20354    0        0             1        0      0        1.0        364.0     3.48    20.0     720.0  134.85           88.0      283.0          9.9    3.0
+ 5437     0  20442    0        0             0        0      0        0.6        298.0     3.85    34.0     791.0   65.10           85.0      303.0         10.6    1.0
+ ...    ...    ...  ...      ...           ...      ...    ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 5390     1  20834    0        0             1        0      0        1.1        217.0     3.55    39.0    1052.0   75.95          104.0      228.0         10.1    4.0
+ 860      0  14212    0        0             1        1      0        1.2        558.0     3.80    96.0    1040.0  110.05          125.0       79.0          9.8    2.0
+ 
+ [5059 rows x 17 columns],
+       Drug    Age  Sex  Ascites  Hepatomegaly  Spiders  Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 3090     0  22369    0        0             1        0      0        2.0        303.0     3.20    58.0    1440.0  134.85          131.0      156.0         10.0    4.0
+ 198      1  17874    0        0             0        0      0        0.7        263.0     3.61    75.0    1523.0   87.00          113.0      422.0         11.5    3.0
+ ...    ...    ...  ...      ...           ...      ...    ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 2641     1  20597    0        0             1        0      0        0.5        256.0     3.66    42.0     758.0   52.70          104.0      311.0         10.2    4.0
+ 1454     0  20555    0        0             0        0      0        0.5        256.0     3.77   129.0    1174.0   74.40          109.0      445.0         10.6    3.0
+ 
+ [1265 rows x 17 columns],
+ 1170    0
+ 5437    0
+        ..
+ 5390    0
+ 860     1
+ Name: Status, Length: 5059, dtype: int32,
+ 3090    2
+ 198     0
+        ..
+ 2641    0
+ 1454    0
+ Name: Status, Length: 1265, dtype: int32)from sklearn.model_selection import train_test_split
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      Drug    Age  Sex  Ascites  Hepatomegaly  Spiders  Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 1170     1  20354    0        0             1        0      0        1.0        364.0     3.48    20.0     720.0  134.85           88.0      283.0          9.9    3.0
+ 5437     0  20442    0        0             0        0      0        0.6        298.0     3.85    34.0     791.0   65.10           85.0      303.0         10.6    1.0
+ ...    ...    ...  ...      ...           ...      ...    ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 5390     1  20834    0        0             1        0      0        1.1        217.0     3.55    39.0    1052.0   75.95          104.0      228.0         10.1    4.0
+ 860      0  14212    0        0             1        1      0        1.2        558.0     3.80    96.0    1040.0  110.05          125.0       79.0          9.8    2.0
+ 
+ [5059 rows x 17 columns],
+       Drug    Age  Sex  Ascites  Hepatomegaly  Spiders  Edema  Bilirubin  Cholesterol  Albumin  Copper  Alk_Phos    SGOT  Tryglicerides  Platelets  Prothrombin  Stage
+ 3090     0  22369    0        0             1        0      0        2.0        303.0     3.20    58.0    1440.0  134.85          131.0      156.0         10.0    4.0
+ 198      1  17874    0        0             0        0      0        0.7        263.0     3.61    75.0    1523.0   87.00          113.0      422.0         11.5    3.0
+ ...    ...    ...  ...      ...           ...      ...    ...        ...          ...      ...     ...       ...     ...            ...        ...          ...    ...
+ 2641     1  20597    0        0             1        0      0        0.5        256.0     3.66    42.0     758.0   52.70          104.0      311.0         10.2    4.0
+ 1454     0  20555    0        0             0        0      0        0.5        256.0     3.77   129.0    1174.0   74.40          109.0      445.0         10.6    3.0
+ 
+ [1265 rows x 17 columns],
+ 1170    0
+ 5437    0
+        ..
+ 5390    0
+ 860     1
+ Name: Status, Length: 5059, dtype: int32,
+ 3090    2
+ 198     0
+        ..
+ 2641    0
+ 1454    0
+ Name: Status, Length: 1265, dtype: int32)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
+
+# Initialize the Random Forest classifier
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train the model
+rf_classifier.fit(X_train, y_train)
+
+# Predict probabilities on the validation set
+y_val_pred_proba = rf_classifier.predict_proba(X_val)
+
+# Calculate log loss
+log_loss_val = log_loss(y_val, y_val_pred_proba)
+
+rf_classifier, y_val_pred_proba, log_loss_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ array([[0.3 , 0.01, 0.69],
+        [0.86, 0.  , 0.14],
+        [0.84, 0.  , 0.16],
+        ...,
+        [0.11, 0.04, 0.85],
+        [0.96, 0.01, 0.03],
+        [0.91, 0.02, 0.07]]),
+ 0.6485992093089353)

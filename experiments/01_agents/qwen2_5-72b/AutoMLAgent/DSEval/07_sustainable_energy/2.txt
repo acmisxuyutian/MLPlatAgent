@@ -1,0 +1,123 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+from scipy.stats import zscore
+import joblib
+import random
+
+# Set constants
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+TRAIN_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/train.csv'
+TEST_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/test.csv'
+MODEL_PATH = './agent_workspace/trained_models/linear_regression_model.pkl'
+
+# Data Loading Function
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing Function
+def preprocess_data(train_df, test_df):
+    # Drop non-numeric columns
+    if 'Entity' in train_df.columns:
+        train_df = train_df.drop(columns=['Entity'])
+    if 'Year' in train_df.columns:
+        train_df = train_df.drop(columns=['Year'])
+    
+    if 'Entity' in test_df.columns:
+        test_df = test_df.drop(columns=['Entity'])
+    if 'Year' in test_df.columns:
+        test_df = test_df.drop(columns=['Year'])
+
+    # Replace commas in numeric columns
+    train_df = train_df.apply(lambda x: x.str.replace(',', '.') if x.dtype == 'object' else x)
+    test_df = test_df.apply(lambda x: x.str.replace(',', '.') if x.dtype == 'object' else x)
+
+    # Convert all columns to numeric
+    train_df = train_df.apply(pd.to_numeric, errors='coerce')
+    test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+    # Drop rows with NaN values
+    train_df = train_df.dropna()
+    test_df = test_df.dropna()
+
+    # Separate features and target
+    target_column = 'Renewable energy share in the total final energy consumption (%)'
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Outlier Detection and Handling
+    z_scores = zscore(X_train_scaled)
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    X_train_filtered = X_train_scaled[filtered_entries]
+    y_train_filtered = y_train[filtered_entries]
+
+    return X_train_filtered, y_train_filtered, X_test_scaled, y_test
+
+# Model Training Function
+def train_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation Function
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    return rmse
+
+# Model Saving Function
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Model Loading Function
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main Function
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data(TRAIN_PATH, TEST_PATH)
+
+    # Step 2: Preprocess the datasets
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4: Evaluate the model
+    rmse = evaluate_model(model, X_test, y_test)
+    print(f"RMSE on Test Set: {rmse}")
+
+    # Step 5: Save the model
+    save_model(model, MODEL_PATH)
+
+    return rmse
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+RMSE on Test Set: 5.61706147503401
+Model Performance on Test Set: 5.61706147503401

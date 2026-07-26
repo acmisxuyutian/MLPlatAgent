@@ -1,0 +1,173 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import median_absolute_error
+import xgboost as xgb
+from hyperopt import fmin, tpe, hp, Trials
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1. Retrieve or load a dataset from user's local storage
+def load_dataset():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    df = pd.read_csv(dataset_path)
+    print(df.head())
+    return df
+
+# Step 2. Data Preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    missing_values = df.isnull().sum()
+    print(missing_values)
+
+    # Impute missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[df.select_dtypes(include=['float64', 'int64']).columns] = numerical_imputer.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+
+    if df.select_dtypes(include=['object']).columns.any():
+        categorical_imputer = SimpleImputer(strategy='most_frequent')
+        df[df.select_dtypes(include=['object']).columns] = categorical_imputer.fit_transform(df.select_dtypes(include=['object']))
+
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    df[df.select_dtypes(include=['float64', 'int64']).columns] = scaler.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+
+    # Feature engineering
+    if 'element1' in df.columns and 'element2' in df.columns:
+        df['composition_ratio'] = df['element1'] / df['element2']
+    if 'density' in df.columns and 'volume' in df.columns:
+        df['density_ratio'] = df['density'] / df['volume']
+    if 'feature1' in df.columns and 'feature2' in df.columns:
+        df['feature1_feature2'] = df['feature1'] * df['feature2']
+
+    return df
+
+# Step 3. Data Splitting
+def split_data(df):
+    # Ensure 'mohs_hardness' is in the dataset
+    if 'mohs_hardness' not in df.columns:
+        raise KeyError("The dataset does not contain the 'mohs_hardness' column.")
+
+    X = df.drop(columns=['mohs_hardness'])
+    y = df['mohs_hardness']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4. Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    space = {
+        'n_estimators': hp.choice('n_estimators', [100, 200, 300]),
+        'max_depth': hp.choice('max_depth', [3, 6, 9]),
+        'learning_rate': hp.loguniform('learning_rate', -3, 0),
+        'subsample': hp.uniform('subsample', 0.5, 1.0)
+    }
+
+    def objective(params):
+        model = xgb.XGBRegressor(**params, random_state=42)
+        score = -cross_val_score(model, X_train, y_train, cv=5, scoring='neg_median_absolute_error').mean()
+        return score
+
+    trials = Trials()
+    best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=50, trials=trials)
+    print(best)
+
+    best_params = {
+        'n_estimators': [100, 200, 300][best['n_estimators']],
+        'max_depth': [3, 6, 9][best['max_depth']],
+        'learning_rate': best['learning_rate'],
+        'subsample': best['subsample']
+    }
+
+    final_model = xgb.XGBRegressor(**best_params, random_state=42)
+    final_model.fit(X_train, y_train)
+
+    return final_model
+
+# Step 5. Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    medae_val = median_absolute_error(y_val, y_val_pred)
+    print(f'Validation MedAE: {medae_val}')
+
+    y_test_pred = model.predict(X_test)
+    medae_test = median_absolute_error(y_test, y_test_pred)
+    print(f'Test MedAE: {medae_test}')
+
+    performance_scores = {
+        'Validation MedAE': medae_val,
+        'Test MedAE': medae_test
+    }
+
+    return performance_scores
+
+# Step 6. Save the Model
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from user's local storage
+    df = load_dataset()
+
+    # Step 2. Create a train-valid-test split of the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable)
+    df_train = pd.concat([X_train, y_train], axis=1)
+    df_val = pd.concat([X_val, y_val], axis=1)
+    df_test = pd.concat([X_test, y_test], axis=1)
+
+    df_train = preprocess_data(df_train)
+    df_val = preprocess_data(df_val)
+    df_test = preprocess_data(df_test)
+
+    X_train = df_train.drop(columns=['mohs_hardness'])
+    y_train = df_train['mohs_hardness']
+    X_val = df_val.drop(columns=['mohs_hardness'])
+    y_val = df_val['mohs_hardness']
+    X_test = df_test.drop(columns=['mohs_hardness'])
+    y_test = df_test['mohs_hardness']
+
+    # Step 4. Define required model
+    model = train_model(X_train, y_train)
+
+    # Step 5. Evaluate the trained model
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 6. Save the trained model
+    model_path = r'./agent_workspace/trained_models/mohs_hardness_model.pkl'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 157, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+                                                     ^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 59, in split_data
+    raise KeyError("The dataset does not contain the 'mohs_hardness' column.")
+KeyError: "The dataset does not contain the 'mohs_hardness' column."

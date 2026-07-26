@@ -1,0 +1,105 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Check for missing values and impute them
+imputer = SimpleImputer(strategy='mean')
+train_df_imputed = pd.DataFrame(imputer.fit_transform(train_df), columns=train_df.columns)
+test_df_imputed = pd.DataFrame(imputer.transform(test_df), columns=test_df.columns)
+
+# Standardize the features
+scaler = StandardScaler()
+train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df_imputed), columns=train_df_imputed.columns)
+test_df_scaled = pd.DataFrame(scaler.transform(test_df_imputed), columns=test_df_imputed.columns)
+
+# Output the processed datasets
+train_df_scaled, test_df_scaled
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(              id       age    height    weight     waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride       HDL       LDL  hemoglobin  Urine_protein  serum_creatinine       AST       ALT       Gtp  dental_caries   smoking
+ 0      -0.408001 -0.363764 -1.729695 -1.361653 -0.333247      -1.261648       -1.278404     -0.156031      -0.154653 -0.194342    0.127119             0.239934    -0.591152     -1.201312  0.296177 -0.197121   -2.090771      -0.213745         -1.626365 -1.190789 -0.851755 -0.871202      -0.497426 -0.879736
+ 1      -0.769588  1.750195 -1.729695 -1.361653 -1.563035      -0.762843       -0.002432     -0.156031      -0.154653  1.298727    1.348476             9.462864     0.500179     -0.446249  0.797395  0.258438    1.052672      -0.213745         -1.626365 -0.880976 -0.139049 -0.358082      -0.497426 -0.879736
+ ...          ...       ...       ...       ...       ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...       ...       ...         ...            ...               ...       ...       ...       ...            ...       ...
+ 127402  1.464972  1.327404  0.537155  1.423965  1.567333       0.484171        1.273540     -0.156031      -0.154653  0.984397    0.460216            -0.741229    -0.731969     -0.627464 -0.992669  0.048180    0.144566      -0.213745          0.595022  0.771361  1.450834  0.122967      -0.497426 -0.879736
+ 127403  0.923536 -0.363764  1.103867  1.423965  0.561144       0.484171       -0.002432     -0.156031      -0.154653 -1.765994   -0.761141             0.894042     3.492538      0.852459 -0.348246  3.307184    0.284275      -0.213745          0.039675 -0.880976 -0.742108  0.604017      -0.497426  1.136705
+ 
+ [127404 rows x 24 columns],
+              id       age    height    weight     waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride       HDL       LDL  hemoglobin  Urine_protein  serum_creatinine       AST       ALT       Gtp  dental_caries   smoking
+ 0      1.438606 -0.786556  1.103867  1.026020  0.113948      -0.513440       -0.002432     -0.156031      -0.154653 -0.037177   -0.761141             0.109112    -0.274314      1.667927 -0.849464 -0.652681    0.843109      -0.213745         -1.071018  0.564819 -0.248696 -0.133593      -0.497426  1.136705
+ 1     -0.659753 -0.786556  2.237292  1.026020  0.561144       0.484171        0.507957     -0.156031      -0.154653 -1.765994   -1.427337            -0.414175    -1.471258     -0.083819 -0.491451 -1.213370    0.144566      -0.213745          0.039675 -0.364621 -0.248696 -0.614642      -0.497426  1.136705
+ ...         ...       ...       ...       ...       ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...       ...       ...         ...            ...               ...       ...       ...       ...            ...       ...
+ 31850  1.365875 -0.363764  0.537155 -1.361653 -2.569224      -0.014635       -0.002432     -0.156031      -0.154653 -1.765994   -1.871467            -0.806640    -1.048807     -0.008313  0.224574 -1.143284   -0.623831      -0.213745         -1.071018 -0.467892 -0.851755 -0.326012      -0.497426 -0.879736
+ 31851  0.127283 -1.209348  0.537155  0.628074  1.030699      -0.014635       -0.512820     -0.156031      -0.154653 -0.351507    0.127119             0.043701     0.324158      0.218206 -0.634657  0.538783    1.332089       2.658220         -0.515671  0.151735  0.464010 -0.518432      -0.497426  1.136705
+ 
+ [31852 rows x 24 columns])from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Selecting the features and target variable
+X_train = train_df_scaled.drop('smoking', axis=1)
+y_train = train_df_scaled['smoking']
+
+X_test = test_df_scaled.drop('smoking', axis=1)
+y_test = test_df_scaled['smoking']
+
+# Initialize and train the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Calculate AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# Output the AUC-ROC score
+auc_roc, model
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 13
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1231 in fit
+    check_classification_targets(y)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\multiclass.py:222 in check_classification_targets
+    raise ValueError(
+
+ValueError: Unknown label type: continuous. Maybe you are trying to fit a classifier, which expects discrete classes on a regression target with continuous values.
+
+from sklearn.preprocessing import LabelEncoder
+
+# Convert the target variable to categorical
+label_encoder = LabelEncoder()
+y_train_encoded = label_encoder.fit_transform(y_train)
+y_test_encoded = label_encoder.transform(y_test)
+
+# Initialize and train the model
+model = LogisticRegression()
+model.fit(X_train, y_train_encoded)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Calculate AUC-ROC
+auc_roc = roc_auc_score(y_test_encoded, y_pred_proba)
+
+# Output the AUC-ROC score and the trained model
+auc_roc, model
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8319503237046443, LogisticRegression())

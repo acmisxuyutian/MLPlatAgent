@@ -1,0 +1,241 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import log_loss
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import optuna
+import joblib
+from scipy import stats
+import shap
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_exploration(df):
+    print("Basic Statistics:")
+    print(df.describe())
+    if 'crime_category' in df.columns:
+        print("\nDistribution of Target Variable:")
+        print(df['crime_category'].value_counts())
+    else:
+        print("\nTarget variable 'crime_category' not found in the dataset.")
+    print("\nMissing Values:")
+    print(df.isnull().sum())
+    print("\nOutliers and Anomalies:")
+    z_scores = np.abs(stats.zscore(df.select_dtypes(include=[np.number])))
+    outliers = (z_scores > 3).any(axis=1)
+    print(df[outliers])
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    imputer_num = SimpleImputer(strategy='median')
+    df[numerical_features] = imputer_num.fit_transform(df[numerical_features])
+
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+    df[categorical_features] = imputer_cat.fit_transform(df[categorical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Categorical Encoding
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(), categorical_features)
+        ],
+        remainder='passthrough'
+    )
+    df = pd.DataFrame(preprocessor.fit_transform(df), columns=preprocessor.get_feature_names_out())
+
+    # Temporal Feature Engineering
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+        df['day_of_week'] = df['date'].dt.dayofweek
+        df['month'] = df['date'].dt.month
+        df['hour'] = df['date'].dt.hour
+        df['season'] = df['date'].dt.quarter
+
+    # Spatial Feature Engineering
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        hotspot_latitude = 37.7749  # Example hotspot latitude
+        hotspot_longitude = -122.4194  # Example hotspot longitude
+
+        def haversine(lat1, lon1, lat2, lon2):
+            R = 6371  # Earth radius in kilometers
+            lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+            c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+            distance = R * c
+            return distance
+
+        df['distance_to_hotspot'] = df.apply(lambda row: haversine(row['latitude'], row['longitude'], hotspot_latitude, hotspot_longitude), axis=1)
+
+    return df
+
+# Data Augmentation
+def augment_data(df):
+    X = df.drop(columns=['crime_category'])
+    y = df['crime_category']
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    return X_resampled, y_resampled
+
+# Model Training and Optimization
+def train_model(X_train, y_train, X_val, y_val):
+    model = XGBClassifier(
+        n_estimators=300,
+        max_depth=5,
+        learning_rate=0.1,
+        subsample=0.7,
+        colsample_bytree=0.7
+    )
+    model.fit(X_train, y_train)
+    return model
+
+def optimize_hyperparameters(X_train, y_train, X_val, y_val):
+    def objective(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 100, 500),
+            'max_depth': trial.suggest_int('max_depth', 3, 7),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 0.01, 0.2),
+            'subsample': trial.suggest_uniform('subsample', 0.5, 0.9),
+            'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.5, 0.9)
+        }
+        model = XGBClassifier(**params)
+        model.fit(X_train, y_train)
+        y_pred = model.predict_proba(X_val)
+        logloss = log_loss(y_val, y_pred)
+        return logloss
+
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=50)
+    best_params = study.best_params
+    return best_params
+
+def train_final_model(X_train, y_train, best_params):
+    final_model = XGBClassifier(**best_params)
+    final_model.fit(X_train, y_train)
+    return final_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_pred = model.predict_proba(X_val)
+    logloss = log_loss(y_val, y_pred)
+    print(f'Logloss: {logloss}')
+    return logloss
+
+def feature_importance(model, X_train):
+    feature_importances = model.feature_importances_
+    feature_importance_df = pd.DataFrame({'feature': X_train.columns, 'importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='importance', ascending=False)
+    print("Feature Importance:")
+    print(feature_importance_df)
+    return feature_importance_df
+
+def shap_values(model, X_val):
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_val)
+    shap.summary_plot(shap_values, X_val)
+    return shap_values
+
+# Model Deployment
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = load_dataset(dataset_path)
+    initial_exploration(df)
+    
+    if 'crime_category' not in df.columns:
+        print("Error: Target variable 'crime_category' not found in the dataset.")
+        return
+
+    df = preprocess_data(df)
+    X_resampled, y_resampled = augment_data(df)
+
+    X_train, X_val, y_train, y_val = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42, stratify=y_resampled)
+
+    best_params = optimize_hyperparameters(X_train, y_train, X_val, y_val)
+    final_model = train_final_model(X_train, y_train, best_params)
+
+    logloss = evaluate_model(final_model, X_val, y_val)
+    feature_importance(final_model, X_train)
+    shap_values(final_model, X_val)
+
+    model_path = r'./agent_workspace/trained_models/xgboost_crime_category_model.pkl'
+    save_model(final_model, model_path)
+
+    return logloss
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Basic Statistics:
+                  X             Y
+count  70244.000000  70244.000000
+mean    -122.422808     37.767867
+std        0.026338      0.198551
+min     -122.513642     37.707944
+25%     -122.432915     37.752590
+50%     -122.416452     37.775421
+75%     -122.406992     37.784400
+max     -120.500000     90.000000
+
+Target variable 'crime_category' not found in the dataset.
+
+Missing Values:
+Category      0
+DayOfWeek     0
+PdDistrict    0
+X             0
+Y             0
+dtype: int64
+
+Outliers and Anomalies:
+                Category  DayOfWeek PdDistrict           X          Y
+16              BURGLARY     Friday    TARAVAL -122.502766  37.738176
+100              ASSAULT     Friday    TARAVAL -122.506082  37.748239
+204              ROBBERY     Friday    TARAVAL -122.503266  37.752104
+297            VANDALISM   Saturday   RICHMOND -122.505681  37.779903
+536       OTHER OFFENSES     Sunday    TARAVAL -122.505928  37.760422
+...                  ...        ...        ...         ...        ...
+70006  RECOVERED VEHICLE  Wednesday    TARAVAL -122.507245  37.744452
+70034          VANDALISM   Saturday   RICHMOND -122.510033  37.774179
+70037      LARCENY/THEFT  Wednesday    TARAVAL -122.503515  37.764196
+70156          VANDALISM   Saturday    TARAVAL -122.506185  37.736565
+70197            ASSAULT  Wednesday    TARAVAL -122.504223  37.737102
+
+[821 rows x 5 columns]
+Error: Target variable 'crime_category' not found in the dataset.
+Model Performance on Validation Set: None

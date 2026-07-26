@@ -1,0 +1,140 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define paths
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/test.csv'
+model_path = './agent_workspace/trained_models/linear_regression_model.pkl'
+scaler_path = './agent_workspace/trained_models/standard_scaler.pkl'
+
+# Ensure the directory for saving the model and scaler exists
+os.makedirs(os.path.dirname(model_path), exist_ok=True)
+os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+
+# Function to load data
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Function to preprocess data
+def preprocess_data(train_df, test_df):
+    # Exclude irrelevant features
+    columns_to_drop = ['Entity', 'Year']
+    for col in columns_to_drop:
+        if col in train_df.columns:
+            train_df.drop(columns=[col], inplace=True)
+        if col in test_df.columns:
+            test_df.drop(columns=[col], inplace=True)
+
+    # Handle missing data
+    train_df.fillna(train_df.select_dtypes(include=[np.number]).mean(), inplace=True)
+    test_df.fillna(test_df.select_dtypes(include=[np.number]).mean(), inplace=True)
+
+    # Convert string to numeric
+    for col in train_df.columns:
+        if train_df[col].dtype == 'object':
+            try:
+                train_df[col] = train_df[col].str.replace(',', '').astype(float)
+            except ValueError:
+                pass
+
+    for col in test_df.columns:
+        if test_df[col].dtype == 'object':
+            try:
+                test_df[col] = test_df[col].str.replace(',', '').astype(float)
+            except ValueError:
+                pass
+
+    # Feature scaling
+    scaler = StandardScaler()
+    features = train_df.columns.difference(['Renewable energy share in the total final energy consumption (%)'])
+
+    train_df[features] = scaler.fit_transform(train_df[features])
+    test_df[features] = scaler.transform(test_df[features])
+
+    return train_df, test_df, scaler, features
+
+# Function to train the model
+def train_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Function to make predictions
+def make_predictions(model, X_test):
+    y_pred = model.predict(X_test)
+    return y_pred
+
+# Function to evaluate the model
+def evaluate_model(y_test, y_pred):
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    return rmse
+
+# Function to save the model and scaler
+def save_model(model, scaler, model_path, scaler_path):
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Load data
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Preprocess data
+    train_df, test_df, scaler, features = preprocess_data(train_df, test_df)
+
+    # Split the data
+    X_train = train_df[features]
+    y_train = train_df['Renewable energy share in the total final energy consumption (%)']
+    X_test = test_df[features]
+    y_test = test_df['Renewable energy share in the total final energy consumption (%)']
+
+    # Ensure no NaN values in the training data
+    if X_train.isnull().values.any():
+        raise ValueError("NaN values found in the training data after preprocessing.")
+    if y_train.isnull().values.any():
+        raise ValueError("NaN values found in the target variable after preprocessing.")
+
+    # Train the model
+    model = train_model(X_train, y_train)
+
+    # Make predictions
+    y_pred = make_predictions(model, X_test)
+
+    # Evaluate the model
+    rmse = evaluate_model(y_test, y_pred)
+    print(f'RMSE: {rmse}')
+
+    # Save the model and scaler
+    save_model(model, scaler, model_path, scaler_path)
+
+    return rmse
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 127, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 107, in main
+    raise ValueError("NaN values found in the training data after preprocessing.")
+ValueError: NaN values found in the training data after preprocessing.

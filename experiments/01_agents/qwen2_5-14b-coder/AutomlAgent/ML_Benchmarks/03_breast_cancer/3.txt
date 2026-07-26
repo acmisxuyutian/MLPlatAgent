@@ -1,0 +1,166 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+from sklearn.datasets import load_breast_cancer
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data():
+    # Load the dataset
+    data = load_breast_cancer()
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+
+    # Statistical summaries
+    print(df.describe())
+
+    # Correlation matrix
+    correlation_matrix = df.corr()
+    print(correlation_matrix)
+
+    # Missing values
+    print(df.isnull().sum())
+
+    # Target variable balance
+    print(df['target'].value_counts(normalize=True))
+
+    # Split the dataset
+    X = df.drop('target', axis=1)
+    y = df['target']
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Standardize features
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+
+    # Apply SMOTE
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    return X_train_resampled, y_train_resampled, X_val, y_val
+
+def train_model(model, train_loader, num_epochs=100):
+    # Define loss function and optimizer
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+    # Training loop
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+        
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+def evaluate_model(model, X_val_tensor, y_val_tensor):
+    # Evaluate the model
+    model.eval()
+    with torch.no_grad():
+        outputs = model(X_val_tensor)
+        predictions = (outputs > 0.5).float()
+
+    # Calculate metrics
+    val_accuracy = accuracy_score(y_val_tensor.numpy(), predictions.numpy())
+    val_f1 = f1_score(y_val_tensor.numpy(), predictions.numpy())
+
+    performance_scores = {
+        'ACC': val_accuracy,
+        'F1': val_f1
+    }
+
+    # Confusion matrix
+    conf_matrix = confusion_matrix(y_val_tensor.numpy(), predictions.numpy())
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    X_train_resampled, y_train_resampled, X_val, y_val = preprocess_data()
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train_resampled, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train_resampled, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    # Step 4. Define required model
+    class NLN(nn.Module):
+        def __init__(self):
+            super(NLN, self).__init__()
+            self.fc1 = nn.Linear(30, 64)
+            self.fc2 = nn.Linear(64, 32)
+            self.fc3 = nn.Linear(32, 1)
+            self.dropout = nn.Dropout(0.3)
+        
+        def forward(self, x):
+            x = torch.relu(self.fc1(x))
+            x = self.dropout(x)
+            x = torch.relu(self.fc2(x))
+            x = self.dropout(x)
+            x = torch.sigmoid(self.fc3(x))
+            return x
+
+    model = NLN()
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, train_loader)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val_tensor, y_val_tensor)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 152, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 118, in main
+    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not determine the shape of object type 'Series'

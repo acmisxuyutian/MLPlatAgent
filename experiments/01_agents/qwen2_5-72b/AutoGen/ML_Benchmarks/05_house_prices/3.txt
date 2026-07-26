@@ -1,0 +1,315 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Check the shape of the datasets
+print("Training Data Shape:", train_df.shape)
+print("Evaluation Data Shape:", eval_df.shape)
+
+# Check for missing values in the training dataset
+print("Missing values in training data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing values in evaluation data:")
+print(eval_df.isnull().sum())
+
+# Describe the numerical features in the training dataset
+print("Descriptive statistics of numerical features in training data:")
+print(train_df.describe())
+
+# Describe the categorical features in the training dataset
+print("Descriptive statistics of categorical features in training data:")
+print(train_df.describe(include=['O']))
+
+# Plot the distribution of the target variable (SalePrice)
+plt.figure(figsize=(10, 6))
+sns.histplot(train_df['SalePrice'], kde=True)
+plt.title('Distribution of SalePrice')
+plt.xlabel('SalePrice')
+plt.ylabel('Frequency')
+plt.show()
+
+
+执行结果：
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Shape: (1168, 81)
+Evaluation Data Shape: (292, 81)
+Missing values in training data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing values in evaluation data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64
+Descriptive statistics of numerical features in training data:
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+Descriptive statistics of categorical features in training data:
+       MSZoning Street Alley LotShape  ...  Fence MiscFeature SaleType SaleCondition
+count      1168   1168    73     1168  ...    218          43     1168          1168
+unique        5      2     2        4  ...      4           3        9             6
+top          RL   Pave  Grvl      Reg  ...  MnPrv        Shed       WD        Normal
+freq        922   1164    46      742  ...    129          39     1018           963
+
+[4 rows x 43 columns]
+
+生成的代码：
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+# Handle missing values
+imputer_num = SimpleImputer(strategy='median')
+imputer_cat = SimpleImputer(strategy='constant', fill_value='None')
+
+# Identify numerical and categorical columns
+num_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_features = train_df.select_dtypes(include=['object']).columns.tolist()
+
+# Remove the target variable from numerical features
+num_features.remove('SalePrice')
+
+# Create a column transformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', Pipeline(steps=[('imputer', imputer_num), ('scaler', StandardScaler())]), num_features),
+        ('cat', Pipeline(steps=[('imputer', imputer_cat), ('onehot', OneHotEncoder(handle_unknown='ignore'))]), cat_features)
+    ])
+
+# Apply the preprocessor to the training and evaluation datasets
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert the preprocessed data back to DataFrames for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=num_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features))
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=num_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features))
+
+# Display the first few rows of the preprocessed training data
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation data
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_780b0d96d3982010502187bec1589b65a593bebf93b339f900287aaabedb870d.py", line 12, in <module>
+    num_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Handle missing values
+imputer_num = SimpleImputer(strategy='median')
+imputer_cat = SimpleImputer(strategy='constant', fill_value='None')
+
+# Identify numerical and categorical columns
+num_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_features = train_df.select_dtypes(include=['object']).columns.tolist()
+
+# Remove the target variable from numerical features
+num_features.remove('SalePrice')
+
+# Create a column transformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', Pipeline(steps=[('imputer', imputer_num), ('scaler', StandardScaler())]), num_features),
+        ('cat', Pipeline(steps=[('imputer', imputer_cat), ('onehot', OneHotEncoder(handle_unknown='ignore'))]), cat_features)
+    ])
+
+# Apply the preprocessor to the training and evaluation datasets
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert the preprocessed data back to DataFrames for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=num_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features))
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=num_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features))
+
+# Display the first few rows of the preprocessed training data
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation data
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_df0e8ab2c8f186e173c34b7b7ab8ccf8ccf720b130320dc0ea782c3cdfdb1240.py", line 45, in <module>
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=num_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features))
+ValueError: operands could not be broadcast together with shapes (37,) (264,) 
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Handle missing values
+imputer_num = SimpleImputer(strategy='median')
+imputer_cat = SimpleImputer(strategy='constant', fill_value='None')
+
+# Identify numerical and categorical columns
+num_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_features = train_df.select_dtypes(include=['object']).columns.tolist()
+
+# Remove the target variable from numerical features
+num_features.remove('SalePrice')
+
+# Create a column transformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', Pipeline(steps=[('imputer', imputer_num), ('scaler', StandardScaler())]), num_features),
+        ('cat', Pipeline(steps=[('imputer', imputer_cat), ('onehot', OneHotEncoder(handle_unknown='ignore'))]), cat_features)
+    ])
+
+# Apply the preprocessor to the training and evaluation datasets
+X_train = train_df.drop(columns=['SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Get the column names for the preprocessed data
+num_columns = num_features
+cat_columns = preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_features)
+
+# Combine the column names
+all_columns = num_columns + cat_columns.tolist()
+
+# Convert the preprocessed data back to DataFrames for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_columns)
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=all_columns)
+
+# Display the first few rows of the preprocessed training data
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation data
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+# Debugging: Print the shapes of the preprocessed data and the column names
+print("Shape of X_train_preprocessed:", X_train_preprocessed.shape)
+print("Shape of X_eval_preprocessed:", X_eval_preprocessed.shape)
+print("Number of columns in all_columns:", len(all_columns))
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_bbab47e7917eec3482f5fbb2589a1734536e9c9263a093fcc8673f61e945c93f.py", line 52, in <module>
+    X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=all_columns)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 867, in __init__
+    mgr = ndarray_to_mgr(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\construction.py", line 336, in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\construction.py", line 420, in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+ValueError: Shape of passed values is (1168, 1), indices imply (1168, 301)

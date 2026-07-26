@@ -1,0 +1,187 @@
+######代码######
+
+import os
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import mean_squared_log_error
+import lightgbm as lgb
+import joblib
+
+SEED = 42
+np.random.seed(SEED)
+
+# Step 1. Retrieve the dataset
+def retrieve_dataset(dataset_path):
+    """
+    Retrieve the dataset from the given path.
+    """
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"Dataset not found at path: {dataset_path}")
+    
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2. Initial data exploration
+def explore_data(df):
+    """
+    Perform initial data exploration.
+    """
+    print("Checking for missing values:")
+    print(df.isnull().sum())
+    print("\nData types:")
+    print(df.dtypes)
+    print("\nBasic statistics:")
+    print(df.describe())
+    
+    # Ensure the target variable exists
+    if 'media_campaign_cost' not in df.columns:
+        raise ValueError("Target variable 'media_campaign_cost' not found in the dataset.")
+    
+    print("\nTarget variable statistics:")
+    print(df['media_campaign_cost'].describe())
+
+# Step 3. Data preprocessing
+def preprocess_data(df):
+    """
+    Preprocess the dataset.
+    """
+    # Handling missing values
+    print("Handling missing values...")
+    for column in df.columns:
+        if df[column].dtype == 'object':
+            df[column].fillna(df[column].mode()[0], inplace=True)
+        else:
+            df[column].fillna(df[column].median(), inplace=True)
+    
+    # Verify that all missing values have been handled
+    if df.isnull().sum().sum() > 0:
+        raise ValueError("There are still missing values in the dataset.")
+    
+    # Encoding categorical variables
+    print("Encoding categorical variables...")
+    categorical_features = df.select_dtypes(include=['object', 'category']).columns
+    df = pd.get_dummies(df, columns=categorical_features, drop_first=True)
+    
+    # Normalizing numerical features
+    print("Normalizing numerical features...")
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).drop(columns=['media_campaign_cost']).columns
+    df[numerical_features] = (df[numerical_features] - df[numerical_features].mean()) / df[numerical_features].std()
+    
+    # Verify that the numerical features are normalized
+    print("\nNormalized numerical features statistics:")
+    print(df[numerical_features].describe())
+    
+    return df
+
+# Step 4. Data splitting
+def split_data(df):
+    """
+    Split the dataset into training, validation, and test sets.
+    """
+    X = df.drop('media_campaign_cost', axis=1)
+    y = df['media_campaign_cost']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 5. Model training and hyperparameter tuning
+def train_model(X_train, y_train):
+    """
+    Train the LightGBM model with hyperparameter tuning.
+    """
+    model = lgb.LGBMRegressor()
+    
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.3]
+    }
+    
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_mean_squared_log_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    
+    best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+    
+    print(f"Best parameters: {best_params}")
+    
+    return best_model
+
+# Step 6. Model evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    """
+    Evaluate the model on the validation and test sets.
+    """
+    y_val_pred = model.predict(X_val)
+    rmlse_val = np.sqrt(mean_squared_log_error(y_val, y_val_pred))
+    print(f'Validation RMLSE: {rmlse_val}')
+    
+    y_test_pred = model.predict(X_test)
+    rmlse_test = np.sqrt(mean_squared_log_error(y_test, y_test_pred))
+    print(f'Test RMLSE: {rmlse_test}')
+    
+    performance_scores = {
+        'Validation RMLSE': rmlse_val,
+        'Test RMLSE': rmlse_test
+    }
+    
+    return performance_scores
+
+# Step 7. Model saving
+def save_model(model, model_path):
+    """
+    Save the trained model to a file.
+    """
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+# Main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    
+    # Step 1. Retrieve the dataset
+    df = retrieve_dataset(dataset_path)
+    
+    # Step 2. Initial data exploration
+    explore_data(df)
+    
+    # Step 3. Preprocess the data
+    df_processed = preprocess_data(df)
+    
+    # Step 4. Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df_processed)
+    
+    # Step 5. Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 6. Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Step 7. Save the model
+    model_path = r'./agent_workspace/trained_models/lightgbm_media_campaign_cost_model.pkl'
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 172, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 151, in main
+    explore_data(df)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 38, in explore_data
+    raise ValueError("Target variable 'media_campaign_cost' not found in the dataset.")
+ValueError: Target variable 'media_campaign_cost' not found in the dataset.

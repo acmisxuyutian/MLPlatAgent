@@ -1,0 +1,150 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetClassifier
+import torch
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, eval_df):
+    # Handle missing values
+    train_df.fillna(train_df.mean(), inplace=True)
+    eval_df.fillna(eval_df.mean(), inplace=True)
+
+    # Embed categorical variables
+    for col in train_df.select_dtypes(include=['object']).columns:
+        train_df[col] = train_df[col].astype('category').cat.codes
+        eval_df[col] = eval_df[col].astype('category').cat.codes
+
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+    train_df[numerical_cols] = scaler.fit_transform(train_df[numerical_cols])
+    eval_df[numerical_cols] = scaler.transform(eval_df[numerical_cols])
+
+    # Data splitting
+    X_train = train_df.drop('target', axis=1)
+    y_train = train_df['target']
+    X_eval = eval_df.drop('target', axis=1)
+    y_eval = eval_df['target']
+
+    return X_train, y_train, X_eval, y_eval
+
+def train_model(model, X_train, y_train, X_eval, y_eval):
+    # Train model
+    model.fit(X_train.values, y_train.values, eval_set=[(X_eval.values, y_eval.values)], patience=50, max_epochs=100, batch_size=32, virtual_batch_size=128, num_workers=0)
+    return model
+
+def evaluate_model(model, X_eval, y_eval):
+    # Evaluate model
+    y_pred = model.predict(X_eval.values)
+    performance_scores = {
+        'ACC': accuracy_score(y_eval, y_pred),
+        'F1': f1_score(y_eval, y_pred)
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_train.csv')
+    eval_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/06_santander_customer/split_eval.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, y_train, X_eval, y_eval = preprocess_data(train_df, eval_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = TabNetClassifier(n_d=64, n_a=64, n_steps=3, gamma=1.5, lambda_sparse=1e-3, optimizer_fn=torch.optim.Adam,
+                           optimizer_params=dict(lr=0.001), mask_type="entmax", scheduler_params={"step_size":50, "gamma":0.9},
+                           scheduler_fn=torch.optim.lr_scheduler.StepLR, seed=42)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train, y_train, X_eval, y_eval)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_eval, y_eval)
+
+    # Step 7. Save the trained model to the specified directory
+    model.save_model('./agent_workspace/trained_models/tabnet_model')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning:
+
+Device used : cuda
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 96, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 85, in main
+    model = train_model(model, X_train, y_train, X_eval, y_eval)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 51, in train_model
+    model.fit(X_train.values, y_train.values, eval_set=[(X_eval.values, y_eval.values)], patience=50, max_epochs=100, batch_size=32, virtual_batch_size=128, num_workers=0)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py", line 243, in fit
+    self._set_optimizer()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py", line 708, in _set_optimizer
+    self._optimizer = self.optimizer_fn(
+                      ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

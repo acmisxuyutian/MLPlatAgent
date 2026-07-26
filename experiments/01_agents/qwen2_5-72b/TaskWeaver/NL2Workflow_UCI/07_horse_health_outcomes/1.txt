@@ -1,0 +1,304 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocessing steps
+numeric_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())])
+
+categorical_features = train_df.select_dtypes(include=['object']).columns
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)])
+
+# Apply preprocessing to the datasets
+X_train = train_df.drop('outcome', axis=1)
+y_train = train_df['outcome']
+X_test = test_df.drop('outcome', axis=1)
+y_test = test_df['outcome']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'outcome'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 37
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Check the columns in the datasets
+print("Columns in train_df:", train_df.columns)
+print("Columns in test_df:", test_df.columns)
+
+# Assuming the target column is named 'target' instead of 'outcome'
+X_train = train_df.drop('target', axis=1)
+y_train = train_df['target']
+X_test = test_df.drop('target', axis=1)
+y_test = test_df['target']
+
+# Preprocessing steps
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())])
+
+categorical_features = X_train.select_dtypes(include=['object']).columns
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)])
+
+# Apply preprocessing to the datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 20
+    X_train = train_df.drop('target', axis=1)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['target'] not found in axis"
+
+Columns in train_df: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+Columns in test_df: Index(['surgery', 'hospital_number', 'rectal_temp', 'pulse',
+       'respiratory_rate', 'peripheral_pulse', 'mucous_membrane',
+       'capillary_refill_time', 'outcome'],
+      dtype='object')
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Check the columns in the datasets
+print("Columns in train_df:", train_df.columns)
+print("Columns in test_df:", test_df.columns)
+
+# Assuming the target column is named 'outcome'
+X_train = train_df.drop('outcome', axis=1)
+y_train = train_df['outcome']
+X_test = test_df.drop('outcome', axis=1)
+y_test = test_df['outcome']
+
+# Preprocessing steps
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())])
+
+categorical_features = X_train.select_dtypes(include=['object']).columns
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)])
+
+# Apply preprocessing to the datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.32283607,  1.0515338 ,  0.15511922, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32216068,  0.40546431, -0.46229631, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31753625, -1.14510249, -0.25649114, ...,  0.        ,
+          0.        ,  1.        ],
+        ...,
+        [-0.32155825,  0.27625041, -0.94250839, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32221196, -2.69566928, -1.01111012, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.318372  , -0.24060519,  0.84113647, ...,  0.        ,
+          0.        ,  1.        ]]),
+ array([[-0.3172921 ,  1.5683894 ,  0.22372094, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31754636, -0.88667469,  1.11554338, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32156836,  0.40546431, -0.25649114, ...,  0.        ,
+          0.        ,  1.        ],
+        ...,
+        [-0.32143762,  0.40546431, -1.28551702, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.32143762,  3.37738399,  0.97833992, ...,  1.        ,
+          0.        ,  0.        ],
+        [-0.31744957, -0.49903299, -0.05068596, ...,  1.        ,
+          0.        ,  0.        ]]),
+ 0       died
+ 1      lived
+        ...  
+ 984     died
+ 985    lived
+ Name: outcome, Length: 986, dtype: object,
+ 0      euthanized
+ 1      euthanized
+           ...    
+ 245          died
+ 246    euthanized
+ Name: outcome, Length: 247, dtype: object)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+
+# Initialize the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train_preprocessed, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test_preprocessed)
+
+# Calculate F1 score
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+model, y_pred, f1
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ array(['euthanized', 'euthanized', 'died', 'lived', 'lived', 'died',
+        'died', 'lived', 'euthanized', 'lived', 'lived', 'died', 'lived',
+        'died', 'euthanized', 'euthanized', 'lived', 'lived', 'died',
+        'died', 'euthanized', 'euthanized', 'died', 'lived', 'died',
+        'euthanized', 'died', 'lived', 'euthanized', 'euthanized',
+        'euthanized', 'died', 'died', 'euthanized', 'died', 'died',
+        'lived', 'died', 'died', 'euthanized', 'lived', 'died', 'lived',
+        'died', 'euthanized', 'lived', 'lived', 'died', 'lived',
+        'euthanized', 'lived', 'lived', 'lived', 'died', 'lived', 'lived',
+        'lived', 'lived', 'died', 'lived', 'died', 'lived', 'died',
+        'lived', 'lived', 'lived', 'lived', 'euthanized', 'died', 'died',
+        'died', 'lived', 'euthanized', 'lived', 'died', 'euthanized',
+        'lived', 'lived', 'lived', 'died', 'lived', 'lived', 'lived',
+        'euthanized', 'lived', 'euthanized', 'died', 'died', 'lived',
+        'died', 'lived', 'died', 'euthanized', 'died', 'euthanized',
+        'died', 'lived', 'lived', 'euthanized', 'died', 'died', 'died',
+        'euthanized', 'died', 'lived', 'euthanized', 'died', 'died',
+        'lived', 'died', 'died', 'euthanized', 'euthanized', 'died',
+        'euthanized', 'lived', 'lived', 'euthanized', 'died', 'euthanized',
+        'died', 'died', 'died', 'euthanized', 'lived', 'died', 'lived',
+        'lived', 'lived', 'lived', 'euthanized', 'euthanized', 'lived',
+        'died', 'lived', 'lived', 'lived', 'lived', 'lived', 'died',
+        'lived', 'died', 'died', 'lived', 'lived', 'died', 'euthanized',
+        'lived', 'euthanized', 'died', 'lived', 'died', 'lived',
+        'euthanized', 'lived', 'lived', 'lived', 'died', 'euthanized',
+        'died', 'died', 'died', 'lived', 'lived', 'lived', 'died',
+        'euthanized', 'lived', 'euthanized', 'lived', 'lived', 'died',
+        'euthanized', 'lived', 'euthanized', 'lived', 'died', 'died',
+        'euthanized', 'lived', 'lived', 'died', 'died', 'lived', 'died',
+        'lived', 'died', 'died', 'lived', 'died', 'euthanized',
+        'euthanized', 'died', 'lived', 'died', 'died', 'lived', 'lived',
+        'lived', 'died', 'lived', 'lived', 'lived', 'died', 'lived',
+        'euthanized', 'lived', 'lived', 'lived', 'died', 'lived', 'lived',
+        'died', 'lived', 'lived', 'died', 'died', 'euthanized', 'lived',
+        'died', 'died', 'euthanized', 'euthanized', 'lived', 'lived',
+        'lived', 'lived', 'lived', 'lived', 'died', 'euthanized', 'lived',
+        'lived', 'lived', 'died', 'lived', 'lived', 'died', 'died',
+        'lived', 'lived', 'lived', 'lived', 'died', 'lived', 'died',
+        'lived'], dtype=object),
+ 0.648798424989466)

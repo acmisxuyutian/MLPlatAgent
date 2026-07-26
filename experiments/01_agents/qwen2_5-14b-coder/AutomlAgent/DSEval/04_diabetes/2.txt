@@ -1,0 +1,172 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Retrieve or load the dataset
+def load_dataset(train_url, test_url):
+    # Download the datasets
+    train_data = requests.get(train_url).content
+    test_data = requests.get(test_url).content
+
+    # Save the datasets to local files
+    with open('train.csv', 'wb') as f:
+        f.write(train_data)
+
+    with open('test.csv', 'wb') as f:
+        f.write(test_data)
+
+    # Load the datasets into Pandas DataFrames
+    diabetes_train = pd.read_csv('train.csv')
+    diabetes_test = pd.read_csv('test.csv')
+
+    return diabetes_train, diabetes_test
+
+# Step 2: Preprocess the dataset
+def preprocess_data(diabetes_train, diabetes_test):
+    # Drop duplicate rows
+    diabetes_train = diabetes_train.drop_duplicates()
+
+    # Define categorical columns
+    categorical_cols = ['gender', 'smoking_history']
+
+    # Define numerical columns
+    numerical_cols = diabetes_train.drop(columns=['diabetes'] + categorical_cols).columns
+
+    # Preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    # Preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Create a preprocessing and modeling pipeline
+    model = Pipeline(steps=[('preprocessor', preprocessor),
+                            ('classifier', RandomForestClassifier(random_state=SEED))])
+
+    # Fit the model on the training data
+    model.fit(diabetes_train.drop('diabetes', axis=1), diabetes_train['diabetes'])
+
+    # Transform the test data
+    diabetes_test_transformed = model.named_steps['preprocessor'].transform(diabetes_test.drop('diabetes', axis=1))
+
+    return model, diabetes_test_transformed, diabetes_test['diabetes']
+
+# Step 3: Train the model
+def train_model(model, train_loader):
+    # The model is already trained in the preprocess_data function
+    return model
+
+# Step 4: Evaluate the model
+def evaluate_model(model, test_loader, y_test):
+    # Make predictions
+    y_pred = model.predict(test_loader)
+    y_pred_proba = model.predict_proba(test_loader)[:, 1]
+
+    # Calculate performance scores
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred),
+        'AUC-ROC': roc_auc_score(y_test, y_pred_proba)
+    }
+
+    # Print classification report
+    print("Classification Report:\n", classification_report(y_test, y_pred))
+
+    # Print confusion matrix
+    print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    train_url = 'https://example.com/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_url = 'https://example.com/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+    diabetes_train, diabetes_test = load_dataset(train_url, test_url)
+
+    # Step 2: Preprocess the dataset
+    model, diabetes_test_transformed, y_test = preprocess_data(diabetes_train, diabetes_test)
+
+    # Step 3: Train the model
+    model = train_model(model, diabetes_train.drop('diabetes', axis=1))
+
+    # Step 4: Evaluate the model
+    model_performance = evaluate_model(model, diabetes_test_transformed, y_test)
+
+    # Save the trained model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    joblib.dump(model, './agent_workspace/trained_models/diabetes_model.pkl')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 137, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 119, in main
+    diabetes_train, diabetes_test = load_dataset(train_url, test_url)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 41, in load_dataset
+    diabetes_train = pd.read_csv('train.csv')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2061, in pandas._libs.parsers.raise_parser_error
+pandas.errors.ParserError: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+

@@ -1,0 +1,142 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, confusion_matrix
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+    
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Drop duplicates
+    train_df = train_df.drop_duplicates(keep='first')
+    test_df = test_df.drop_duplicates(keep='first')
+    
+    # One-hot encoding
+    train_df = pd.get_dummies(train_df, drop_first=True)
+    test_df = pd.get_dummies(test_df, drop_first=True)
+    
+    return train_df, test_df
+
+# Feature Ranking
+def feature_ranking(train_df):
+    X_train, y_train = train_df.drop(columns=['diabetes']), train_df['diabetes']
+    
+    # Use a simple Decision Tree model to get feature importances
+    model = DecisionTreeClassifier(random_state=SEED)
+    model.fit(X_train, y_train)
+    
+    feature_importances = model.feature_importances_
+    important_features = pd.DataFrame({'Feature': X_train.columns, 'Importance': feature_importances})
+    important_features = important_features.sort_values(by='Importance', ascending=False)
+    
+    return important_features
+
+# Model Building
+def build_model():
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        max_features='sqrt',
+        random_state=SEED
+    )
+    return model
+
+# Model Training
+def train_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    cm = confusion_matrix(y_test, y_pred)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': cm
+    }
+    
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data()
+    
+    # Step 2: Preprocess the datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3: Feature ranking (optional, for insights)
+    important_features = feature_ranking(train_df)
+    print("Important Features:")
+    print(important_features)
+    
+    # Step 4: Prepare the data for training and testing
+    X_train, y_train = train_df.drop(columns=['diabetes']), train_df['diabetes']
+    X_test, y_test = test_df.drop(columns=['diabetes']), test_df['diabetes']
+    
+    # Step 5: Build the model
+    model = build_model()
+    
+    # Step 6: Train the model
+    model = train_model(model, X_train, y_train)
+    
+    # Step 7: Save the trained model
+    model_path = './agent_workspace/trained_models/random_forest_diabetes_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    
+    # Step 8: Evaluate the model
+    performance_scores = evaluate_model(model, X_test, y_test)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Important Features:
+                        Feature  Importance
+4                   HbA1c_level    0.491433
+5           blood_glucose_level    0.268419
+3                           bmi    0.120885
+0                           age    0.066027
+6                   gender_Male    0.012858
+11        smoking_history_never    0.009560
+10       smoking_history_former    0.006837
+8       smoking_history_current    0.005494
+1                  hypertension    0.005089
+12  smoking_history_not current    0.004832
+9          smoking_history_ever    0.004426
+2                 heart_disease    0.004140
+7                  gender_Other    0.000000
+Model Performance on Test Set: {'AUC-ROC': 0.97424903338689, 'Confusion Matrix': array([[18088,    11],
+       [  541,  1167]])}

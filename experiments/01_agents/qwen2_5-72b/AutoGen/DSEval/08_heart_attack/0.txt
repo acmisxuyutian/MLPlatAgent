@@ -1,0 +1,110 @@
+
+生成的代码：
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Step 1: Load the data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\08_heart_attack\\train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\08_heart_attack\\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Step 2: Convert the values in the 'Diet' column
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# Step 3: Prepare the data for the RandomForest model
+X_train = train_df.drop(columns=['Heart Attack Risk'])
+y_train = train_df['Heart Attack Risk']
+
+X_test = test_df.drop(columns=['Heart Attack Risk'])
+y_test = test_df['Heart Attack Risk']
+
+# Step 4: Build and fit the RandomForest model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Step 5: Make predictions on the test set
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Step 6: Evaluate the model using the ROC AUC score
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Return the ROC AUC score in a tuple
+roc_auc_tuple = (roc_auc,)
+
+print(roc_auc_tuple)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_18b4190b7e98f72a48685df65dea13216966511f1e3eb67f7e2bd85cf3519ae7.py", line 26, in <module>
+    model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\ensemble\_forest.py", line 360, in fit
+    X, y = validate_data(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'RCA7696'
+
+生成的代码：
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Step 1: Load the data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\08_heart_attack\\train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\08_heart_attack\\test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Step 2: Convert the values in the 'Diet' column
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# Step 3: Identify non-numeric columns
+non_numeric_columns = train_df.select_dtypes(exclude=['number']).columns
+
+# Step 4: Drop non-numeric columns
+train_df = train_df.drop(columns=non_numeric_columns)
+test_df = test_df.drop(columns=non_numeric_columns)
+
+# Step 5: Prepare the data for the RandomForest model
+X_train = train_df.drop(columns=['Heart Attack Risk'])
+y_train = train_df['Heart Attack Risk']
+
+X_test = test_df.drop(columns=['Heart Attack Risk'])
+y_test = test_df['Heart Attack Risk']
+
+# Step 6: Build and fit the RandomForest model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Step 7: Make predictions on the test set
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Step 8: Evaluate the model using the ROC AUC score
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Return the ROC AUC score in a tuple
+roc_auc_tuple = (roc_auc,)
+
+print(roc_auc_tuple)
+
+
+执行结果：
+(np.float64(0.5378471337579618),)

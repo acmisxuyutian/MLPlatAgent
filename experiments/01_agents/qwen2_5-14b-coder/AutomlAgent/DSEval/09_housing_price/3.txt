@@ -1,0 +1,119 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from scipy import stats
+import git
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Retrieve or load the dataset
+train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/09_housing_price/train.csv')
+test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/09_housing_price/test.csv')
+
+# Step 2: Preprocess the dataset
+# Inspect data structure
+print(train_df.describe())
+print(train_df.info())
+print(train_df.head())
+
+# Identify missing values
+missing_values = train_df.isnull().sum()
+print(missing_values)
+
+# Handle missing values (example: imputation)
+# Separate numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+categorical_features = train_df.select_dtypes(include=['object']).columns
+
+# Impute missing values for numerical features with mean
+train_df[numerical_features] = train_df[numerical_features].fillna(train_df[numerical_features].mean())
+test_df[numerical_features] = test_df[numerical_features].fillna(test_df[numerical_features].mean())
+
+# Impute missing values for categorical features with mode
+for col in categorical_features:
+    mode_val = train_df[col].mode()[0]
+    train_df[col] = train_df[col].fillna(mode_val)
+    test_df[col] = test_df[col].fillna(mode_val)
+
+# Detect outliers using Z-score
+z_scores = stats.zscore(train_df[numerical_features])
+abs_z_scores = np.abs(z_scores)
+filtered_entries = (abs_z_scores < 3).all(axis=1)
+train_df = train_df[filtered_entries]
+
+# Detect outliers using IQR
+Q1 = train_df[numerical_features].quantile(0.25)
+Q3 = train_df[numerical_features].quantile(0.75)
+IQR = Q3 - Q1
+filtered_entries = ~((train_df[numerical_features] < (Q1 - 1.5 * IQR)) | (train_df[numerical_features] > (Q3 + 1.5 * IQR))).any(axis=1)
+train_df = train_df[filtered_entries]
+
+# Scale numerical features
+scaler = MinMaxScaler()
+train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+# Encode categorical variables
+encoder = OneHotEncoder(sparse=False, drop='first')
+train_df_encoded = encoder.fit_transform(train_df[categorical_features])
+test_df_encoded = encoder.transform(test_df[categorical_features])
+
+# Combine encoded features with numerical features
+train_df = pd.concat([train_df[numerical_features], pd.DataFrame(train_df_encoded)], axis=1)
+test_df = pd.concat([test_df[numerical_features], pd.DataFrame(test_df_encoded)], axis=1)
+
+# Step 3: Split the dataset
+X_train, X_val, y_train, y_val = train_test_split(train_df.drop('price', axis=1), train_df['price'], test_size=0.2, random_state=SEED)
+
+# Step 4: Train the model
+ridge = Ridge()
+param_grid = {'alpha': [0.1, 1.0, 10.0]}
+grid_search = GridSearchCV(ridge, param_grid, cv=5, scoring='neg_mean_squared_error')
+grid_search.fit(X_train, y_train)
+
+best_alpha = grid_search.best_params_['alpha']
+print(f'Best alpha: {best_alpha}')
+
+ridge_best = Ridge(alpha=best_alpha)
+ridge_best.fit(X_train, y_train)
+
+# Step 5: Evaluate the model
+y_val_pred = ridge_best.predict(X_val)
+rmse_val = np.sqrt(mean_squared_error(y_val, y_val_pred))
+print(f'Validation RMSE: {rmse_val}')
+
+y_test_pred = ridge_best.predict(test_df.drop('price', axis=1))
+rmse_test = np.sqrt(mean_squared_error(test_df['price'], y_test_pred))
+print(f'Test RMSE: {rmse_test}')
+
+# Save the trained model
+os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+import joblib
+joblib.dump(ridge_best, './agent_workspace/trained_models/ridge_regression_model.pkl')
+
+# Version control
+repo = git.Repo.init('.')
+repo.git.add('.')
+repo.index.commit('Initial commit')
+repo.create_remote('origin', '<repository_url>')
+repo.git.push('origin', 'master')
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 67, in <module>
+    encoder = OneHotEncoder(sparse=False, drop='first')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'

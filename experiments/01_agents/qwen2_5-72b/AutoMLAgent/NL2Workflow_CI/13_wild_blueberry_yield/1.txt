@@ -1,0 +1,210 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import KNNImputer, SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_squared_log_error
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+def load_datasets():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/test.csv'
+    
+    df_train = pd.read_csv(train_path)
+    df_test = pd.read_csv(test_path)
+    
+    return df_train, df_test
+
+# Data Preprocessing
+def preprocess_data(df_train, df_test):
+    # Summary statistics
+    print(df_train.describe())
+    print(df_test.describe())
+
+    # Check for missing values
+    print(df_train.isnull().sum())
+    print(df_test.isnull().sum())
+
+    # Impute missing values for numerical features
+    imputer = KNNImputer(n_neighbors=5)
+    df_train = pd.DataFrame(imputer.fit_transform(df_train), columns=df_train.columns)
+    df_test = pd.DataFrame(imputer.transform(df_test), columns=df_test.columns)
+
+    # Standardize numerical features
+    scaler = StandardScaler()
+    df_train[df_train.columns] = scaler.fit_transform(df_train[df_train.columns])
+    df_test[df_test.columns] = scaler.transform(df_test[df_test.columns])
+
+    # Feature Engineering: Create interaction terms
+    if 'feature1' in df_train.columns and 'feature2' in df_train.columns:
+        df_train['interaction_feature1_feature2'] = df_train['feature1'] * df_train['feature2']
+        df_test['interaction_feature1_feature2'] = df_test['feature1'] * df_test['feature2']
+
+    # Feature Selection: Apply PCA
+    pca = PCA(n_components=0.95)  # Retain 95% of the variance
+    df_train = pd.DataFrame(pca.fit_transform(df_train), columns=[f'PC{i+1}' for i in range(pca.n_components_)])
+    df_test = pd.DataFrame(pca.transform(df_test), columns=[f'PC{i+1}' for i in range(pca.n_components_)])
+    
+    return df_train, df_test
+
+# Handling Imbalanced Data
+def handle_imbalanced_data(df_train):
+    if 'yield' in df_train.columns:
+        X_train = df_train.drop(columns=['yield'])
+        y_train = df_train['yield']
+    else:
+        raise KeyError("The 'yield' column is missing in the training dataset.")
+
+    # Apply SMOTE
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+    
+    return X_train, y_train
+
+# Data Preparation
+def prepare_data(X_train, y_train, df_test):
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(df_test.drop(columns=['yield']).values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(df_test['yield'].values, dtype=torch.float32).view(-1, 1)
+
+    # Create data loaders
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = DataLoader(dataset=test_dataset, batch_size=32, shuffle=False)
+    
+    return train_loader, test_loader
+
+# Model Definition
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(FeedforwardNN, self).__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.layer2 = nn.Linear(hidden_size, hidden_size)
+        self.layer3 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.layer1(x))
+        x = self.relu(self.layer2(x))
+        x = self.layer3(x)
+        return x
+
+# Model Training
+def train_model(model, train_loader):
+    # Hyperparameters
+    learning_rate = 0.001
+    num_epochs = 100
+
+    # Loss and optimizer
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Training loop
+    for epoch in range(num_epochs):
+        for batch_idx, (data, targets) in enumerate(train_loader):
+            # Forward pass
+            outputs = model(data)
+            loss = criterion(outputs, targets)
+            
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        
+        if (epoch + 1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Model Evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true, y_pred = [], []
+
+    with torch.no_grad():
+        for data, targets in test_loader:
+            outputs = model(data)
+            y_true.extend(targets.numpy())
+            y_pred.extend(outputs.numpy())
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    performance_scores = {
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "MSE": mean_squared_error(y_true, y_pred),
+        "RMSLE": mean_squared_log_error(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# Main Function
+def main():
+    # Step 1. Load the datasets
+    df_train, df_test = load_datasets()
+
+    # Step 2. Preprocess the data
+    df_train, df_test = preprocess_data(df_train, df_test)
+
+    # Step 3. Handle imbalanced data
+    X_train, y_train = handle_imbalanced_data(df_train)
+
+    # Step 4. Prepare the data
+    train_loader, test_loader = prepare_data(X_train, y_train, df_test)
+
+    # Step 5. Define the model
+    input_size = X_train.shape[1]
+    hidden_size = 64
+    output_size = 1
+    model = FeedforwardNN(input_size, hidden_size, output_size)
+
+    # Step 6. Train the model
+    model = train_model(model, train_loader)
+
+    # Step 7. Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+
+    # Step 8. Save the model
+    model_path = "./agent_workspace/trained_models/wild_blueberry_yield_model.pth"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 194, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 169, in main
+    X_train, y_train = handle_imbalanced_data(df_train)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 72, in handle_imbalanced_data
+    raise KeyError("The 'yield' column is missing in the training dataset.")
+KeyError: "The 'yield' column is missing in the training dataset."

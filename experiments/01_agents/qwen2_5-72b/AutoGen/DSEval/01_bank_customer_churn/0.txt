@@ -1,0 +1,125 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the data
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\01_bank_customer_churn\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\01_bank_customer_churn\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Drop uninteresting columns
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_df = train_df.drop(columns=columns_to_drop)
+test_df = test_df.drop(columns=columns_to_drop)
+
+# Display the first few rows of the training data to verify
+print(train_df.head())
+
+
+执行结果：
+   RowNumber  CreditScore Geography  ... Satisfaction Score  Card Type  Point Earned
+0       9255          686    France  ...                  2    DIAMOND           510
+1       1562          632   Germany  ...                  4   PLATINUM           959
+2       1671          559     Spain  ...                  4     SILVER           327
+3       6088          561    France  ...                  2     SILVER           567
+4       6670          517    France  ...                  3   PLATINUM           727
+
+[5 rows x 15 columns]
+
+生成的代码：
+# One-hot encode the categorical columns
+train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type'], drop_first=True)
+test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type'], drop_first=True)
+
+# Display the first few rows of the training data to verify
+print(train_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_dd2bc3cd51295dab84fd75dff8cd0df5b48054ebdf7e34a4c43fab7b0c28ae96.py", line 2, in <module>
+    train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type'], drop_first=True)
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+
+# Load the data
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\01_bank_customer_churn\\train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\DSEval\\datasets\\01_bank_customer_churn\\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Drop uninteresting columns
+columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+train_df = train_df.drop(columns=columns_to_drop)
+test_df = test_df.drop(columns=columns_to_drop)
+
+# One-hot encode the categorical columns
+train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type'], drop_first=True)
+test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type'], drop_first=True)
+
+# Display the first few rows of the training data to verify
+print(train_df.head())
+
+
+执行结果：
+   RowNumber  CreditScore  ... Card Type_PLATINUM  Card Type_SILVER
+0       9255          686  ...              False             False
+1       1562          632  ...               True             False
+2       1671          559  ...              False              True
+3       6088          561  ...              False              True
+4       6670          517  ...               True             False
+
+[5 rows x 18 columns]
+
+生成的代码：
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Separate features and target variable
+X_train = train_df.drop(columns=['RowNumber', 'Exited'])
+y_train = train_df['Exited']
+
+X_test = test_df.drop(columns=['RowNumber'])
+y_test = test_df['Exited']
+
+# Split the training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Convert the data into DMatrix format for XGBoost
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dval = xgb.DMatrix(X_val, label=y_val)
+dtest = xgb.DMatrix(X_test)
+
+# Define the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.1,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'seed': 42
+}
+
+# Train the model
+model = xgb.train(params, dtrain, num_boost_round=100, evals=[(dval, 'val')], early_stopping_rounds=10)
+
+# Make predictions on the test set
+y_pred = model.predict(dtest)
+
+# Compute the area under the ROC curve
+roc_auc = roc_auc_score(y_test, y_pred)
+print(f'Area under the ROC curve: {roc_auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_49083529fbd379ca494d1ebac0e8977f507cefe5827de7f635741daeb10beef1.py", line 6, in <module>
+    X_train = train_df.drop(columns=['RowNumber', 'Exited'])
+NameError: name 'train_df' is not defined

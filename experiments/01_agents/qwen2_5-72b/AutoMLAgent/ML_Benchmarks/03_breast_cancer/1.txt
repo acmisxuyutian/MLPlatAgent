@@ -1,0 +1,204 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the path for saving the model
+MODEL_PATH = "./agent_workspace/trained_models/random_forest_model.pkl"
+
+# Step 1: Data Retrieval and Loading
+def load_dataset():
+    data = load_breast_cancer()
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+    return df
+
+# Step 2: Data Preprocessing
+def preprocess_data(df):
+    # Handling missing values
+    if df.isnull().sum().sum() > 0:
+        df.fillna(df.mean(), inplace=True)
+    
+    # Feature scaling
+    scaler = StandardScaler()
+    df[df.columns[:-1]] = scaler.fit_transform(df[df.columns[:-1]])
+    
+    return df
+
+# Step 3: Data Splitting
+def split_data(df):
+    X = df[df.columns[:-1]]
+    y = df['target']
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=SEED)
+    return X_train, X_val, y_train, y_val
+
+# Step 4: Model Training
+def train_model(X_train, y_train):
+    rf_model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        random_state=SEED
+    )
+    rf_model.fit(X_train, y_train)
+    return rf_model
+
+# Step 5: Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    val_accuracy = accuracy_score(y_val, y_val_pred)
+    return val_accuracy
+
+# Step 6: Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Step 7: Data Analysis (Optional)
+def data_analysis(df, model):
+    summary_stats = df.describe()
+    print("Summary Statistics:\n", summary_stats)
+    
+    class_distribution = df['target'].value_counts()
+    print("Class Distribution:\n", class_distribution)
+    
+    correlation_matrix = df.corr()
+    print("Correlation Matrix:\n", correlation_matrix)
+    
+    feature_importances = pd.DataFrame({'feature': df.columns[:-1], 'importance': model.feature_importances_})
+    feature_importances = feature_importances.sort_values(by='importance', ascending=False)
+    print("Feature Importances:\n", feature_importances)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset()
+    
+    # Step 2: Preprocess the data
+    df = preprocess_data(df)
+    
+    # Step 3: Split the data
+    X_train, X_val, y_train, y_val = split_data(df)
+    
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 5: Evaluate the model
+    val_accuracy = evaluate_model(model, X_val, y_val)
+    print(f'Validation Accuracy: {val_accuracy:.4f}')
+    
+    # Step 6: Save the model
+    save_model(model, MODEL_PATH)
+    
+    # Step 7: Perform data analysis (optional)
+    data_analysis(df, model)
+    
+    return val_accuracy
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Validation Accuracy: 0.9561
+Summary Statistics:
+         mean radius  mean texture  ...  worst fractal dimension      target
+count  5.690000e+02  5.690000e+02  ...             5.690000e+02  569.000000
+mean  -3.153111e-15 -6.568462e-15  ...             2.497514e-15    0.627417
+std    1.000880e+00  1.000880e+00  ...             1.000880e+00    0.483918
+min   -2.029648e+00 -2.229249e+00  ...            -1.601839e+00    0.000000
+25%   -6.893853e-01 -7.259631e-01  ...            -6.919118e-01    0.000000
+50%   -2.150816e-01 -1.046362e-01  ...            -2.164441e-01    1.000000
+75%    4.693926e-01  5.841756e-01  ...             4.507624e-01    1.000000
+max    3.971288e+00  4.651889e+00  ...             6.846856e+00    1.000000
+
+[8 rows x 31 columns]
+Class Distribution:
+ target
+1    357
+0    212
+Name: count, dtype: int64
+Correlation Matrix:
+                          mean radius  ...    target
+mean radius                 1.000000  ... -0.730029
+mean texture                0.323782  ... -0.415185
+mean perimeter              0.997855  ... -0.742636
+mean area                   0.987357  ... -0.708984
+mean smoothness             0.170581  ... -0.358560
+mean compactness            0.506124  ... -0.596534
+mean concavity              0.676764  ... -0.696360
+mean concave points         0.822529  ... -0.776614
+mean symmetry               0.147741  ... -0.330499
+mean fractal dimension     -0.311631  ...  0.012838
+radius error                0.679090  ... -0.567134
+texture error              -0.097317  ...  0.008303
+perimeter error             0.674172  ... -0.556141
+area error                  0.735864  ... -0.548236
+smoothness error           -0.222600  ...  0.067016
+compactness error           0.206000  ... -0.292999
+concavity error             0.194204  ... -0.253730
+concave points error        0.376169  ... -0.408042
+symmetry error             -0.104321  ...  0.006522
+fractal dimension error    -0.042641  ... -0.077972
+worst radius                0.969539  ... -0.776454
+worst texture               0.297008  ... -0.456903
+worst perimeter             0.965137  ... -0.782914
+worst area                  0.941082  ... -0.733825
+worst smoothness            0.119616  ... -0.421465
+worst compactness           0.413463  ... -0.590998
+worst concavity             0.526911  ... -0.659610
+worst concave points        0.744214  ... -0.793566
+worst symmetry              0.163953  ... -0.416294
+worst fractal dimension     0.007066  ... -0.323872
+target                     -0.730029  ...  1.000000
+
+[31 rows x 31 columns]
+Feature Importances:
+                     feature  importance
+23               worst area    0.146113
+27     worst concave points    0.130027
+20             worst radius    0.100206
+7       mean concave points    0.092943
+2            mean perimeter    0.075891
+22          worst perimeter    0.071291
+0               mean radius    0.069643
+6            mean concavity    0.060197
+3                 mean area    0.051364
+13               area error    0.033670
+26          worst concavity    0.032320
+25        worst compactness    0.018460
+10             radius error    0.017426
+21            worst texture    0.016856
+5          mean compactness    0.010941
+1              mean texture    0.010650
+24         worst smoothness    0.008982
+28           worst symmetry    0.008909
+12          perimeter error    0.008129
+4           mean smoothness    0.005368
+29  worst fractal dimension    0.005223
+15        compactness error    0.004405
+19  fractal dimension error    0.003805
+11            texture error    0.003424
+17     concave points error    0.003244
+16          concavity error    0.002773
+18           symmetry error    0.002230
+9    mean fractal dimension    0.001979
+14         smoothness error    0.001820
+8             mean symmetry    0.001711
+Model Performance on Validation Set: 0.956140350877193

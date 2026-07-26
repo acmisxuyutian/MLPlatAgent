@@ -1,0 +1,164 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from imblearn.over_sampling import SMOTE
+import joblib
+import onnx
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_path):
+    return pd.read_csv(dataset_path)
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Initial data exploration
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Handle missing values
+    numerical_features = df.select_dtypes(include=['number']).columns
+    imputer_num = SimpleImputer(strategy='median')
+    df[numerical_features] = imputer_num.fit_transform(df[numerical_features])
+
+    categorical_features = df.select_dtypes(include=['object']).columns
+    if len(categorical_features) > 0:
+        imputer_cat = SimpleImputer(strategy='most_frequent')
+        df[categorical_features] = imputer_cat.fit_transform(df[categorical_features])
+
+    # Encode categorical variables
+    if len(categorical_features) > 0:
+        encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+        encoded_features = encoder.fit_transform(df[categorical_features])
+        encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+        df = pd.concat([df.drop(categorical_features, axis=1), encoded_df], axis=1)
+
+    # Normalize/Standardize numerical features
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    return df
+
+# Data Augmentation
+def balance_dataset(df):
+    X = df.drop('has_kidney_stone', axis=1)
+    y = df['has_kidney_stone']
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    df_resampled = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='has_kidney_stone')], axis=1)
+    return df_resampled
+
+# Model Training
+def train_model(X_train, y_train):
+    rf_model = RandomForestClassifier(n_estimators=200, max_depth=20, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    rf_model.fit(X_train, y_train)
+    return rf_model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred),
+        'AUC-ROC': roc_auc_score(y_test, y_pred_proba)
+    }
+    return performance_scores
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Model Export
+def export_model_to_onnx(model, X_train, onnx_model_path):
+    initial_type = [('float_input', FloatTensorType([None, X_train.shape[1]]))]
+    onnx_model = convert_sklearn(model, initial_types=initial_type)
+    with open(onnx_model_path, 'wb') as f:
+        f.write(onnx_model.SerializeToString())
+
+# Main function to orchestrate the pipeline
+def main():
+    try:
+        # Step 1. Retrieve or load a dataset
+        dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+        df = load_dataset(dataset_path)
+
+        # Step 2. Preprocess the data
+        df = preprocess_data(df)
+
+        # Step 3. Balance the dataset
+        df = balance_dataset(df)
+
+        # Step 4. Split the data into train, valid, and test sets
+        X = df.drop('has_kidney_stone', axis=1)
+        y = df['has_kidney_stone']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.25, random_state=42)  # 0.25 x 0.8 = 0.2
+
+        # Step 5. Train the model
+        model = train_model(X_train, y_train)
+
+        # Step 6. Evaluate the model
+        model_performance = evaluate_model(model, X_test, y_test)
+        print("Model Performance on Test Set:", model_performance)
+
+        # Step 7. Save the model
+        model_path = './agent_workspace/trained_models/random_forest_kidney_stone.pkl'
+        save_model(model, model_path)
+
+        # Step 8. Export the model to ONNX format
+        onnx_model_path = './agent_workspace/trained_models/random_forest_kidney_stone.onnx'
+        export_model_to_onnx(model, X_train, onnx_model_path)
+
+        return model_performance
+
+    except ImportError as e:
+        print(f"Import error: {e}")
+        print("Installing missing libraries...")
+        os.system("pip install onnx skl2onnx")
+        main()
+
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
+        print("Please check the dataset path and try again.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 13, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

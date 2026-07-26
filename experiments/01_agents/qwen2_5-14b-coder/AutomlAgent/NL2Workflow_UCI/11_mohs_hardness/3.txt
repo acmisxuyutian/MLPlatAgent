@@ -1,0 +1,186 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.decomposition import PCA
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_dataset():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    mohs_hardness_df = pd.read_csv(dataset_path)
+    return mohs_hardness_df
+
+# Data preprocessing
+def preprocess_data(mohs_hardness_df):
+    # Display the first few rows of the dataset
+    print(mohs_hardness_df.head())
+
+    # Check for missing values
+    print(mohs_hardness_df.isnull().sum())
+
+    # Check data types
+    print(mohs_hardness_df.dtypes)
+
+    # Separate features and target
+    X = mohs_hardness_df.drop('Mohs hardness', axis=1)
+    y = mohs_hardness_df['Mohs hardness']
+
+    # Impute missing values with the mean of the column
+    imputer = SimpleImputer(strategy='mean')
+    X_imputed = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+
+    # One-hot encoding for categorical variables
+    X_encoded = pd.get_dummies(X_imputed, drop_first=True)
+
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_encoded)
+
+    return X_scaled, y
+
+# Feature engineering
+def feature_engineering(X_scaled, y):
+    # Select top 10 features
+    selector = SelectKBest(score_func=f_regression, k=10)
+    X_selected = selector.fit_transform(X_scaled, y)
+
+    # Apply PCA to reduce dimensions
+    pca = PCA(n_components=5)
+    X_pca = pca.fit_transform(X_selected)
+
+    return X_pca
+
+# Model training
+def train_model(X_train, y_train):
+    # Initialize the model with optimized hyperparameters
+    rf = RandomForestRegressor(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, random_state=42)
+
+    # Train the model
+    rf.fit(X_train, y_train)
+
+    return rf
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+    # Calculate MAE
+    mae = mean_absolute_error(y_test, y_pred)
+    print(f'Test Set MAE: {mae}')
+
+    # Perform cross-validation
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
+    print(f'Cross-Validation MAE: {-cv_scores.mean()}')
+
+    # Return performance scores
+    performance_scores = {
+        'MAE': mae,
+        'Cross-Validation MAE': -cv_scores.mean()
+    }
+    return performance_scores
+
+# Model deployment
+def deploy_model(model, X_pca, y):
+    # Train the final model on the entire dataset
+    rf_final = RandomForestRegressor(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    rf_final.fit(X_pca, y)
+
+    # Save the model
+    model_path = './agent_workspace/trained_models/mohs_hardness_model.pkl'
+    joblib.dump(rf_final, model_path)
+
+# Hyperparameter tuning
+def hyperparameter_tuning(X_train, y_train):
+    # Define parameter grid
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [5, 10, 15],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    # Initialize GridSearchCV
+    grid_search = GridSearchCV(estimator=RandomForestRegressor(random_state=42), param_grid=param_grid, cv=5, scoring='neg_mean_absolute_error', n_jobs=-1)
+
+    # Fit GridSearchCV
+    grid_search.fit(X_train, y_train)
+
+    # Print best parameters and best score
+    print(f'Best Parameters: {grid_search.best_params_}')
+    print(f'Best MAE: {-grid_search.best_score_}')
+
+    return grid_search.best_estimator_
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Load the dataset
+    mohs_hardness_df = load_dataset()
+
+    # Step 2: Preprocess the data
+    X_scaled, y = preprocess_data(mohs_hardness_df)
+
+    # Step 3: Feature engineering
+    X_pca = feature_engineering(X_scaled, y)
+
+    # Step 4: Split the dataset into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=0.2, random_state=42)
+
+    # Step 5: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7: Hyperparameter tuning
+    best_model = hyperparameter_tuning(X_train, y_train)
+
+    # Step 8: Deploy the model
+    deploy_model(best_model, X_pca, y)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 135, in main
+    X_scaled, y = preprocess_data(mohs_hardness_df)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 39, in preprocess_data
+    X = mohs_hardness_df.drop('Mohs hardness', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['Mohs hardness'] not found in axis"

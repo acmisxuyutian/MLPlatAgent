@@ -1,0 +1,142 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from scipy import stats
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+import joblib
+import random
+
+# Constants
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Data Exploration
+    print(train_df.describe())
+    print(train_df.isnull().sum())
+    
+    if 'age' not in train_df.columns:
+        raise ValueError("Column 'age' not found in the training dataset.")
+    
+    train_df['age'].hist()
+
+    # Data Cleaning
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Outlier Detection
+    z_scores = stats.zscore(train_df[numerical_features])
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    train_df = train_df[filtered_entries]
+
+    # Feature Engineering
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+
+    # Ensure Consistent Columns
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+
+    test_df = test_df[train_df.columns]
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Data Splitting
+    if 'age' in train_df.columns:
+        X_train = train_df.drop('age', axis=1)
+        y_train = train_df['age']
+    else:
+        raise ValueError("Column 'age' not found in the training dataset.")
+
+    if 'age' in test_df.columns:
+        X_test = test_df.drop('age', axis=1)
+        y_test = test_df['age']
+    else:
+        raise ValueError("Column 'age' not found in the test dataset.")
+
+    return X_train, y_train, X_test, y_test
+
+# Model Training
+def train_model(X_train, y_train):
+    model = RandomForestRegressor(n_estimators=200, max_depth=20, min_samples_split=5, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    return mae, y_pred
+
+# Main Function to Orchestrate the Entire Pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Preprocess data
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+    
+    # Train the model
+    model = train_model(X_train, y_train)
+    
+    # Evaluate the model
+    mae, y_pred = evaluate_model(model, X_test, y_test)
+    
+    # Save predictions
+    predictions_df = pd.DataFrame({'age': y_pred})
+    predictions_df.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/predictions.csv', index=False)
+    
+    # Save the model
+    model_path = './agent_workspace/trained_models/crab_age_random_forest.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    
+    return mae
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 106, in main
+    X_train, y_train, X_test, y_test = preprocess_data(train_df, test_df)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 31, in preprocess_data
+    raise ValueError("Column 'age' not found in the training dataset.")
+ValueError: Column 'age' not found in the training dataset.

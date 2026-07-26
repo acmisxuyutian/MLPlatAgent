@@ -1,0 +1,151 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看数据的基本信息
+print("训练集基本信息：")
+print(train_df.info())
+print("\n测试集基本信息：")
+print(test_df.info())
+
+# 查看数据的前几行
+print("\n训练集前几行：")
+print(train_df.head())
+print("\n测试集前几行：")
+print(test_df.head())
+
+
+执行结果：
+训练集基本信息：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 12231 entries, 0 to 12230
+Data columns (total 18 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    12231 non-null  int64  
+ 1   clonesize             12231 non-null  float64
+ 2   honeybee              12231 non-null  float64
+ 3   bumbles               12231 non-null  float64
+ 4   andrena               12231 non-null  float64
+ 5   osmia                 12231 non-null  float64
+ 6   MaxOfUpperTRange      12231 non-null  float64
+ 7   MinOfUpperTRange      12231 non-null  float64
+ 8   AverageOfUpperTRange  12231 non-null  float64
+ 9   MaxOfLowerTRange      12231 non-null  float64
+ 10  MinOfLowerTRange      12231 non-null  float64
+ 11  AverageOfLowerTRange  12231 non-null  float64
+ 12  RainingDays           12231 non-null  float64
+ 13  AverageRainingDays    12231 non-null  float64
+ 14  fruitset              12231 non-null  float64
+ 15  fruitmass             12231 non-null  float64
+ 16  seeds                 12231 non-null  float64
+ 17  yield                 12231 non-null  float64
+dtypes: float64(17), int64(1)
+memory usage: 1.7 MB
+None
+
+测试集基本信息：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 3058 entries, 0 to 3057
+Data columns (total 18 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    3058 non-null   int64  
+ 1   clonesize             3058 non-null   float64
+ 2   honeybee              3058 non-null   float64
+ 3   bumbles               3058 non-null   float64
+ 4   andrena               3058 non-null   float64
+ 5   osmia                 3058 non-null   float64
+ 6   MaxOfUpperTRange      3058 non-null   float64
+ 7   MinOfUpperTRange      3058 non-null   float64
+ 8   AverageOfUpperTRange  3058 non-null   float64
+ 9   MaxOfLowerTRange      3058 non-null   float64
+ 10  MinOfLowerTRange      3058 non-null   float64
+ 11  AverageOfLowerTRange  3058 non-null   float64
+ 12  RainingDays           3058 non-null   float64
+ 13  AverageRainingDays    3058 non-null   float64
+ 14  fruitset              3058 non-null   float64
+ 15  fruitmass             3058 non-null   float64
+ 16  seeds                 3058 non-null   float64
+ 17  yield                 3058 non-null   float64
+dtypes: float64(17), int64(1)
+memory usage: 430.2 KB
+None
+
+训练集前几行：
+      id  clonesize  honeybee  ...  fruitmass      seeds       yield
+0    245       25.0      0.50  ...   0.399724  29.742583  4177.01520
+1   3017       12.5      0.25  ...   0.376874  27.735098  3238.02815
+2   8047       12.5      0.25  ...   0.488569  40.655498  7451.72563
+3  14223       12.5      0.25  ...   0.466671  37.966864  6580.39696
+4  13397       25.0      0.50  ...   0.453650  36.600113  6019.26248
+
+[5 rows x 18 columns]
+
+测试集前几行：
+      id  clonesize  honeybee  ...  fruitmass      seeds       yield
+0   3519       25.0      0.50  ...   0.454680  42.532221  8711.20896
+1   6096       12.5      0.25  ...   0.442249  35.343967  5914.16491
+2    895       12.5      0.25  ...   0.409907  31.004606  4234.86859
+3  11345       25.0      0.50  ...   0.443962  35.555115  5504.75083
+4   7219       25.0      0.50  ...   0.358821  29.344457  3276.36206
+
+[5 rows x 18 columns]
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+
+# 加载训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 特征构建
+train_df['temp_range_diff'] = train_df['MaxOfUpperTRange'] - train_df['MinOfLowerTRange']
+train_df['temp_range_avg'] = (train_df['MaxOfUpperTRange'] + train_df['MinOfLowerTRange']) / 2
+test_df['temp_range_diff'] = test_df['MaxOfUpperTRange'] - test_df['MinOfLowerTRange']
+test_df['temp_range_avg'] = (test_df['MaxOfUpperTRange'] + test_df['MinOfLowerTRange']) / 2
+
+# 特征选择
+features = ['clonesize', 'honeybee', 'bumbles', 'andrena', 'osmia', 'RainingDays', 'AverageRainingDays', 'fruitset', 'fruitmass', 'seeds', 'temp_range_diff', 'temp_range_avg']
+target = 'yield'
+
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+y_test = test_df[target]
+
+# 数据标准化
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 数据抽样
+X_train_sample, X_val, y_train_sample, y_val = train_test_split(X_train_scaled, y_train, test_size=0.2, random_state=42)
+
+# 模型训练
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train_sample, y_train_sample)
+
+# 模型评估
+y_pred = model.predict(X_test_scaled)
+mae = mean_absolute_error(y_test, y_pred)
+print(f"测试集上的MAE: {mae}")
+
+
+执行结果：
+测试集上的MAE: 363.6250384589427

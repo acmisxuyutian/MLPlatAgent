@@ -1,0 +1,82 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv')
+
+# Separate features and target
+X_train = train_data.drop('Exited', axis=1)
+y_train = train_data['Exited']
+X_test = test_data.drop('Exited', axis=1)
+y_test = test_data['Exited']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object', 'bool']).columns
+
+# Define preprocessing for numeric data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the data
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Store the preprocessed data
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(<Compressed Sparse Row sparse matrix of dtype 'float64'
+ 	with 1716351 stored elements and shape (132027, 2757)>,
+ <Compressed Sparse Row sparse matrix of dtype 'float64'
+ 	with 429023 stored elements and shape (33007, 2757)>,
+ 0         0
+ 1         0
+          ..
+ 132025    0
+ 132026    0
+ Name: Exited, Length: 132027, dtype: int64,
+ 0        0
+ 1        0
+         ..
+ 33005    0
+ 33006    0
+ Name: Exited, Length: 33007, dtype: int64)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score
+
+# Train the Random Forest model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_preprocessed, y_train)
+
+# Make predictions on the test data
+y_pred = model.predict(X_test_preprocessed)
+y_pred_proba = model.predict_proba(X_test_preprocessed)[:, 1]
+
+# Calculate the confusion matrix and AUC-ROC score
+conf_matrix = confusion_matrix(y_test, y_pred)
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# Store the results
+model, y_pred, y_pred_proba, conf_matrix, auc_roc

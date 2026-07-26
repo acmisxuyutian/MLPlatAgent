@@ -1,0 +1,1642 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Preprocessing
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+# Define preprocessing for numerical data (imputation and scaling)
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data (imputation and one-hot encoding)
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+X_train = train_df.drop(columns=['Target'])
+y_train = train_df['Target']
+X_test = test_df.drop(columns=['Target'])
+y_test = test_df['Target']
+
+# Fit the preprocessor on the training data and transform both training and test sets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 40
+    X_train = train_df.drop(columns=['Target'])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['Target'] not found in axis"
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Inspect the columns of the datasets
+train_columns = train_df.columns.tolist()
+test_columns = test_df.columns.tolist()
+
+# Determine the target column name
+if 'Target' in train_columns:
+    target_column = 'Target'
+elif 'target' in train_columns:
+    target_column = 'target'
+else:
+    target_column = None
+
+# Preprocessing
+if target_column:
+    # Identify numerical and categorical columns
+    numerical_features = train_df.select_dypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+    # Define preprocessing for numerical data (imputation and scaling)
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+        ('scaler', StandardScaler())  # Scale features
+    ])
+
+    # Define preprocessing for categorical data (imputation and one-hot encoding)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Fit the preprocessor on the training data and transform both training and test sets
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    # Output the preprocessed datasets
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test
+else:
+    print('Target column not found in the dataset.')
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 29
+    numerical_features = train_df.select_dypes(include=['int64', 'float64']).columns
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:6299 in __getattr__
+    return object.__getattribute__(self, name)
+
+AttributeError: 'DataFrame' object has no attribute 'select_dypes'
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Inspect the columns of the datasets
+train_columns = train_df.columns.tolist()
+test_columns = test_df.columns.tolist()
+
+# Determine the target column name
+if 'Target' in train_columns:
+    target_column = 'Target'
+elif 'target' in train_columns:
+    target_column = 'target'
+else:
+    target_column = None
+
+# Preprocessing
+if target_column:
+    # Identify numerical and categorical columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+    # Define preprocessing for numerical data (imputation and scaling)
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+        ('scaler', StandardScaler())  # Scale features
+    ])
+
+    # Define preprocessing for categorical data (imputation and one-hot encoding)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Fit the preprocessor on the training data and transform both training and test sets
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    # Output the preprocessed datasets
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test
+else:
+    print('Target column not found in the dataset.')
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[3], line 59
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Inspect the columns of the datasets
+train_columns = train_df.columns.tolist()
+test_columns = test_df.columns.tolist()
+
+# Determine the target column name
+if 'Target' in train_columns:
+    target_column = 'Target'
+elif 'target' in train_columns:
+    target_column = 'target'
+else:
+    target_column = None
+    print('Target column not found in the dataset.')
+
+# Preprocessing
+if target_column:
+    # Identify numerical and categorical columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+    # Define preprocessing for numerical data (imputation and scaling)
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+        ('scaler', StandardScaler())  # Scale features
+    ])
+
+    # Define preprocessing for categorical data (imputation and one-hot encoding)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Fit the preprocessor on the training data and transform both training and test sets
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    # Output the preprocessed datasets
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test
+else:
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test = None, None, None, None
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[4], line 60
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Inspect the columns of the datasets
+train_columns = train_df.columns.tolist()
+test_columns = test_df.columns.tolist()
+
+# Determine the target column name
+if 'Target' in train_columns:
+    target_column = 'Target'
+elif 'target' in train_columns:
+    target_column = 'target'
+else:
+    target_column = None
+    print('Target column not found in the dataset.')
+
+# Preprocessing
+if target_column:
+    # Identify numerical and categorical columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+    # Define preprocessing for numerical data (imputation and scaling)
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+        ('scaler', StandardScaler())  # Scale features
+    ])
+
+    # Define preprocessing for categorical data (imputation and one-hot encoding)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Fit the preprocessor on the training data and transform both training and test sets
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    # Output the preprocessed datasets
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test
+else:
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test = None, None, None, None
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[5], line 60
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Print the columns of the datasets to identify the target column
+print('Train dataset columns:', train_df.columns.tolist())
+print('Test dataset columns:', test_df.columns.tolist())
+
+# Determine the target column name
+if 'Target' in train_df.columns:
+    target_column = 'Target'
+elif 'target' in train_df.columns:
+    target_column = 'target'
+else:
+    target_column = None
+    print('Target column not found in the dataset.')
+
+# Preprocessing
+if target_column:
+    # Identify numerical and categorical columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+    # Define preprocessing for numerical data (imputation and scaling)
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+        ('scaler', StandardScaler())  # Scale features
+    ])
+
+    # Define preprocessing for categorical data (imputation and one-hot encoding)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ]
+    )
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    X_test = test_df.drop(columns=[target_column])
+    y_test = test_df[target_column]
+
+    # Fit the preprocessor on the training data and transform both training and test sets
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_test_preprocessed = preprocessor.transform(X_test)
+
+    # Output the preprocessed datasets
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test
+else:
+    X_train_preprocessed, X_test_preprocessed, y_train, y_test = None, None, None, None
+
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[6], line 60
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+Train dataset columns: ['id', 'gravity', 'ph', 'osmo', 'cond', 'urea', 'calc', 'target']
+Test dataset columns: ['id', 'gravity', 'ph', 'osmo', 'cond', 'urea', 'calc', 'target']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Determine the target column name
+target_column = 'target'
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+# Define preprocessing for numerical data (imputation and scaling)
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data (imputation and one-hot encoding)
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+X_train = train_df.drop(columns=[target_column])
+y_train = train_df[target_column]
+X_test = test_df.drop(columns=[target_column])
+y_test = test_df[target_column]
+
+# Fit the preprocessor on the training data and transform both training and test sets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[7], line 48
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Print the columns of the datasets to ensure the target column is present
+print('Train dataset columns:', train_df.columns.tolist())
+print('Test dataset columns:', test_df.columns.tolist())
+
+# Determine the target column name
+target_column = 'target'
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns
+
+# Define preprocessing for numerical data (imputation and scaling)
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data (imputation and one-hot encoding)
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+X_train = train_df.drop(columns=[target_column])
+y_train = train_df[target_column]
+X_test = test_df.drop(columns=[target_column])
+y_test = test_df[target_column]
+
+# Fit the preprocessor on the training data and transform both training and test sets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'target'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[8], line 52
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sk
+Train dataset columns: ['id', 'gravity', 'ph', 'osmo', 'cond', 'urea', 'calc', 'target']
+Test dataset columns: ['id', 'gravity', 'ph', 'osmo', 'cond', 'urea', 'calc', 'target']
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv'
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Ensure the target column is correctly separated
+target_column = 'target'
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.difference([target_column])
+categorical_features = train_df.select_dtypes(include=['object', 'bool']).columns.difference([target_column])
+
+# Define preprocessing for numerical data (imputation and scaling)
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale features
+])
+
+# Define preprocessing for categorical data (imputation and one-hot encoding)
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+X_train = train_df.drop(columns=[target_column])
+y_train = train_df[target_column]
+X_test = test_df.drop(columns=[target_column])
+y_test = test_df[target_column]
+
+# Fit the preprocessor on the training data and transform both training and test sets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Output the preprocessed datasets
+X_train_preprocessed, X_test_preprocessed, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.84454952, -0.563507  , -0.9327435 , ..., -0.86667925,
+         -0.27194453, -0.64671111],
+        [-0.19073752,  0.38799307, -0.17342698, ...,  0.19643725,
+         -0.36469428, -0.08762895],
+        [-0.45099278,  0.91064804,  1.04147946, ...,  1.25955375,
+          1.47484255,  0.84417465],
+        ...,
+        [-0.02569759, -1.80983808, -0.47715359, ..., -0.43793268,
+         -0.92119282,  0.14345834],
+        [-0.02569759,  0.9910565 ,  1.04147946, ...,  0.85268201,
+         -0.41106916,  0.76963036],
+        [-0.60651117, -1.39439439,  1.49706938, ..., -0.1229352 ,
+          1.25842645,  1.04544423]]),
+ array([[ 1.69135238,  0.80343677,  1.04147946,  1.25816807,  1.29892844,
+          0.12997108,  1.4256201 ],
+        [ 0.92962965,  0.9910565 ,  0.43402624,  1.18991517,  0.94018131,
+         -1.32310843,  0.74726708],
+        [-0.16852061, -0.02745062,  0.43402624,  1.38614227,  0.28831152,
+         -1.13760892,  1.20198723],
+        [ 0.41864066, -0.77792955, -0.17342698,  1.60796421, -0.43793268,
+          0.9492606 ,  0.2627292 ],
+        [-0.45099278, -0.81813378, -1.08460681,  1.35201582, -1.29105086,
+          1.30480133, -0.91507055],
+        [ 0.46942218,  1.28588751,  0.88961616, -1.18187328,  1.95954816,
+         -0.84390136,  1.99961111],
+        [ 0.92010812,  0.80343677, -1.54019672,  0.43913321,  0.94893124,
+         -0.64294355,  0.14345834],
+        [-0.24151903, -0.50990136, -0.7808802 , -0.60172359, -0.88855408,
+         -0.82844307, -0.8777984 ],
+        [ 1.13592956,  0.9910565 ,  0.43402624, -1.00270941,  0.53330956,
+         -0.42652745,  0.50127092],
+        [ 1.69135238, -0.02745062,  1.04147946, -1.19893651, -0.94980359,
+          0.12997108,  0.86653794],
+        [-1.02545867, -1.56861271, -1.54019672, -0.78941908, -1.64542302,
+          1.81492499, -1.00452369],
+        [-0.95246024,  0.80343677,  1.19334277, -0.67850811,  0.71268312,
+         -0.64294355, -1.1088857 ],
+        [-0.92072179, -1.56861271, -1.23647011,  1.07047258, -1.38292512,
+          0.28455401, -1.1610667 ],
+        [ 0.51068216, -0.02745062,  0.28216294, -1.32691071, -0.1229352 ,
+          0.12997108,  1.04544423],
+        [-0.92072179, -2.21188037, -1.69206003, -0.72116617, -1.77667198,
+         -0.1173616 , -1.1088857 ],
+        [ 1.13592956,  1.90235235, -0.62901689,  1.41173711, -0.50793212,
+         -0.41106916, -0.19944538],
+        [-0.92072179,  1.63432416, -0.17342698, -1.31837909,  0.53330956,
+         -0.56565209, -1.45178942],
+        [ 0.92010812, -0.81813378, -0.17342698,  0.68654999, -0.43793268,
+         -0.00915355,  0.2627292 ],
+        [-0.80328954, -2.21188037, -1.69206003,  1.31788936, -1.82917156,
+         -0.00915355, -0.91507055],
+        [ 1.40253251,  0.80343677,  1.64893268, -1.07949393,  0.19206229,
+          1.25842645,  0.61308736],
+        [-0.82233261, -1.56861271, -1.99578664, -0.80648231, -2.06541967,
+          0.65555304, -1.4219717 ],
+        [ 0.13616848, -0.21507035, -0.17342698, -1.71936491, -0.57793156,
+          1.02655206, -1.54124257],
+        [-0.82550645,  1.13847201, -1.08460681,  1.39467388, -0.35918331,
+         -0.67386014, -1.45178942],
+        [-0.92072179, -1.38099298, -1.54019672, -0.62731843, -1.82479659,
+          0.28455401, -0.64671111],
+        [-0.8858095 , -0.02745062, -0.17342698,  0.93396677, -0.86667925,
+          1.93859133, -0.64671111],
+        [-1.08258787,  0.49520435, -0.17342698,  1.63355905,  0.03893851,
+         -1.6013577 , -0.22180867],
+        [ 1.33905562,  0.76323254,  1.49706938,  0.1746532 ,  1.63142578,
+         -0.56565209,  1.10507966],
+        [ 2.73554728,  0.26738039, -0.17342698, -1.02830425, -1.29105086,
+          0.37730377,  0.11364063],
+        [-0.5874681 ,  0.03955643, -1.08460681, -0.99417779,  1.19830424,
+          0.53188669,  1.30634924],
+        [-0.8286803 , -1.38099298, -1.54019672, -0.32018036, -1.39167505,
+          0.28455401, -0.61689339],
+        [-0.54938197,  0.49520435,  0.28216294, -1.54020103,  0.03893851,
+         -0.56565209, -0.22180867],
+        [-0.96198178,  0.58901422, -1.54019672, -0.59319198, -0.35918331,
+          2.2168406 , -1.45178942],
+        [-0.02569759,  0.5622114 , -0.17342698, -0.90886166, -0.57793156,
+          2.57238134, -1.54124257],
+        [ 1.03119268, -0.2820774 ,  0.43402624, -1.12215199,  0.71268312,
+         -0.64294355,  0.14345834],
+        [-0.5874681 ,  0.26738039,  0.43402624, -1.5146062 ,  0.53330956,
+         -0.64294355,  0.50127092],
+        [ 1.13592956,  0.60241563,  1.49706938,  0.67801838,  0.79143249,
+          0.05267962,  0.84417465],
+        [-0.8286803 , -0.21507035, -0.17342698,  0.64389193, -0.35918331,
+          0.5164284 , -1.45178942],
+        [-0.80328954, -0.02745062, -1.08460681,  1.69328034, -0.57793156,
+         -1.13760892, -1.54124257],
+        [-0.92072179,  1.13847201, -1.54019672,  0.09786869,  0.28831152,
+         -0.31831941, -0.50507696],
+        [-0.67633575, -1.43459862, -1.08460681,  1.28376291, -2.06541967,
+          2.2168406 , -1.45178942],
+        [-1.23493242, -1.58201412, -1.08460681, -1.66817523, -1.78542191,
+          1.33571792, -1.04925026],
+        [-0.8858095 , -1.71602822, -1.08460681,  0.85718225, -1.82479659,
+         -0.47290233, -1.62324128],
+        [-0.8286803 , -0.91194365, -0.7808802 , -1.79614943, -0.94542862,
+          0.37730377, -1.17597555],
+        [ 3.2624055 ,  0.80343677,  1.49706938,  0.90837193,  2.52391865,
+          1.25842645,  1.99961111],
+        [-0.55572966, -0.25527458, -0.7808802 ,  0.52444934, -0.1229352 ,
+         -0.00915355,  1.20198723],
+        [-0.33356053,  1.60752134, -0.17342698, -0.7382294 , -0.2848089 ,
+          0.28455401, -0.43053267],
+        [-1.02545867, -2.21188037, -1.69206003,  0.51591773, -1.77667198,
+         -0.82844307, -1.04925026],
+        [ 0.0377793 , -0.02745062,  0.58588955, -0.22633261, -0.94980359,
+         -0.36469428,  0.86653794],
+        [-0.28595286, -0.09445767,  2.40824921,  0.55004418, -0.35918331,
+         -0.56565209, -0.90016169],
+        [ 1.40253251, -0.2820774 ,  0.88961616,  1.2752313 ,  0.53330956,
+         -0.64294355,  0.83672022],
+        [ 1.40253251, -0.93874647,  0.43402624,  0.12346353,  0.94018131,
+         -0.64294355,  0.76963036],
+        [ 0.513856  ,  0.843641  , -1.84392333,  1.23257323,  0.94018131,
+         -0.64294355, -0.7734364 ],
+        [-0.95246024,  0.49520435, -0.17342698,  1.30935775, -0.57793156,
+          2.2168406 , -1.45178942],
+        [ 2.73554728,  0.80343677,  0.88961616,  0.54151257,  1.25955375,
+         -0.90573453,  0.61308736],
+        [-0.96198178, -1.76963386, -1.69206003, -0.30311713, -1.77667198,
+          1.05746865, -1.1088857 ],
+        [ 1.19305876,  0.80343677,  0.88961616, -1.17334167,  2.52391865,
+         -1.09123404,  2.52142113],
+        [-0.60016348, -0.563507  , -0.9327435 , -1.43782168, -0.86667925,
+         -0.50381892, -0.64671111],
+        [-0.80328954, -1.58201412,  0.73775285, -0.38843326, -0.75293016,
+          0.37730377, -1.45178942],
+        [ 0.13616848,  0.9910565 , -0.17342698, -1.13921522, -0.1229352 ,
+          0.45459523,  1.30634924],
+        [-0.95563409, -0.49649995, -1.23647011, -1.46341652, -0.94542862,
+          1.05746865, -1.17597555],
+        [ 1.40253251,  0.9910565 ,  1.04147946,  1.62502744,  0.19206229,
+         -1.09123404, -0.07272009],
+        [-0.96515562, -1.01915492, -1.54019672, -1.5828591 , -1.39167505,
+          1.24296816, -1.16852113],
+        [ 0.41864066,  0.80343677, -0.17342698, -0.47374939,  0.10893795,
+         -0.73569331,  0.01673305],
+        [-0.95246024, -2.21188037, -1.23647011, -0.26045907, -1.82917156,
+         -0.67386014, -0.91507055],
+        [-0.64459731, -1.80983808, -1.54019672,  1.16432033, -1.15542694,
+          1.44392597, -1.45178942],
+        [ 2.73554728,  0.9910565 ,  1.04147946,  0.47325966,  2.52391865,
+         -0.42652745,  2.52142113],
+        [ 0.12347311,  0.80343677,  0.43402624, -1.60845394,  1.29892844,
+         -0.00915355,  1.4256201 ],
+        [-0.85089721, -0.25527458,  0.28216294, -1.40369522,  0.18768732,
+         -1.21490038, -0.61689339],
+        [ 0.13616848,  1.05806355,  0.88961616, -1.1306836 ,  0.90518159,
+         -0.5347355 ,  0.58326964],
+        [ 1.54852937, -0.02745062, -0.17342698, -0.49934423, -0.00481114,
+         -0.36469428,  0.21800263],
+        [ 1.19305876, -0.563507  ,  0.88961616, -1.09655715,  0.85268201,
+         -0.50381892,  0.76963036],
+        [ 0.9899327 ,  1.05806355,  0.43402624, -1.14774683,  0.94018131,
+         -0.73569331,  0.73235822],
+        [ 0.92962965,  0.26738039,  0.43402624, -1.30984748,  0.5026848 ,
+         -0.92119282,  0.14345834],
+        [ 0.13616848, -0.21507035,  1.04147946, -0.85767198, -0.94980359,
+          0.50097011,  0.86653794],
+        [-0.51129583, -0.25527458,  0.43402624, -1.59139071,  0.28831152,
+          0.53188669,  1.20198723],
+        [-0.95563409,  0.54880999, -0.9327435 , -1.65111201,  0.44143529,
+          2.2168406 , -0.61689339],
+        [ 1.40253251, -0.50990136,  1.04147946,  0.2343745 ,  1.08455515,
+         -0.64294355,  1.23925938],
+        [-0.92072179, -1.56861271, -1.99578664,  1.65915389, -1.899171  ,
+          0.28455401, -1.56360585],
+        [-0.96515562, -0.52330277, -1.54019672, -1.53166942,  0.1526876 ,
+          1.33571792,  0.21800263],
+        [ 1.69135238, -0.77792955, -0.17342698,  0.61829709, -0.43793268,
+         -0.64294355,  0.2627292 ],
+        [-0.92072179, -0.49649995,  1.19334277, -0.45668617, -0.35918331,
+          0.37730377, -0.8777984 ],
+        [-0.04156682,  0.26738039,  0.13029963, -0.06423196, -0.35043338,
+         -0.64294355,  0.11364063],
+        [ 0.92010812,  0.9910565 ,  0.43402624, -0.0215739 ,  0.53330956,
+         -0.00915355,  0.50127092]]),
+ 0      0
+ 1      0
+       ..
+ 329    1
+ 330    1
+ Name: target, Length: 331, dtype: int64,
+ 0     1
+ 1     1
+      ..
+ 81    1
+ 82    1
+ Name: target, Length: 83, dtype: int64)from sklearn.model_selection import train_test_split
+
+# Split the preprocessed training data into training and validation sets
+X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train_preprocessed, y_train, test_size=0.2, random_state=42)
+
+# Output the splits
+X_train_split, X_val_split, y_train_split, y_val_split
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[ 0.9899327 ,  0.72302831,  0.43402624, ...,  1.63142578,
+         -0.44198575,  1.10507966],
+        [-0.60016348, -0.81813378, -1.54019672, ..., -1.2604261 ,
+         -1.32310843, -0.91507055],
+        [-0.95246024, -1.38099298, -1.23647011, ..., -1.38292512,
+          1.93859133, -1.1610667 ],
+        ...,
+        [-0.04156682, -1.35419016, -0.47715359, ..., -1.06355268,
+          1.30480133, -0.7734364 ],
+        [-0.8286803 ,  0.54880999, -1.08460681, ..., -0.94542862,
+          1.64488377, -1.17597555],
+        [ 1.69135238,  0.58901422,  1.19334277, ...,  1.08455515,
+          0.12997108,  1.23925938]]),
+ array([[-1.08258787, -0.77792955, -0.47715359, -0.6699765 , -0.5604317 ,
+         -0.64294355, -1.45178942],
+        [-0.19073752,  0.26738039,  1.95265929, -0.16661132, -0.00481114,
+         -0.47290233, -0.43053267],
+        [-0.64459731, -1.71602822,  1.04147946,  1.03634613,  0.79143249,
+         -0.59656867,  0.84417465],
+        [-0.80646339, -1.39439439, -0.62901689, -1.27572103, -1.06355268,
+          0.53188669, -0.7734364 ],
+        [ 0.13616848, -0.10785908, -0.17342698, -0.36283842,  0.18768732,
+         -0.44198575,  0.35963678],
+        [-0.96198178, -1.71602822, -1.54019672,  0.18318482, -1.82479659,
+          0.5164284 , -1.62324128],
+        [-0.22882365,  0.38799307,  3.31942904,  0.89130871,  0.19643725,
+         -0.3337777 , -0.16217324],
+        [ 0.0377793 , -0.02745062,  0.43402624,  0.95103   ,  0.52455963,
+         -0.36469428,  0.74726708],
+        [ 0.0377793 ,  0.26738039,  1.04147946, -1.78761782,  0.19206229,
+         -0.84390136,  0.83672022],
+        [ 0.2155146 , -0.10785908, -0.47715359,  0.86571387, -0.5604317 ,
+         -0.41106916, -0.70634654],
+        [-1.10480479,  0.49520435, -0.17342698, -0.84914037,  0.44143529,
+          1.30480133, -0.61689339],
+        [ 0.13616848,  0.54880999,  2.2563859 ,  0.72920806,  1.95954816,
+         -1.09123404,  1.99961111],
+        [ 0.13616848,  1.90235235,  0.28216294, -0.95151973,  1.95954816,
+         -0.41106916,  1.99961111],
+        [-0.96198178, -1.20677466, -1.54019672,  1.71887518, -1.46167449,
+          1.81492499, -1.54124257],
+        [-0.51129583, -0.50990136,  0.13029963, -1.37810039, -0.88855408,
+          0.05267962, -0.83307183],
+        [-0.84454952, -0.09445767, -0.9327435 , -0.23486423, -0.86667925,
+         -0.1173616 , -0.64671111],
+        [-0.50812199,  0.26738039, -0.17342698, -0.24339584, -1.08980247,
+         -0.1173616 , -0.22180867],
+        [-0.45099278,  0.26738039,  0.43402624,  1.32642098, -0.35043338,
+         -0.82844307,  0.14345834],
+        [ 1.69135238, -1.38099298, -0.47715359,  0.6268287 , -1.06355268,
+          1.25842645, -0.7734364 ],
+        [-0.5874681 ,  0.9910565 ,  0.43402624,  0.25143772,  0.52455963,
+         -1.13760892,  0.74726708],
+        [-0.80328954,  0.26738039, -1.69206003, -1.59992233,  0.19643725,
+         -0.1173616 , -0.16217324],
+        [ 1.14862494,  1.47350724,  1.04147946, -0.69557133,  1.25080382,
+         -0.56565209,  0.85162908],
+        [ 0.13616848,  1.91575376,  1.49706938, -1.1904049 ,  1.36017795,
+          0.5164284 ,  0.74726708],
+        [ 1.54852937,  0.58901422,  0.43402624, -0.98564618,  1.25955375,
+         -1.21490038,  0.86653794],
+        [-0.54938197,  0.54880999,  0.43402624,  1.15578871,  0.44143529,
+         -0.36469428, -0.61689339],
+        [-0.92072179, -1.80983808, -1.38833342, -1.48047974, -1.899171  ,
+          1.05746865, -1.62324128],
+        [ 0.0377793 ,  0.07976065,  0.43402624, -1.68523846,  0.19206229,
+          0.9492606 ,  1.01562651],
+        [ 0.9899327 ,  0.9910565 ,  0.88961616,  0.78892935,  0.53330956,
+         -0.78206819,  0.50127092],
+        [ 0.92010812,  0.9910565 ,  0.28216294,  0.04667901,  1.95954816,
+         -0.36469428,  1.99961111],
+        [-0.51129583, -0.21507035, -0.47715359,  1.0192829 , -0.2848089 ,
+         -0.00915355, -0.83307183],
+        [-0.92072179,  1.63432416, -1.54019672, -0.18367455, -1.08980247,
+         -0.44198575, -1.54124257],
+        [ 2.73554728,  0.76323254,  2.40824921, -1.386632  ,  2.52391865,
+         -0.41106916,  2.52142113],
+        [-0.91754795,  0.49520435, -1.23647011,  0.07227385, -0.1229352 ,
+          1.93859133, -0.31871624],
+        [ 0.46942218, -0.25527458,  0.43402624,  1.02781452,  0.1526876 ,
+          0.40822035,  0.21800263],
+        [ 0.2155146 , -0.10785908, -0.7808802 ,  0.48179128, -0.62605617,
+         -1.13760892, -0.72870983],
+        [-0.22882365,  0.49520435,  0.28216294, -1.07096231, -0.40293296,
+         -0.13281989, -0.50507696],
+        [ 0.92010812, -1.39439439, -1.54019672,  0.78039774, -0.91480387,
+         -0.67386014, -1.62324128],
+        [ 1.13592956,  0.54880999,  1.04147946,  0.01255255,  0.27081166,
+         -0.64294355,  0.32236463],
+        [-0.67633575, -0.89854224, -1.38833342,  1.33495259, -1.19480163,
+          1.93859133, -1.32506413],
+        [ 0.81537125,  0.26738039, -0.02156367,  1.56530614, -1.0985524 ,
+         -0.64294355, -0.43053267],
+        [ 0.92962965,  0.843641  ,  0.43402624,  0.80599258,  0.5026848 ,
+         -0.50381892,  0.32236463],
+        [-0.92072179, -1.80983808, -0.47715359, -1.73642814, -0.91480387,
+         -0.64294355, -0.83307183],
+        [ 0.46942218,  0.9910565 ,  0.73775285,  0.08933707,  1.36017795,
+         -0.27194453,  0.74726708],
+        [-0.19073752,  0.58901422,  0.28216294, -0.66144488,  0.53330956,
+         -0.64294355,  0.50127092],
+        [-0.96198178, -1.38099298, -1.23647011,  0.14905836, -1.82479659,
+          1.44392597, -1.62324128],
+        [-0.92072179, -0.02745062, -1.08460681,  0.00402094, -0.94542862,
+         -0.67386014, -1.17597555],
+        [-0.78742032,  0.49520435, -1.54019672,  1.12166226,  0.94018131,
+         -0.42652745,  1.04544423],
+        [ 1.19305876,  1.05806355,  0.88961616, -0.29458552,  0.84830704,
+         -0.84390136,  0.58326964],
+        [-0.84454952, -0.563507  , -0.9327435 , -1.20746812, -0.86667925,
+          1.33571792, -0.64671111],
+        [ 0.15203771,  0.9910565 ,  0.73775285,  1.13019387,  0.52455963,
+         -0.50381892,  0.21800263],
+        [ 3.2624055 ,  0.60241563,  1.04147946,  0.14052675,  0.79143249,
+         -1.21490038,  0.84417465],
+        [-0.32403899,  0.26738039,  0.28216294, -1.56579587,  0.53330956,
+         -0.78206819,  0.50127092],
+        [-0.51129583,  0.26738039,  0.43402624, -1.44635329,  1.08455515,
+          0.28455401,  1.23925938],
+        [ 0.81537125, -0.02745062, -0.02156367, -1.2586578 , -0.35918331,
+          0.37730377, -0.50507696],
+        [-1.20319397, -1.71602822,  0.28216294, -1.21599974, -1.51854904,
+         -1.83323209, -2.02578044],
+        [-0.92072179, -1.76963386, -1.23647011, -0.61878682, -2.06541967,
+          0.88742743, -1.56360585],
+        [ 0.92010812,  0.9910565 ,  0.88961616,  1.46292679,  0.53330956,
+         -0.31831941,  0.50127092],
+        [ 2.73554728,  0.26738039,  2.40824921,  0.24290611,  2.52391865,
+         -1.09123404,  2.52142113],
+        [-0.8858095 , -1.71602822, -1.23647011,  1.0790042 , -1.899171  ,
+          0.50097011, -1.62324128],
+        [-0.92072179, -1.2603803 , -1.08460681, -0.88326682, -1.37417519,
+          0.50097011, -0.96725155],
+        [ 1.14862494,  0.07976065, -0.02156367,  1.71034357, -0.89292904,
+          0.5164284 , -0.08762895],
+        [-0.51129583, -1.39439439, -0.47715359,  1.30082614, -1.06355268,
+          0.5164284 , -0.7734364 ],
+        [-0.8858095 ,  0.58901422,  1.04147946, -0.50787585,  0.68205837,
+         -0.95210941,  0.76963036],
+        [ 0.92962965, -0.50990136, -1.54019672, -1.41222684,  0.52455963,
+          0.05267962,  1.01562651],
+        [ 0.2155146 ,  0.9910565 ,  0.88961616,  0.97662484,  1.63142578,
+         -0.59656867,  1.10507966],
+        [-1.08258787, -1.58201412, -1.54019672,  0.76333451, -1.77667198,
+          1.44392597, -1.1088857 ],
+        [ 0.32659917,  0.9910565 ,  0.28216294,  1.4714584 ,  0.94893124,
+          1.30480133,  0.19563934]]),
+ 220    1
+ 78     1
+       ..
+ 270    1
+ 102    1
+ Name: target, Length: 264, dtype: int64,
+ 25     0
+ 307    1
+       ..
+ 238    0
+ 60     1
+ Name: target, Length: 67, dtype: int64)from sklearn.ensemble import RandomForestClassifier
+
+# Initialize the RandomForestClassifier
+model = RandomForestClassifier(random_state=42)
+
+# Train the model
+model.fit(X_train_split, y_train_split)
+
+# Return the trained model
+model
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+<style>#sk-container-id-1 {
+  /* Definition of color scheme common for light and dark mode */
+  --sklearn-color-text: #000;
+  --sklearn-color-text-muted: #666;
+  --sklearn-color-line: gray;
+  /* Definition of color scheme for unfitted estimators */
+  --sklearn-color-unfitted-level-0: #fff5e6;
+  --sklearn-color-unfitted-level-1: #f6e4d2;
+  --sklearn-color-unfitted-level-2: #ffe0b3;
+  --sklearn-color-unfitted-level-3: chocolate;
+  /* Definition of color scheme for fitted estimators */
+  --sklearn-color-fitted-level-0: #f0f8ff;
+  --sklearn-color-fitted-level-1: #d4ebff;
+  --sklearn-color-fitted-level-2: #b3dbfd;
+  --sklearn-color-fitted-level-3: cornflowerblue;
+
+  /* Specific color for light theme */
+  --sklearn-color-text-on-default-background: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, black)));
+  --sklearn-color-background: var(--sg-background-color, var(--theme-background, var(--jp-layout-color0, white)));
+  --sklearn-color-border-box: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, black)));
+  --sklearn-color-icon: #696969;
+
+  @media (prefers-color-scheme: dark) {
+    /* Redefinition of color scheme for dark theme */
+    --sklearn-color-text-on-default-background: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, white)));
+    --sklearn-color-background: var(--sg-background-color, var(--theme-background, var(--jp-layout-color0, #111)));
+    --sklearn-color-border-box: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, white)));
+    --sklearn-color-icon: #878787;
+  }
+}
+
+#sk-container-id-1 {
+  color: var(--sklearn-color-text);
+}
+
+#sk-container-id-1 pre {
+  padding: 0;
+}
+
+#sk-container-id-1 input.sk-hidden--visually {
+  border: 0;
+  clip: rect(1px 1px 1px 1px);
+  clip: rect(1px, 1px, 1px, 1px);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+#sk-container-id-1 div.sk-dashed-wrapped {
+  border: 1px dashed var(--sklearn-color-line);
+  margin: 0 0.4em 0.5em 0.4em;
+  box-sizing: border-box;
+  padding-bottom: 0.4em;
+  background-color: var(--sklearn-color-background);
+}
+
+#sk-container-id-1 div.sk-container {
+  /* jupyter's `normalize.less` sets `[hidden] { display: none; }`
+     but bootstrap.min.css set `[hidden] { display: none !important; }`
+     so we also need the `!important` here to be able to override the
+     default hidden behavior on the sphinx rendered scikit-learn.org.
+     See: https://github.com/scikit-learn/scikit-learn/issues/21755 */
+  display: inline-block !important;
+  position: relative;
+}
+
+#sk-container-id-1 div.sk-text-repr-fallback {
+  display: none;
+}
+
+div.sk-parallel-item,
+div.sk-serial,
+div.sk-item {
+  /* draw centered vertical line to link estimators */
+  background-image: linear-gradient(var(--sklearn-color-text-on-default-background), var(--sklearn-color-text-on-default-background));
+  background-size: 2px 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+/* Parallel-specific style estimator block */
+
+#sk-container-id-1 div.sk-parallel-item::after {
+  content: "";
+  width: 100%;
+  border-bottom: 2px solid var(--sklearn-color-text-on-default-background);
+  flex-grow: 1;
+}
+
+#sk-container-id-1 div.sk-parallel {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background-color: var(--sklearn-color-background);
+  position: relative;
+}
+
+#sk-container-id-1 div.sk-parallel-item {
+  display: flex;
+  flex-direction: column;
+}
+
+#sk-container-id-1 div.sk-parallel-item:first-child::after {
+  align-self: flex-end;
+  width: 50%;
+}
+
+#sk-container-id-1 div.sk-parallel-item:last-child::after {
+  align-self: flex-start;
+  width: 50%;
+}
+
+#sk-container-id-1 div.sk-parallel-item:only-child::after {
+  width: 0;
+}
+
+/* Serial-specific style estimator block */
+
+#sk-container-id-1 div.sk-serial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--sklearn-color-background);
+  padding-right: 1em;
+  padding-left: 1em;
+}
+
+
+/* Toggleable style: style used for estimator/Pipeline/ColumnTransformer box that is
+clickable and can be expanded/collapsed.
+- Pipeline and ColumnTransformer use this feature and define the default style
+- Estimators will overwrite some part of the style using the `sk-estimator` class
+*/
+
+/* Pipeline and ColumnTransformer style (default) */
+
+#sk-container-id-1 div.sk-toggleable {
+  /* Default theme specific background. It is overwritten whether we have a
+  specific estimator or a Pipeline/ColumnTransformer */
+  background-color: var(--sklearn-color-background);
+}
+
+/* Toggleable label */
+#sk-container-id-1 label.sk-toggleable__label {
+  cursor: pointer;
+  display: flex;
+  width: 100%;
+  margin-bottom: 0;
+  padding: 0.5em;
+  box-sizing: border-box;
+  text-align: center;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+#sk-container-id-1 label.sk-toggleable__label .caption {
+  font-size: 0.6rem;
+  font-weight: lighter;
+  color: var(--sklearn-color-text-muted);
+}
+
+#sk-container-id-1 label.sk-toggleable__label-arrow:before {
+  /* Arrow on the left of the label */
+  content: "▸";
+  float: left;
+  margin-right: 0.25em;
+  color: var(--sklearn-color-icon);
+}
+
+#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {
+  color: var(--sklearn-color-text);
+}
+
+/* Toggleable content - dropdown */
+
+#sk-container-id-1 div.sk-toggleable__content {
+  max-height: 0;
+  max-width: 0;
+  overflow: hidden;
+  text-align: left;
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content.fitted {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content pre {
+  margin: 0.2em;
+  border-radius: 0.25em;
+  color: var(--sklearn-color-text);
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content.fitted pre {
+  /* unfitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {
+  /* Expand drop-down */
+  max-height: 200px;
+  max-width: 100%;
+  overflow: auto;
+}
+
+#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
+  content: "▾";
+}
+
+/* Pipeline/ColumnTransformer-specific style */
+
+#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-label.fitted input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Estimator-specific style */
+
+/* Colorize estimator box */
+#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+#sk-container-id-1 div.sk-label label.sk-toggleable__label,
+#sk-container-id-1 div.sk-label label {
+  /* The background is the default theme color */
+  color: var(--sklearn-color-text-on-default-background);
+}
+
+/* On hover, darken the color of the background */
+#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+/* Label box, darken color on hover, fitted */
+#sk-container-id-1 div.sk-label.fitted:hover label.sk-toggleable__label.fitted {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Estimator label */
+
+#sk-container-id-1 div.sk-label label {
+  font-family: monospace;
+  font-weight: bold;
+  display: inline-block;
+  line-height: 1.2em;
+}
+
+#sk-container-id-1 div.sk-label-container {
+  text-align: center;
+}
+
+/* Estimator-specific */
+#sk-container-id-1 div.sk-estimator {
+  font-family: monospace;
+  border: 1px dotted var(--sklearn-color-border-box);
+  border-radius: 0.25em;
+  box-sizing: border-box;
+  margin-bottom: 0.5em;
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+/* on hover */
+#sk-container-id-1 div.sk-estimator:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Specification for estimator info (e.g. "i" and "?") */
+
+/* Common style for "i" and "?" */
+
+.sk-estimator-doc-link,
+a:link.sk-estimator-doc-link,
+a:visited.sk-estimator-doc-link {
+  float: right;
+  font-size: smaller;
+  line-height: 1em;
+  font-family: monospace;
+  background-color: var(--sklearn-color-background);
+  border-radius: 1em;
+  height: 1em;
+  width: 1em;
+  text-decoration: none !important;
+  margin-left: 0.5em;
+  text-align: center;
+  /* unfitted */
+  border: var(--sklearn-color-unfitted-level-1) 1pt solid;
+  color: var(--sklearn-color-unfitted-level-1);
+}
+
+.sk-estimator-doc-link.fitted,
+a:link.sk-estimator-doc-link.fitted,
+a:visited.sk-estimator-doc-link.fitted {
+  /* fitted */
+  border: var(--sklearn-color-fitted-level-1) 1pt solid;
+  color: var(--sklearn-color-fitted-level-1);
+}
+
+/* On hover */
+div.sk-estimator:hover .sk-estimator-doc-link:hover,
+.sk-estimator-doc-link:hover,
+div.sk-label-container:hover .sk-estimator-doc-link:hover,
+.sk-estimator-doc-link:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+div.sk-estimator.fitted:hover .sk-estimator-doc-link.fitted:hover,
+.sk-estimator-doc-link.fitted:hover,
+div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
+.sk-estimator-doc-link.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+/* Span, style for the box shown on hovering the info icon */
+.sk-estimator-doc-link span {
+  display: none;
+  z-index: 9999;
+  position: relative;
+  font-weight: normal;
+  right: .2ex;
+  padding: .5ex;
+  margin: .5ex;
+  width: min-content;
+  min-width: 20ex;
+  max-width: 50ex;
+  color: var(--sklearn-color-text);
+  box-shadow: 2pt 2pt 4pt #999;
+  /* unfitted */
+  background: var(--sklearn-color-unfitted-level-0);
+  border: .5pt solid var(--sklearn-color-unfitted-level-3);
+}
+
+.sk-estimator-doc-link.fitted span {
+  /* fitted */
+  background: var(--sklearn-color-fitted-level-0);
+  border: var(--sklearn-color-fitted-level-3);
+}
+
+.sk-estimator-doc-link:hover span {
+  display: block;
+}
+
+/* "?"-specific style due to the `<a>` HTML tag */
+
+#sk-container-id-1 a.estimator_doc_link {
+  float: right;
+  font-size: 1rem;
+  line-height: 1em;
+  font-family: monospace;
+  background-color: var(--sklearn-color-background);
+  border-radius: 1rem;
+  height: 1rem;
+  width: 1rem;
+  text-decoration: none;
+  /* unfitted */
+  color: var(--sklearn-color-unfitted-level-1);
+  border: var(--sklearn-color-unfitted-level-1) 1pt solid;
+}
+
+#sk-container-id-1 a.estimator_doc_link.fitted {
+  /* fitted */
+  border: var(--sklearn-color-fitted-level-1) 1pt solid;
+  color: var(--sklearn-color-fitted-level-1);
+}
+
+/* On hover */
+#sk-container-id-1 a.estimator_doc_link:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+#sk-container-id-1 a.estimator_doc_link.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-3);
+}
+</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>RandomForestClassifier(random_state=42)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item"><div class="sk-estimator fitted sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" checked><label for="sk-estimator-id-1" class="sk-toggleable__label fitted sk-toggleable__label-arrow"><div><div>RandomForestClassifier</div></div><div><a class="sk-estimator-doc-link fitted" rel="noreferrer" target="_blank" href="https://scikit-learn.org/1.6/modules/generated/sklearn.ensemble.RandomForestClassifier.html">?<span>Documentation for RandomForestClassifier</span></a><span class="sk-estimator-doc-link fitted">i<span>Fitted</span></span></div></label><div class="sk-toggleable__content fitted"><pre>RandomForestClassifier(random_state=42)</pre></div> </div></div></div></div>from sklearn.metrics import roc_auc_score
+
+# Predict probabilities on the test set
+y_test_pred_proba = model.predict_proba(X_test_preprocessed)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc = roc_auc_score(y_test, y_test_pred_proba)
+
+# Output the AUC-ROC score
+auc_roc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.8277777777777778

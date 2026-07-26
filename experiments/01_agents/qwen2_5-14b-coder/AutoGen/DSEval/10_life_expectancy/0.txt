@@ -1,0 +1,169 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv')
+
+# 加载测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv')
+
+# 定义 GDP 分类函数
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif 1000 < gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+# 在训练数据和测试数据上应用函数
+train_data['GDP_bins'] = train_data['GDP'].apply(categorize_gdp)
+test_data['GDP_bins'] = test_data['GDP'].apply(categorize_gdp)
+
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+import numpy as np
+
+# 选择特征和目标变量
+X_train = train_data[['GDP', 'GDP_bins']]
+y_train = train_data['Life_Expectancy']
+
+# 对分类特征进行 one-hot 编码
+encoder = OneHotEncoder(sparse=False)
+X_train_encoded = encoder.fit_transform(X_train[['GDP_bins']])
+
+# 合并数值特征和编码后的分类特征
+X_train_final = np.hstack((X_train[['GDP']].values, X_train_encoded))
+
+# 创建并训练模型
+model = LinearRegression()
+model.fit(X_train_final, y_train)
+
+# 选择测试数据的特征和目标变量
+X_test = test_data[['GDP', 'GDP_bins']]
+y_test = test_data['Life_Expectancy']
+
+# 对测试数据的分类特征进行 one-hot 编码
+X_test_encoded = encoder.transform(X_test[['GDP_bins']])
+
+# 合并数值特征和编码后的分类特征
+X_test_final = np.hstack((X_test[['GDP']].values, X_test_encoded))
+
+# 进行预测
+y_pred = model.predict(X_test_final)
+
+# 计算 R-squared score
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(f'R-squared score: {r2}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_1b21a53544a9eb849d8375cc8ad09fdb7b28e06250edb6f3a554513d8eb58e67.py", line 11, in <module>
+    train_data['GDP_bins'] = train_data['GDP'].apply(categorize_gdp)
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv')
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径")
+
+# 加载测试数据
+try:
+    test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv')
+    print("测试数据加载成功")
+except FileNotFoundError:
+    print("测试数据文件未找到，请检查文件路径")
+
+
+执行结果：
+训练数据加载成功
+测试数据加载成功
+
+生成的代码：
+# 定义 GDP 分类函数
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif 1000 < gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+# 在训练数据和测试数据上应用函数
+train_data['GDP_bins'] = train_data['GDP'].apply(categorize_gdp)
+test_data['GDP_bins'] = test_data['GDP'].apply(categorize_gdp)
+
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+import numpy as np
+
+# 选择特征和目标变量
+X_train = train_data[['GDP', 'GDP_bins']]
+y_train = train_data['Life_Expectancy']
+
+# 对分类特征进行 one-hot 编码
+encoder = OneHotEncoder(sparse=False)
+X_train_encoded = encoder.fit_transform(X_train[['GDP_bins']])
+
+# 合并数值特征和编码后的分类特征
+X_train_final = np.hstack((X_train[['GDP']].values, X_train_encoded))
+
+# 创建并训练模型
+model = LinearRegression()
+model.fit(X_train_final, y_train)
+
+# 选择测试数据的特征和目标变量
+X_test = test_data[['GDP', 'GDP_bins']]
+y_test = test_data['Life_Expectancy']
+
+# 对测试数据的分类特征进行 one-hot 编码
+X_test_encoded = encoder.transform(X_test[['GDP_bins']])
+
+# 合并数值特征和编码后的分类特征
+X_test_final = np.hstack((X_test[['GDP']].values, X_test_encoded))
+
+# 进行预测
+y_pred = model.predict(X_test_final)
+
+# 计算 R-squared score
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(f'R-squared score: {r2}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_1b21a53544a9eb849d8375cc8ad09fdb7b28e06250edb6f3a554513d8eb58e67.py", line 11, in <module>
+    train_data['GDP_bins'] = train_data['GDP'].apply(categorize_gdp)
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+try:
+    train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv')
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print("训练数据文件未找到，请检查文件路径")
+
+# 加载测试数据
+try:
+    test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv')
+    print("测试数据加载成功")
+except FileNotFoundError:
+    print("测试数据文件未找到，请检查文件路径")
+
+
+执行结果：
+训练数据加载成功
+测试数据加载成功

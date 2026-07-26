@@ -1,0 +1,126 @@
+import pandas as pd
+
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      Education  JoiningYear       City  PaymentTier  Age Gender EverBenched  ExperienceInCurrentDomain  LeaveOrNot
+ 0       Masters         2013  New Delhi            3   30   Male          No                          0           1
+ 1     Bachelors         2012  Bangalore            3   25   Male          No                          3           0
+ ...         ...          ...        ...          ...  ...    ...         ...                        ...         ...
+ 3720  Bachelors         2015  Bangalore            3   41   Male          No                          1           0
+ 3721  Bachelors         2015  Bangalore            3   27   Male          No                          5           1
+ 
+ [3722 rows x 9 columns],
+      Education  JoiningYear       City  PaymentTier  Age  Gender EverBenched  ExperienceInCurrentDomain  LeaveOrNot
+ 0    Bachelors         2016  Bangalore            3   24  Female          No                          2           1
+ 1    Bachelors         2013  Bangalore            3   26  Female          No                          4           0
+ ..         ...          ...        ...          ...  ...     ...         ...                        ...         ...
+ 929  Bachelors         2012  Bangalore            3   37    Male          No                          4           0
+ 930  Bachelors         2012  Bangalore            3   28  Female          No                          1           0
+ 
+ [931 rows x 9 columns])import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+
+# Feature Construction
+train_df['YearsInCompany'] = 2023 - train_df['JoiningYear']
+test_df['YearsInCompany'] = 2023 - test_df['JoiningYear']
+
+# One-Hot Encoding
+categorical_columns = ['Education', 'City', 'Gender', 'EverBenched']
+encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+
+train_encoded = encoder.fit_transform(train_df[categorical_columns])
+test_encoded = encoder.transform(test_df[categorical_columns])
+
+train_encoded_df = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(categorical_columns))
+test_encoded_df = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(categorical_columns))
+
+train_df = pd.concat([train_df.drop(columns=categorical_columns), train_encoded_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=categorical_columns), test_encoded_df], axis=1)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 10
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+
+from sklearn.preprocessing import OneHotEncoder
+
+# Feature Construction
+train_df['YearsInCompany'] = 2023 - train_df['JoiningYear']
+test_df['YearsInCompany'] = 2023 - test_df['JoiningYear']
+
+# One-Hot Encoding
+categorical_columns = ['Education', 'City', 'Gender', 'EverBenched']
+encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+
+train_encoded = encoder.fit_transform(train_df[categorical_columns])
+test_encoded = encoder.transform(test_df[categorical_columns])
+
+train_encoded_df = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(categorical_columns))
+test_encoded_df = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(categorical_columns))
+
+train_df = pd.concat([train_df.drop(columns=categorical_columns), train_encoded_df], axis=1)
+test_df = pd.concat([test_df.drop(columns=categorical_columns), test_encoded_df], axis=1)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      JoiningYear  PaymentTier  Age  ExperienceInCurrentDomain  LeaveOrNot  YearsInCompany  Education_Bachelors  Education_Masters  Education_PHD  City_Bangalore  City_New Delhi  City_Pune  Gender_Female  Gender_Male  EverBenched_No  EverBenched_Yes
+ 0            2013            3   30                          0           1              10                  0.0                1.0            0.0             0.0             1.0        0.0            0.0          1.0             1.0              0.0
+ 1            2012            3   25                          3           0              11                  1.0                0.0            0.0             1.0             0.0        0.0            0.0          1.0             1.0              0.0
+ ...           ...          ...  ...                        ...         ...             ...                  ...                ...            ...             ...             ...        ...            ...          ...             ...              ...
+ 3720         2015            3   41                          1           0               8                  1.0                0.0            0.0             1.0             0.0        0.0            0.0          1.0             1.0              0.0
+ 3721         2015            3   27                          5           1               8                  1.0                0.0            0.0             1.0             0.0        0.0            0.0          1.0             1.0              0.0
+ 
+ [3722 rows x 16 columns],
+      JoiningYear  PaymentTier  Age  ExperienceInCurrentDomain  LeaveOrNot  YearsInCompany  Education_Bachelors  Education_Masters  Education_PHD  City_Bangalore  City_New Delhi  City_Pune  Gender_Female  Gender_Male  EverBenched_No  EverBenched_Yes
+ 0           2016            3   24                          2           1               7                  1.0                0.0            0.0             1.0             0.0        0.0            1.0          0.0             1.0              0.0
+ 1           2013            3   26                          4           0              10                  1.0                0.0            0.0             1.0             0.0        0.0            1.0          0.0             1.0              0.0
+ ..           ...          ...  ...                        ...         ...             ...                  ...                ...            ...             ...             ...        ...            ...          ...             ...              ...
+ 929         2012            3   37                          4           0              11                  1.0                0.0            0.0             1.0             0.0        0.0            0.0          1.0             1.0              0.0
+ 930         2012            3   28                          1           0              11                  1.0                0.0            0.0             1.0             0.0        0.0            1.0          0.0             1.0              0.0
+ 
+ [931 rows x 16 columns])from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix
+
+# Define features and target
+X_train = train_df.drop(columns=['LeaveOrNot'])
+y_train = train_df['LeaveOrNot']
+X_test = test_df.drop(columns=['LeaveOrNot'])
+y_test = test_df['LeaveOrNot']
+
+# Train the Random Forest Classifier
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = rf_classifier.predict(X_test)
+y_pred_proba = rf_classifier.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Generate confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+roc_auc, conf_matrix
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8804300086818855,
+ array([[559,  51],
+        [ 88, 233]], dtype=int64))

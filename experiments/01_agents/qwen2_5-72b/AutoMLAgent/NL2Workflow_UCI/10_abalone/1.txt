@@ -1,0 +1,244 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from scipy import stats
+from sklearn.metrics import mean_squared_log_error
+import logging
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Data Retrieval and Initial Inspection
+def load_and_inspect_data(file_path):
+    df = pd.read_csv(file_path)
+    logging.info("Dataset Overview:")
+    logging.info(df.info())
+    logging.info("First few rows of the dataset:")
+    logging.info(df.head())
+    logging.info("Statistical summaries of numerical columns:")
+    logging.info(df.describe())
+    logging.info("Missing values in the dataset:")
+    logging.info(df.isnull().sum())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    numerical_features = df.select_dtypes(include=[np.number]).columns
+    categorical_features = df.select_dtypes(include=[np.object_]).columns
+
+    if df[numerical_features].isnull().sum().sum() > 0:
+        df[numerical_features] = df[numerical_features].fillna(df[numerical_features].mean())
+
+    if df[categorical_features].isnull().sum().sum() > 0:
+        df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+
+    # Outlier detection and handling using Z-score method
+    z_scores = np.abs(stats.zscore(df[numerical_features]))
+    df = df[(z_scores < 3).all(axis=1)]
+
+    # Normalization and scaling
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # One-hot encoding for categorical features
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    return df
+
+# Data Splitting
+def split_data(df):
+    X = df.drop(columns=['Rings'])
+    y = df['Rings']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Specification
+class TabTransformer(nn.Module):
+    def __init__(self, num_features, num_layers, num_heads, embedding_dim):
+        super(TabTransformer, self).__init__()
+        self.embedding = nn.Linear(num_features, embedding_dim)
+        self.transformer = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=embedding_dim, nhead=num_heads, batch_first=True),
+            num_layers=num_layers
+        )
+        self.fc = nn.Linear(embedding_dim, 1)
+
+    def forward(self, x):
+        x = self.embedding(x)
+        x = self.transformer(x.unsqueeze(1)).squeeze(1)
+        x = self.fc(x)
+        return x
+
+# Model Training
+def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+        if epoch % 10 == 0:
+            logging.info(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item()}')
+    return model
+
+# Model Evaluation
+def evaluate_model(model, data_loader, y_true, criterion):
+    model.eval()
+    predictions = []
+    with torch.no_grad():
+        for inputs, _ in data_loader:
+            outputs = model(inputs)
+            predictions.extend(outputs.squeeze().cpu().numpy())
+
+    rmlse = np.sqrt(mean_squared_log_error(y_true, predictions))
+    logging.info(f'RMLSE: {rmlse}')
+    return rmlse
+
+# Main function to orchestrate the pipeline
+def main():
+    file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    df = load_and_inspect_data(file_path)
+    df = preprocess_data(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    num_features = X_train.shape[1]
+    model = TabTransformer(num_features, num_layers=4, num_heads=4, embedding_dim=64)
+
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0001)
+
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+
+    model = train_model(model, train_loader, criterion, optimizer)
+
+    val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
+
+    val_rmlse = evaluate_model(model, val_loader, y_val, criterion)
+    logging.info(f'Validation RMLSE: {val_rmlse}')
+
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    test_rmlse = evaluate_model(model, test_loader, y_test, criterion)
+    logging.info(f'Test RMLSE: {test_rmlse}')
+
+    # Save the model
+    model_save_path = r'./agent_workspace/trained_models/tabtransformer_abalone.pth'
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    torch.save(model.state_dict(), model_save_path)
+
+    return {
+        'Validation RMLSE': val_rmlse,
+        'Test RMLSE': test_rmlse
+    }
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+2025-09-03 18:57:50,246 - INFO - Dataset Overview:
+2025-09-03 18:57:50,256 - INFO - None
+2025-09-03 18:57:50,256 - INFO - First few rows of the dataset:
+2025-09-03 18:57:50,256 - INFO -       id Sex  Length  ...  Whole weight.2  Shell weight  Rings
+0  43718   M   0.650  ...          0.3020         0.360     10
+1  45247   F   0.670  ...          0.3455         0.385     11
+2  71393   M   0.605  ...          0.2470         0.285      9
+3  51688   M   0.680  ...          0.3060         0.440     11
+4  40681   I   0.295  ...          0.0190         0.038      5
+
+[5 rows x 10 columns]
+2025-09-03 18:57:50,265 - INFO - Statistical summaries of numerical columns:
+2025-09-03 18:57:50,292 - INFO -                  id        Length  ...  Shell weight         Rings
+count  72492.000000  72492.000000  ...  72492.000000  72492.000000
+mean   45346.810489      0.517118  ...      0.225920      9.697111
+std    26217.980752      0.118091  ...      0.130134      3.168972
+min        0.000000      0.075000  ...      0.001500      1.000000
+25%    22590.750000      0.445000  ...      0.120000      8.000000
+50%    45371.500000      0.540000  ...      0.225000      9.000000
+75%    68080.250000      0.600000  ...      0.305000     11.000000
+max    90613.000000      0.815000  ...      1.005000     29.000000
+
+[8 rows x 9 columns]
+2025-09-03 18:57:50,299 - INFO - Missing values in the dataset:
+2025-09-03 18:57:50,302 - INFO - id                0
+Sex               0
+Length            0
+Diameter          0
+Height            0
+Whole weight      0
+Whole weight.1    0
+Whole weight.2    0
+Shell weight      0
+Rings             0
+dtype: int64
+/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py:56: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 128, in main
+    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0001)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

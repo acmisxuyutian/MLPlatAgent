@@ -1,0 +1,109 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import ElasticNet
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/test.csv'
+    
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical features
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = train_df.select_dtypes(include=['object']).columns.tolist()
+    
+    # Handle missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+    
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+    
+    # Feature normalization
+    scaler = MinMaxScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+    
+    # Categorical encoding
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+    
+    # Ensure the test set has the same columns as the training set
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    
+    # Ensure the order of columns is the same
+    test_df = test_df[train_df.columns]
+    
+    return train_df, test_df
+
+# Model Training
+def train_model(X_train, y_train):
+    model = ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print(f'RMSE: {rmse}')
+    return rmse
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data()
+    
+    # Step 2: Preprocess the datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3: Feature and target selection
+    features = [col for col in train_df.columns if col not in ['Entity', 'Year', 'Renewable energy share in the total final energy consumption (%)']]
+    X_train = train_df[features]
+    y_train = train_df['Renewable energy share in the total final energy consumption (%)']
+    X_test = test_df[features]
+    y_test = test_df['Renewable energy share in the total final energy consumption (%)']
+    
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 5: Evaluate the model
+    rmse = evaluate_model(model, X_test, y_test)
+    
+    # Step 6: Save the model
+    model_path = './agent_workspace/trained_models/elastic_net_regression_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    
+    return rmse
+
+if __name__ == "__main__":
+    rmse = main()
+    print(f"Model Performance on Test Set: RMSE = {rmse}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+RMSE: 0.2513781638431162
+Model Performance on Test Set: RMSE = 0.2513781638431162

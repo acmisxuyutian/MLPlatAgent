@@ -1,0 +1,156 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+from io import StringIO
+from sklearn.impute import SimpleImputer
+from scipy import stats
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+    
+    # Handle outliers using Z-score
+    z_scores = np.abs(stats.zscore(df_imputed.select_dtypes(include=[np.number])))
+    df_cleaned = df_imputed[(z_scores < 3).all(axis=1)]
+    
+    # Normalize numerical features
+    scaler = StandardScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(df_cleaned.select_dtypes(include=[np.number])), columns=df_cleaned.select_dtypes(include=[np.number]).columns)
+    
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    df_encoded = pd.DataFrame(encoder.fit_transform(df_cleaned.select_dtypes(include=[object])), columns=encoder.get_feature_names_out(df_cleaned.select_dtypes(include=[object]).columns))
+    
+    # Feature selection
+    selector = SelectKBest(score_func=mutual_info_classif, k=10)
+    df_selected = pd.DataFrame(selector.fit_transform(df_scaled, df_cleaned['obesity_risk_level']), columns=selector.get_support(indices=True))
+    
+    return df_selected, df_cleaned['obesity_risk_level']
+
+# Define the Feedforward Neural Network (FNN) Model
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+# Train the model
+def train_model(model, X_train_tensor, y_train_tensor, criterion, optimizer, num_epochs=50):
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        loss = criterion(outputs, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test_tensor, y_test_tensor):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(X_test_tensor)
+        _, predicted = torch.max(outputs.data, 1)
+        total = y_test_tensor.size(0)
+        correct = (predicted == y_test_tensor).sum().item()
+        accuracy = 100 * correct / total
+        f1 = f1_score(y_test_tensor.numpy(), predicted.numpy())
+        performance_scores = {
+            'ACC': accuracy,
+            'F1': f1
+        }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    url = 'https://example.com/obesity_CVD_risk.csv'  # Replace with the actual URL provided by the user
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = StringIO(response.text)
+        df = pd.read_csv(data)
+    else:
+        raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
+
+    # Step 2. Preprocess the data
+    X, y = preprocess_data(df)
+
+    # Step 3. Handle class imbalance using SMOTE
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    # Step 4. Add small random noise to numerical features
+    noise = np.random.normal(0, 0.1, X_resampled.shape)
+    X_perturbed = X_resampled + noise
+
+    # Step 5. Split the dataset into training, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X_perturbed, y_resampled, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    # Step 6. Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.long)
+
+    # Step 7. Define the model, loss function, and optimizer
+    model = FNN(input_size=X_train.shape[1], hidden_size=128, num_classes=2)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Step 8. Train the model
+    model = train_model(model, X_train_tensor, y_train_tensor, criterion, optimizer)
+
+    # Step 9. Evaluate the model
+    model_performance = evaluate_model(model, X_test_tensor, y_test_tensor)
+
+    # Step 10. Save the trained model
+    model_path = "./agent_workspace/trained_models/fnn_model.pth"
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+
+    return model_performance
+
+if __name__ == "__main__":
+    try:
+        model_performance = main()
+        print("Model Performance on Test Set:", model_performance)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+An error occurred: Failed to download dataset. Status code: 404

@@ -1,0 +1,256 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据和测试数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 查看训练数据的基本信息
+print("训练数据的基本信息:")
+print(train_df.info())
+print("\n训练数据的前5行:")
+print(train_df.head())
+
+# 查看测试数据的基本信息
+print("\n测试数据的基本信息:")
+print(test_df.info())
+print("\n测试数据的前5行:")
+print(test_df.head())
+
+
+执行结果：
+训练数据的基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 70244 entries, 0 to 70243
+Data columns (total 5 columns):
+ #   Column      Non-Null Count  Dtype  
+---  ------      --------------  -----  
+ 0   Category    70244 non-null  object 
+ 1   DayOfWeek   70244 non-null  object 
+ 2   PdDistrict  70244 non-null  object 
+ 3   X           70244 non-null  float64
+ 4   Y           70244 non-null  float64
+dtypes: float64(2), object(3)
+memory usage: 2.7+ MB
+None
+
+训练数据的前5行:
+        Category  DayOfWeek PdDistrict           X          Y
+0  LARCENY/THEFT  Wednesday   SOUTHERN -122.388380  37.783310
+1   NON-CRIMINAL   Saturday   SOUTHERN -122.403405  37.775421
+2  LARCENY/THEFT  Wednesday   NORTHERN -122.419581  37.789214
+3  VEHICLE THEFT     Friday    BAYVIEW -122.389744  37.757909
+4        ASSAULT     Friday    TARAVAL -122.478377  37.742877
+
+测试数据的基本信息:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 17560 entries, 0 to 17559
+Data columns (total 5 columns):
+ #   Column      Non-Null Count  Dtype  
+---  ------      --------------  -----  
+ 0   Category    17560 non-null  object 
+ 1   DayOfWeek   17560 non-null  object 
+ 2   PdDistrict  17560 non-null  object 
+ 3   X           17560 non-null  float64
+ 4   Y           17560 non-null  float64
+dtypes: float64(2), object(3)
+memory usage: 686.1+ KB
+None
+
+测试数据的前5行:
+         Category  DayOfWeek  PdDistrict           X          Y
+0   VEHICLE THEFT     Sunday    SOUTHERN -122.409893  37.780113
+1        BURGLARY     Monday    NORTHERN -122.424442  37.788227
+2  OTHER OFFENSES  Wednesday     BAYVIEW -122.395635  37.753565
+3        BURGLARY    Tuesday        PARK -122.444802  37.754171
+4    NON-CRIMINAL   Saturday  TENDERLOIN -122.412971  37.785788
+
+生成的代码：
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import log_loss
+from sklearn.ensemble import RandomForestClassifier
+
+# 编码分类变量
+label_encoder = LabelEncoder()
+
+# 对训练数据进行编码
+train_df['DayOfWeek'] = label_encoder.fit_transform(train_df['DayOfWeek'])
+train_df['PdDistrict'] = label_encoder.fit_transform(train_df['PdDistrict'])
+train_df['Category'] = label_encoder.fit_transform(train_df['Category'])
+
+# 对测试数据进行编码
+test_df['DayOfWeek'] = label_encoder.transform(test_df['DayOfWeek'])
+test_df['PdDistrict'] = label_encoder.transform(test_df['PdDistrict'])
+
+# 选择特征和目标变量
+X_train = train_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_train = train_df['Category']
+
+X_test = test_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_test = test_df['Category']
+
+# 查看编码后的数据
+print("编码后的训练数据前5行:")
+print(X_train.head())
+print("\n编码后的训练数据目标变量前5行:")
+print(y_train.head())
+
+print("\n编码后的测试数据前5行:")
+print(X_test.head())
+print("\n编码后的测试数据目标变量前5行:")
+print(y_test.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_839747748b0a34bc2584a07dd703cbb9688dc44fd443ea736bdaf5febb193413.py", line 10, in <module>
+    train_df['DayOfWeek'] = label_encoder.fit_transform(train_df['DayOfWeek'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+# 加载训练数据和测试数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 编码分类变量
+label_encoder = LabelEncoder()
+
+# 对训练数据进行编码
+train_df['DayOfWeek'] = label_encoder.fit_transform(train_df['DayOfWeek'])
+train_df['PdDistrict'] = label_encoder.fit_transform(train_df['PdDistrict'])
+train_df['Category'] = label_encoder.fit_transform(train_df['Category'])
+
+# 对测试数据进行编码
+test_df['DayOfWeek'] = label_encoder.transform(test_df['DayOfWeek'])
+test_df['PdDistrict'] = label_encoder.transform(test_df['PdDistrict'])
+
+# 选择特征和目标变量
+X_train = train_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_train = train_df['Category']
+
+X_test = test_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_test = test_df['Category']
+
+# 查看编码后的数据
+print("编码后的训练数据前5行:")
+print(X_train.head())
+print("\n编码后的训练数据目标变量前5行:")
+print(y_train.head())
+
+print("\n编码后的测试数据前5行:")
+print(X_test.head())
+print("\n编码后的测试数据目标变量前5行:")
+print(y_test.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 174, in <listcomp>
+    return xp.asarray([table[v] for v in values], device=device(values))
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'Sunday'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_7c66d5512ad60f1190c2032254c21c2a07c748174af6ca5f43a911773c5a7e4f.py", line 20, in <module>
+    test_df['DayOfWeek'] = label_encoder.transform(test_df['DayOfWeek'])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\preprocessing\_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {str(e)}")
+ValueError: y contains previously unseen labels: 'Sunday'
+
+生成的代码：
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+# 加载训练数据和测试数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 合并训练数据和测试数据
+combined_df = pd.concat([train_df, test_df], axis=0)
+
+# 编码分类变量
+label_encoder = LabelEncoder()
+
+# 对合并后的数据进行编码
+combined_df['DayOfWeek'] = label_encoder.fit_transform(combined_df['DayOfWeek'])
+combined_df['PdDistrict'] = label_encoder.fit_transform(combined_df['PdDistrict'])
+combined_df['Category'] = label_encoder.fit_transform(combined_df['Category'])
+
+# 分离训练数据和测试数据
+train_df = combined_df.iloc[:len(train_df)]
+test_df = combined_df.iloc[len(train_df):]
+
+# 选择特征和目标变量
+X_train = train_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_train = train_df['Category']
+
+X_test = test_df[['DayOfWeek', 'PdDistrict', 'X', 'Y']]
+y_test = test_df['Category']
+
+# 查看编码后的数据
+print("编码后的训练数据前5行:")
+print(X_train.head())
+print("\n编码后的训练数据目标变量前5行:")
+print(y_train.head())
+
+print("\n编码后的测试数据前5行:")
+print(X_test.head())
+print("\n编码后的测试数据目标变量前5行:")
+print(y_test.head())
+
+
+执行结果：
+编码后的训练数据前5行:
+   DayOfWeek  PdDistrict           X          Y
+0          6           7 -122.388380  37.783310
+1          2           7 -122.403405  37.775421
+2          6           4 -122.419581  37.789214
+3          0           0 -122.389744  37.757909
+4          0           8 -122.478377  37.742877
+
+编码后的训练数据目标变量前5行:
+0    16
+1    20
+2    16
+3    34
+4     1
+Name: Category, dtype: int64
+
+编码后的测试数据前5行:
+   DayOfWeek  PdDistrict           X          Y
+0          3           7 -122.409893  37.780113
+1          1           4 -122.424442  37.788227
+2          6           0 -122.395635  37.753565
+3          5           5 -122.444802  37.754171
+4          2           9 -122.412971  37.785788
+
+编码后的测试数据目标变量前5行:
+0    34
+1     4
+2    21
+3     4
+4    20
+Name: Category, dtype: int64

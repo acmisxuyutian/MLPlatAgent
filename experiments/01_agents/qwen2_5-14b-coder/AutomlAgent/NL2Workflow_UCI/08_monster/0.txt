@@ -1,0 +1,195 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Identify numerical and categorical columns
+    numerical_cols = dataset.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = dataset.select_dtypes(include=['object', 'category']).columns
+
+    # Define preprocessing for numerical data
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', MinMaxScaler())
+    ])
+
+    # Define preprocessing for categorical data
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Fit and transform the data
+    processed_data = preprocessor.fit_transform(dataset.drop(columns=['monster_type']))
+
+    # Feature engineering: interaction terms and polynomial features
+    from sklearn.preprocessing import PolynomialFeatures
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    processed_data = poly.fit_transform(processed_data)
+
+    return processed_data, preprocessor
+
+def train_model(model, train_loader, valid_loader, learning_rate, batch_size, num_epochs):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+            print(f'Validation Accuracy: {100 * correct / total:.2f}%')
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(predicted.cpu().numpy())
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted')
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+    dataset = pd.read_csv(dataset_path)
+
+    # Check if 'monster_type' column exists
+    if 'monster_type' not in dataset.columns:
+        raise ValueError("The 'monster_type' column is not found in the dataset.")
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 15% of the `dataset`, and the test_loader contains 15% of the `dataset`.
+    train_df, temp_df = train_test_split(dataset, test_size=0.3, random_state=42)
+    valid_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train, preprocessor = preprocess_data(train_df)
+    X_valid = preprocessor.transform(valid_df.drop(columns=['monster_type']))
+    X_test = preprocessor.transform(test_df.drop(columns=['monster_type']))
+
+    y_train = train_df['monster_type'].values
+    y_valid = valid_df['monster_type'].values
+    y_test = test_df['monster_type'].values
+
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+    X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32)
+    y_valid_tensor = torch.tensor(y_valid, dtype=torch.long)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+    # Create DataLoader
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=32, shuffle=True)
+    valid_loader = DataLoader(TensorDataset(X_valid_tensor, y_valid_tensor), batch_size=32, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    num_classes = len(np.unique(y_train))
+
+    class TransformerModel(nn.Module):
+        def __init__(self, input_size, num_classes):
+            super(TransformerModel, self).__init__()
+            self.embedding = nn.Linear(input_size, 128)
+            self.transformer = nn.TransformerEncoderLayer(d_model=128, nhead=8)
+            self.fc = nn.Linear(128, num_classes)
+
+        def forward(self, x):
+            x = self.embedding(x)
+            x = x.permute(1, 0, 2)  # (seq_len, batch_size, d_model)
+            x = self.transformer(x)
+            x = x.permute(1, 0, 2)  # (batch_size, seq_len, d_model)
+            x = self.fc(x.mean(dim=1))  # Average pooling
+            return x
+
+    model = TransformerModel(input_size, num_classes)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    learning_rate = 0.001
+    batch_size = 32
+    num_epochs = 20
+
+    model = train_model(model, train_loader, valid_loader, learning_rate, batch_size, num_epochs)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the trained model
+    model_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/models/monster_classification_model.pth'
+    torch.save(model.state_dict(), model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 182, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 113, in main
+    raise ValueError("The 'monster_type' column is not found in the dataset.")
+ValueError: The 'monster_type' column is not found in the dataset.

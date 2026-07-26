@@ -1,0 +1,119 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# 查看数据的前几行
+print(train_df.head())
+
+# 查看数据的基本信息
+print(train_df.info())
+
+
+执行结果：
+     id  allelectrons_Total  ...  density_Average  Hardness
+0  2124                30.0  ...          0.51006       6.0
+1   394                64.0  ...          4.74000       3.3
+2  3101                97.0  ...          1.79976       5.3
+3  1737               151.0  ...          7.77500       1.8
+4   561               131.0  ...          1.92652       5.5
+
+[5 rows x 13 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 8325 entries, 0 to 8324
+Data columns (total 13 columns):
+ #   Column                 Non-Null Count  Dtype  
+---  ------                 --------------  -----  
+ 0   id                     8325 non-null   int64  
+ 1   allelectrons_Total     8325 non-null   float64
+ 2   density_Total          8325 non-null   float64
+ 3   allelectrons_Average   8325 non-null   float64
+ 4   val_e_Average          8325 non-null   float64
+ 5   atomicweight_Average   8325 non-null   float64
+ 6   ionenergy_Average      8325 non-null   float64
+ 7   el_neg_chi_Average     8325 non-null   float64
+ 8   R_vdw_element_Average  8325 non-null   float64
+ 9   R_cov_element_Average  8325 non-null   float64
+ 10  zaratio_Average        8325 non-null   float64
+ 11  density_Average        8325 non-null   float64
+ 12  Hardness               8325 non-null   float64
+dtypes: float64(12), int64(1)
+memory usage: 845.6 KB
+None
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import median_absolute_error
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# 查看数据的前几行
+print(train_df.head())
+
+# 查看数据的基本信息
+print(train_df.info())
+
+# 选择特征和目标变量
+X = train_df.drop(columns=['id', 'Hardness'])
+y = train_df['Hardness']
+
+# 标准化数值特征
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 划分数据集
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# 选择模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测
+y_pred = model.predict(X_test)
+
+# 计算中位绝对误差
+mae = median_absolute_error(y_test, y_pred)
+print(f'Median Absolute Error (MAE): {mae}')
+
+
+执行结果：
+     id  allelectrons_Total  ...  density_Average  Hardness
+0  2124                30.0  ...          0.51006       6.0
+1   394                64.0  ...          4.74000       3.3
+2  3101                97.0  ...          1.79976       5.3
+3  1737               151.0  ...          7.77500       1.8
+4   561               131.0  ...          1.92652       5.5
+
+[5 rows x 13 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 8325 entries, 0 to 8324
+Data columns (total 13 columns):
+ #   Column                 Non-Null Count  Dtype  
+---  ------                 --------------  -----  
+ 0   id                     8325 non-null   int64  
+ 1   allelectrons_Total     8325 non-null   float64
+ 2   density_Total          8325 non-null   float64
+ 3   allelectrons_Average   8325 non-null   float64
+ 4   val_e_Average          8325 non-null   float64
+ 5   atomicweight_Average   8325 non-null   float64
+ 6   ionenergy_Average      8325 non-null   float64
+ 7   el_neg_chi_Average     8325 non-null   float64
+ 8   R_vdw_element_Average  8325 non-null   float64
+ 9   R_cov_element_Average  8325 non-null   float64
+ 10  zaratio_Average        8325 non-null   float64
+ 11  density_Average        8325 non-null   float64
+ 12  Hardness               8325 non-null   float64
+dtypes: float64(12), int64(1)
+memory usage: 845.6 KB
+None
+Median Absolute Error (MAE): 0.6149999999999984

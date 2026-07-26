@@ -1,0 +1,522 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(file_path)
+
+# 检查数据基本信息
+print("数据基本信息：")
+print(data.info())
+print("\n数据前5行：")
+print(data.head())
+
+# 检查缺失值
+print("\n缺失值情况：")
+print(data.isnull().sum())
+
+# 处理缺失值
+# 假设数值变量用中位数填充，分类变量用众数填充
+numeric_features = data.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = data.select_dtypes(include=[np.object]).columns.tolist()
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 分割数据集
+X = data.drop(columns=['churn'])
+y = data['churn']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 应用预处理
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# 检查预处理后的数据
+print("\n预处理后的训练数据前5行：")
+print(X_train_preprocessed[:5])
+print("\n预处理后的测试数据前5行：")
+print(X_test_preprocessed[:5])
+
+
+执行结果：
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_eb2fed2e36c6769559b203599a0a00ff7b67f483e6c03b790a8831f952bce61a.py:28: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  categorical_features = data.select_dtypes(include=[np.object]).columns.tolist()
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_eb2fed2e36c6769559b203599a0a00ff7b67f483e6c03b790a8831f952bce61a.py", line 28, in <module>
+    categorical_features = data.select_dtypes(include=[np.object]).columns.tolist()
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\numpy\__init__.py", line 410, in __getattr__
+    raise AttributeError(__former_attrs__[attr], name=None)
+AttributeError: module 'numpy' has no attribute 'object'.
+`np.object` was a deprecated alias for the builtin `object`. To avoid this error in existing code, use `object` by itself. Doing this will not modify any behavior and is safe. 
+The aliases was originally deprecated in NumPy 1.20; for more details and guidance see the original release note at:
+    https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations. Did you mean: 'object_'?
+数据基本信息：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 132027 entries, 0 to 132026
+Data columns (total 14 columns):
+ #   Column           Non-Null Count   Dtype  
+---  ------           --------------   -----  
+ 0   id               132027 non-null  int64  
+ 1   CustomerId       132027 non-null  int64  
+ 2   Surname          132027 non-null  object 
+ 3   CreditScore      132027 non-null  int64  
+ 4   Geography        132027 non-null  object 
+ 5   Gender           132027 non-null  object 
+ 6   Age              132027 non-null  float64
+ 7   Tenure           132027 non-null  int64  
+ 8   Balance          132027 non-null  float64
+ 9   NumOfProducts    132027 non-null  int64  
+ 10  HasCrCard        132027 non-null  float64
+ 11  IsActiveMember   132027 non-null  float64
+ 12  EstimatedSalary  132027 non-null  float64
+ 13  Exited           132027 non-null  int64  
+dtypes: float64(5), int64(6), object(3)
+memory usage: 14.1+ MB
+None
+
+数据前5行：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+
+缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(file_path)
+
+# 检查数据基本信息
+print("数据基本信息：")
+print(data.info())
+print("\n数据前5行：")
+print(data.head())
+
+# 检查缺失值
+print("\n缺失值情况：")
+print(data.isnull().sum())
+
+# 处理缺失值
+# 假设数值变量用中位数填充，分类变量用众数填充
+numeric_features = data.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = data.select_dtypes(include=['object']).columns.tolist()
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 分割数据集
+X = data.drop(columns=['Exited'])
+y = data['Exited']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 应用预处理
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# 检查预处理后的数据
+print("\n预处理后的训练数据前5行：")
+print(X_train_preprocessed[:5])
+print("\n预处理后的测试数据前5行：")
+print(X_test_preprocessed[:5])
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'Exited'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 364, in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'Exited'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_e0c154f996828ebda1a71b6030fa4a7de24c2d0c4297dabb8c4180eaa436b5ae.py", line 52, in <module>
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 993, in fit_transform
+    self._validate_column_callables(X)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 552, in _validate_column_callables
+    transformer_to_input_indices[name] = _get_column_indices(X, columns)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 372, in _get_column_indices
+    raise ValueError("A given column is not a column of the dataframe") from e
+ValueError: A given column is not a column of the dataframe
+数据基本信息：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 132027 entries, 0 to 132026
+Data columns (total 14 columns):
+ #   Column           Non-Null Count   Dtype  
+---  ------           --------------   -----  
+ 0   id               132027 non-null  int64  
+ 1   CustomerId       132027 non-null  int64  
+ 2   Surname          132027 non-null  object 
+ 3   CreditScore      132027 non-null  int64  
+ 4   Geography        132027 non-null  object 
+ 5   Gender           132027 non-null  object 
+ 6   Age              132027 non-null  float64
+ 7   Tenure           132027 non-null  int64  
+ 8   Balance          132027 non-null  float64
+ 9   NumOfProducts    132027 non-null  int64  
+ 10  HasCrCard        132027 non-null  float64
+ 11  IsActiveMember   132027 non-null  float64
+ 12  EstimatedSalary  132027 non-null  float64
+ 13  Exited           132027 non-null  int64  
+dtypes: float64(5), int64(6), object(3)
+memory usage: 14.1+ MB
+None
+
+数据前5行：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+
+缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(file_path)
+
+# 检查数据基本信息
+print("数据基本信息：")
+print(data.info())
+print("\n数据前5行：")
+print(data.head())
+
+# 检查缺失值
+print("\n缺失值情况：")
+print(data.isnull().sum())
+
+# 处理缺失值
+# 假设数值变量用中位数填充，分类变量用众数填充
+numeric_features = ['CreditScore', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
+categorical_features = ['Surname', 'Geography', 'Gender']
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 分割数据集
+X = data.drop(columns=['Exited'])
+y = data['Exited']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 应用预处理
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# 检查预处理后的数据
+print("\n预处理后的训练数据前5行：")
+print(X_train_preprocessed[:5])
+print("\n预处理后的测试数据前5行：")
+print(X_test_preprocessed[:5])
+
+
+执行结果：
+数据基本信息：
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 132027 entries, 0 to 132026
+Data columns (total 14 columns):
+ #   Column           Non-Null Count   Dtype  
+---  ------           --------------   -----  
+ 0   id               132027 non-null  int64  
+ 1   CustomerId       132027 non-null  int64  
+ 2   Surname          132027 non-null  object 
+ 3   CreditScore      132027 non-null  int64  
+ 4   Geography        132027 non-null  object 
+ 5   Gender           132027 non-null  object 
+ 6   Age              132027 non-null  float64
+ 7   Tenure           132027 non-null  int64  
+ 8   Balance          132027 non-null  float64
+ 9   NumOfProducts    132027 non-null  int64  
+ 10  HasCrCard        132027 non-null  float64
+ 11  IsActiveMember   132027 non-null  float64
+ 12  EstimatedSalary  132027 non-null  float64
+ 13  Exited           132027 non-null  int64  
+dtypes: float64(5), int64(6), object(3)
+memory usage: 14.1+ MB
+None
+
+数据前5行：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+
+缺失值情况：
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+预处理后的训练数据前5行：
+<Compressed Sparse Row sparse matrix of dtype 'float64'
+	with 55 stored elements and shape (5, 2683)>
+  Coords	Values
+  (0, 0)	-0.7677690933270532
+  (0, 1)	-0.013754951605050789
+  (0, 2)	-1.0779379304780536
+  (0, 3)	-0.8850404619858329
+  (0, 4)	0.8152924171074938
+  (0, 5)	0.5715887027393872
+  (0, 6)	-0.9942694560969543
+  (0, 7)	-0.08352484687545172
+  (0, 1125)	1.0
+  (0, 2678)	1.0
+  (0, 2682)	1.0
+  (1, 0)	0.6776383197970716
+  (1, 1)	-1.4780808018832896
+  (1, 2)	0.7035408261801819
+  (1, 3)	-0.8850404619858329
+  (1, 4)	0.8152924171074938
+  (1, 5)	-1.749509735247418
+  (1, 6)	-0.9942694560969543
+  (1, 7)	-0.6583971564155298
+  (1, 318)	1.0
+  (1, 2680)	1.0
+  (1, 2682)	1.0
+  (2, 0)	-1.2288042164787136
+  (2, 1)	0.3241663984591582
+  (2, 2)	-0.7216421791464065
+  :	:
+  (2, 747)	1.0
+  (2, 2678)	1.0
+  (2, 2681)	1.0
+  (3, 0)	-1.0668189029389412
+  (3, 1)	-0.12639540162645377
+  (3, 2)	0.34724507484853473
+  (3, 3)	-0.8850404619858329
+  (3, 4)	0.8152924171074938
+  (3, 5)	0.5715887027393872
+  (3, 6)	1.0057635723071903
+  (3, 7)	0.5807160890344066
+  (3, 989)	1.0
+  (3, 2678)	1.0
+  (3, 2682)	1.0
+  (4, 0)	-0.1572090653694488
+  (4, 1)	-0.4643167516906627
+  (4, 2)	-1.0779379304780536
+  (4, 3)	-0.8850404619858329
+  (4, 4)	0.8152924171074938
+  (4, 5)	0.5715887027393872
+  (4, 6)	1.0057635723071903
+  (4, 7)	-0.03635751997783256
+  (4, 989)	1.0
+  (4, 2678)	1.0
+  (4, 2681)	1.0
+
+预处理后的测试数据前5行：
+<Compressed Sparse Row sparse matrix of dtype 'float64'
+	with 55 stored elements and shape (5, 2683)>
+  Coords	Values
+  (0, 0)	0.6651779110632429
+  (0, 1)	-0.23903585164785676
+  (0, 2)	1.059836577511829
+  (0, 3)	-0.8850404619858329
+  (0, 4)	0.8152924171074938
+  (0, 5)	0.5715887027393872
+  (0, 6)	-0.9942694560969543
+  (0, 7)	-0.5863029386957801
+  (0, 1973)	1.0
+  (0, 2678)	1.0
+  (0, 2681)	1.0
+  (1, 0)	-1.403249938752315
+  (1, 1)	-0.23903585164785676
+  (1, 2)	0.34724507484853473
+  (1, 3)	1.287910438020171
+  (1, 4)	0.8152924171074938
+  (1, 5)	0.5715887027393872
+  (1, 6)	-0.9942694560969543
+  (1, 7)	-0.8205388657520105
+  (1, 1870)	1.0
+  (1, 2679)	1.0
+  (1, 2682)	1.0
+  (2, 0)	0.9019256770059875
+  (2, 1)	-0.12639540162645377
+  (2, 2)	1.772428080175123
+  :	:
+  (2, 730)	1.0
+  (2, 2680)	1.0
+  (2, 2682)	1.0
+  (3, 0)	1.7118522447048505
+  (3, 1)	-1.0275190017976776
+  (3, 2)	1.059836577511829
+  (3, 3)	1.276837591298579
+  (3, 4)	0.8152924171074938
+  (3, 5)	0.5715887027393872
+  (3, 6)	1.0057635723071903
+  (3, 7)	1.1145463553844306
+  (3, 315)	1.0
+  (3, 2679)	1.0
+  (3, 2682)	1.0
+  (4, 0)	0.8645444508045015
+  (4, 1)	-1.3654403518618867
+  (4, 2)	-0.009050676483112342
+  (4, 3)	-0.8850404619858329
+  (4, 4)	0.8152924171074938
+  (4, 5)	0.5715887027393872
+  (4, 6)	-0.9942694560969543
+  (4, 7)	-1.1973456336206767
+  (4, 1732)	1.0
+  (4, 2678)	1.0
+  (4, 2681)	1.0
+
+生成的代码：
+# 定义模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train_preprocessed, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test_preprocessed)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# 输出 AUC-ROC
+print(f"AUC-ROC: {auc_roc:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_bbeaedafbcf50f73d77f41b825c800108874e0f79e31fe1092119fb5cb4cd20f.py", line 2, in <module>
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+NameError: name 'RandomForestClassifier' is not defined

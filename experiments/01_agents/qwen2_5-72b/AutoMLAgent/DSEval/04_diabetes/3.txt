@@ -1,0 +1,169 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicates
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+
+    # One-Hot Encoding
+    categorical_columns = ['gender', 'smoking_history']
+    train_df = pd.get_dummies(train_df, columns=categorical_columns)
+    test_df = pd.get_dummies(test_df, columns=categorical_columns)
+
+    # Ensure the test set has the same columns as the training set
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+
+    # Ensure the order of columns is the same
+    test_df = test_df[train_df.columns]
+
+    # Feature Scaling
+    numerical_columns = ['age', 'hypertension', 'heart_disease', 'bmi', 'HbA1c_level', 'blood_glucose_level']
+    scaler = StandardScaler()
+    train_df[numerical_columns] = scaler.fit_transform(train_df[numerical_columns])
+    test_df[numerical_columns] = scaler.transform(test_df[numerical_columns])
+
+    return train_df, test_df, scaler, numerical_columns
+
+# Feature Importance Ranking
+def train_preliminary_model(X_train, y_train):
+    model = RandomForestClassifier(n_estimators=200, max_depth=30, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+def get_feature_importance(model, X_train):
+    feature_importances = model.feature_importances_
+    feature_names = X_train.columns
+    feature_importance_df = pd.DataFrame({'feature': feature_names, 'importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='importance', ascending=False)
+    return feature_importance_df
+
+# Model Training and Evaluation
+def train_final_model(X_train, y_train):
+    final_model = RandomForestClassifier(n_estimators=200, max_depth=30, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    final_model.fit(X_train, y_train)
+    return final_model
+
+def evaluate_model(final_model, X_test, y_test):
+    y_pred = final_model.predict(X_test)
+    y_pred_proba = final_model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': conf_matrix
+    }
+    return performance_scores
+
+# Model Deployment
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+def main():
+    # Step 1. Retrieve or load a dataset from the specified paths
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Step 2. Preprocess the data
+    train_df, test_df, scaler, numerical_columns = preprocess_data(train_df, test_df)
+
+    # Step 3. Split the preprocessed data into features and target variable
+    X_train = train_df.drop(columns=['diabetes'])
+    y_train = train_df['diabetes']
+    X_test = test_df.drop(columns=['diabetes'])
+    y_test = test_df['diabetes']
+
+    # Step 4. Train a preliminary model to get feature importance
+    preliminary_model = train_preliminary_model(X_train, y_train)
+    feature_importance_df = get_feature_importance(preliminary_model, X_train)
+    print("Feature Importance:\n", feature_importance_df)
+
+    # Step 5. Train the final model
+    final_model = train_final_model(X_train, y_train)
+
+    # Step 6. Evaluate the final model
+    performance_scores = evaluate_model(final_model, X_test, y_test)
+    print("Model Performance on Test Set:", performance_scores)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/diabetes_random_forest.pkl'
+    save_model(final_model, model_path)
+
+    # Step 8. Load the saved model for inference
+    loaded_model = load_model(model_path)
+    new_data = pd.DataFrame({
+        'age': [50],
+        'hypertension': [0],
+        'heart_disease': [1],
+        'bmi': [25.0],
+        'HbA1c_level': [6.5],
+        'blood_glucose_level': [150],
+        'gender_Female': [1],
+        'gender_Male': [0],
+        'gender_Other': [0],
+        'smoking_history_current': [0],
+        'smoking_history_former': [1],
+        'smoking_history_never': [0],
+        'smoking_history_not current': [0],
+        'smoking_history_No Info': [0],
+        'smoking_history_ever': [0]  # Add this column to match the training set
+    })
+    new_data[numerical_columns] = scaler.transform(new_data[numerical_columns])
+    new_predictions = loaded_model.predict(new_data)
+    print("New Predictions:", new_predictions)
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 142, in <module>
+    main()
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    new_predictions = loaded_model.predict(new_data)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 903, in predict
+    proba = self.predict_proba(X)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 945, in predict_proba
+    X = self._validate_X_predict(X)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/ensemble/_forest.py", line 637, in _validate_X_predict
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2929, in validate_data
+    _check_feature_names(_estimator, X, reset=reset)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2787, in _check_feature_names
+    raise ValueError(message)
+ValueError: The feature names should match those that were passed during fit.
+Feature names must be in the same order as they were in fit.
+

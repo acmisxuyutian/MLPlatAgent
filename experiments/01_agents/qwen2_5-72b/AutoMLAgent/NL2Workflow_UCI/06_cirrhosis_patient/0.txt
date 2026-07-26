@@ -1,0 +1,215 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import joblib
+import logging
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    print("Dataset loaded successfully.")
+    print(df.head())
+    print(df.info())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Initial Data Exploration
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Handle Missing Values
+    imputer_num = SimpleImputer(strategy='median')
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    df[numerical_features] = imputer_num.fit_transform(df[numerical_features])
+
+    categorical_features = df.select_dtypes(include=['object']).columns
+    df[categorical_features] = imputer_cat.fit_transform(df[categorical_features])
+
+    # Remove Outliers
+    for feature in numerical_features:
+        Q1 = df[feature].quantile(0.25)
+        Q3 = df[feature].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        df = df[(df[feature] >= lower_bound) & (df[feature] <= upper_bound)]
+
+    # Normalize and Scale the Features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Encode Categorical Variables
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    encoded_features = encoder.fit_transform(df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+
+    # Combine numerical and encoded features
+    df = pd.concat([df[numerical_features], encoded_df], axis=1)
+
+    return df, scaler, encoder
+
+# Data Splitting
+def split_data(df, target_column):
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the MLP Model
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.relu3 = nn.ReLU()
+        self.fc4 = nn.Linear(hidden_size, output_size)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.fc3(x)
+        x = self.relu3(x)
+        x = self.fc4(x)
+        x = self.sigmoid(x)
+        return x
+
+# Train the Model
+def train_model(model, X_train, y_train, X_val, y_val):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 100
+    patience = 5
+    best_val_loss = float('inf')
+    counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train.values, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1))
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(torch.tensor(X_val.values, dtype=torch.float32))
+            val_loss = criterion(val_outputs, torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1))
+            val_loss_value = val_loss.item()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss_value:.4f}')
+
+        if val_loss_value < best_val_loss:
+            best_val_loss = val_loss_value
+            counter = 0
+            torch.save(model.state_dict(), 'best_model.pth')
+        else:
+            counter += 1
+            if counter >= patience:
+                print("Early stopping")
+                break
+
+    return model
+
+# Evaluate the Model
+def evaluate_model(model, X_test, y_test):
+    model.load_state_dict(torch.load('best_model.pth'))
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(X_test.values, dtype=torch.float32))
+        test_predictions = (test_outputs.squeeze().numpy() > 0.5).astype(int)
+        test_accuracy = accuracy_score(y_test, test_predictions)
+        test_f1 = f1_score(y_test, test_predictions)
+        test_log_loss = log_loss(y_test, test_outputs.squeeze().numpy())
+
+    performance_scores = {
+        'ACC': test_accuracy,
+        'F1': test_f1,
+        'Log Loss': test_log_loss
+    }
+
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+    df = load_dataset(dataset_path)
+
+    target_column = 'survival_state'
+    if target_column not in df.columns:
+        raise ValueError(f"Target column '{target_column}' not found in the dataset.")
+
+    df, scaler, encoder = preprocess_data(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df, target_column)
+
+    input_size = X_train.shape[1]
+    hidden_size = 128
+    output_size = 1
+    model = MLP(input_size, hidden_size, output_size)
+
+    model = train_model(model, X_train, y_train, X_val, y_val)
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the preprocessing steps
+    preprocessing_steps = {
+        'scaler': scaler,
+        'encoder': encoder
+    }
+    joblib.dump(preprocessing_steps, 'preprocessing_steps.pkl')
+
+    # Save the model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    torch.save(model.state_dict(), './agent_workspace/trained_models/final_model.pth')
+
+    # Set up monitoring
+    logging.basicConfig(filename='model_monitoring.log', level=logging.INFO)
+    log_performance(model_performance['ACC'], model_performance['F1'], model_performance['Log Loss'])
+
+    return model_performance
+
+def log_performance(accuracy, f1_score, log_loss):
+    logging.info(f'Accuracy: {accuracy:.4f}, F1 Score: {f1_score:.4f}, Log Loss: {log_loss:.4f}')
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 202, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 168, in main
+    raise ValueError(f"Target column '{target_column}' not found in the dataset.")
+ValueError: Target column 'survival_state' not found in the dataset.

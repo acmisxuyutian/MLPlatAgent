@@ -1,0 +1,151 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix, accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Drop duplicates
+    train_df = train_df.drop_duplicates()
+    test_df = test_df.drop_duplicates()
+
+    # One-hot encoding for categorical columns
+    train_df = pd.get_dummies(train_df, columns=['gender', 'smoking_history'])
+    test_df = pd.get_dummies(test_df, columns=['gender', 'smoking_history'])
+
+    return train_df, test_df
+
+# Feature Importance Ranking
+def rank_features(X_train, y_train):
+    # Initialize and train a preliminary random forest model
+    rf = RandomForestClassifier()
+    rf.fit(X_train, y_train)
+
+    # Extract feature importance scores
+    feature_importances = rf.feature_importances_
+    feature_names = X_train.columns
+    feature_importance_dict = dict(zip(feature_names, feature_importances))
+
+    # Rank features by importance
+    sorted_feature_importance = sorted(feature_importance_dict.items(), key=lambda x: x[1], reverse=True)
+    return sorted_feature_importance
+
+# Model Training
+def train_model(X_train, y_train):
+    # Initialize the random forest classifier with optimal hyperparameters
+    rf_final = RandomForestClassifier(n_estimators=100, max_depth=10, min_samples_split=2, min_samples_leaf=1, max_features='sqrt')
+    rf_final.fit(X_train, y_train)
+    return rf_final
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    # Make predictions on the test dataset
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    # Compute AUC-ROC
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    print(f'AUC-ROC Score: {auc_roc}')
+
+    # Generate confusion matrix
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    print(f'Confusion Matrix:\n{conf_matrix}')
+
+    # Compute accuracy and F1 score
+    accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Accuracy': accuracy,
+        'F1 Score': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from the specified paths
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2. Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3. Split the data into features and target
+    X_train = train_df.drop(columns=['diabetes'])
+    y_train = train_df['diabetes']
+    X_test = test_df.drop(columns=['diabetes'])
+    y_test = test_df['diabetes']
+
+    # Step 4. Rank features by importance
+    sorted_feature_importance = rank_features(X_train, y_train)
+    print("Feature Importance Ranking:")
+    for feature, importance in sorted_feature_importance:
+        print(f"{feature}: {importance}")
+
+    # Step 5. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 7. Save the trained model
+    model_save_path = "./agent_workspace/trained_models/random_forest_diabetes_model.pkl"
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Feature Importance Ranking:
+HbA1c_level: 0.40797009247320076
+blood_glucose_level: 0.31245682809049824
+bmi: 0.12571266362561778
+age: 0.10540606792833791
+hypertension: 0.015264877455160145
+heart_disease: 0.010795442816780045
+smoking_history_No Info: 0.003988568625532996
+smoking_history_former: 0.0037333365544357975
+smoking_history_never: 0.0033941735630335893
+smoking_history_current: 0.0026119118797012474
+gender_Male: 0.002222220816087482
+gender_Female: 0.002197754998648286
+smoking_history_not current: 0.002193789109035322
+smoking_history_ever: 0.0020500011881672353
+gender_Other: 2.2708757633440872e-06
+AUC-ROC Score: 0.9699069410462078
+Confusion Matrix:
+[[18099     0]
+ [  557  1151]]
+Model Performance on Test Set: {'AUC-ROC': 0.9699069410462078, 'Accuracy': 0.9718786287676074, 'F1 Score': 0.8051766351871283}
+Model Performance on Test Set: {'AUC-ROC': 0.9699069410462078, 'Accuracy': 0.9718786287676074, 'F1 Score': 0.8051766351871283}

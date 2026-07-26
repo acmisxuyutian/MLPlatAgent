@@ -1,0 +1,203 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from scipy import stats
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval and Collection
+def download_dataset(url, filename):
+    import urllib.request
+    try:
+        urllib.request.urlretrieve(url, filename)
+        print(f"Dataset downloaded successfully to {filename}")
+    except urllib.error.HTTPError as e:
+        print(f"HTTP Error: {e}")
+        raise
+
+def load_dataset(filename):
+    df = pd.read_csv(filename)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Data Inspection
+    print(df.head())
+    print(df.columns)
+
+    # Data Cleaning
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    df[numerical_features] = df[numerical_features].fillna(df[numerical_features].mean())
+    df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+
+    # Remove or Impute Outliers
+    z_scores = stats.zscore(df[numerical_features])
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    # Data Normalization
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Categorical Encoding
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    # Feature Engineering (if necessary)
+    # df['water_temperature'] = df['temperature'] + df['salinity'] * 0.5
+
+    return df
+
+# Data Splitting
+def split_data(df):
+    X = df.drop(columns=['age'])
+    y = df['age']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Implementation
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(MLP, self).__init__()
+        layers = []
+        layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        layers.append(nn.ReLU())
+        for i in range(1, len(hidden_sizes)):
+            layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+            layers.append(nn.ReLU())
+        layers.append(nn.Linear(hidden_sizes[-1], output_size))
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+def train_model(model, train_loader, val_loader, num_epochs=100, batch_size=64, lr=0.001):
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets.unsqueeze(1))
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_inputs = torch.tensor(X_val.values, dtype=torch.float32)
+            val_targets = torch.tensor(y_val.values, dtype=torch.float32)
+            val_outputs = model(val_inputs)
+            val_loss = criterion(val_outputs, val_targets.unsqueeze(1))
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+        model.train()
+
+    return model
+
+def evaluate_model(model, test_loader):
+    criterion = nn.L1Loss()
+    model.eval()
+    with torch.no_grad():
+        test_inputs = torch.tensor(X_test.values, dtype=torch.float32)
+        test_targets = torch.tensor(y_test.values, dtype=torch.float32)
+        test_outputs = model(test_inputs)
+        test_loss = criterion(test_outputs, test_targets.unsqueeze(1))
+        print(f'Test MAE: {test_loss.item():.4f}')
+    return {'MAE': test_loss.item()}
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1. Retrieve or load the dataset
+    url = "https://raw.githubusercontent.com/your-repo/your-dataset-path/crab_age_train.csv"
+    filename = "crab_age_train.csv"
+    download_dataset(url, filename)
+    df = load_dataset(filename)
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 4. Define the model
+    input_size = X_train.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = 1
+    model = MLP(input_size, hidden_sizes, output_size)
+
+    # Step 5. Train the model
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32))
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 6. Evaluate the model
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    model_performance = evaluate_model(model, test_loader)
+
+    # Step 7. Save the model
+    MODEL_SAVE_DIR = "./agent_workspace/trained_models"
+    os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
+    model_path = os.path.join(MODEL_SAVE_DIR, 'crab_age_mlp_model.pth')
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 168, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 132, in main
+    download_dataset(url, filename)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 24, in download_dataset
+    urllib.request.urlretrieve(url, filename)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 241, in urlretrieve
+    with contextlib.closing(urlopen(url, data)) as fp:
+                            ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/urllib/request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request

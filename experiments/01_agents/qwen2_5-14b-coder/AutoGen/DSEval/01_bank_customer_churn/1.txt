@@ -1,0 +1,334 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Drop the columns "CustomerId", "Complain", and "Surname"
+columns_to_drop = ["CustomerId", "Complain", "Surname"]
+
+train_df = train_df.drop(columns=columns_to_drop)
+test_df = test_df.drop(columns=columns_to_drop)
+
+# One-hot encode "Geography" and "Card Type"
+train_df = pd.get_dummies(train_df, columns=["Geography", "Card Type"], drop_first=True)
+test_df = pd.get_dummies(test_df, columns=["Geography", "Card Type"], drop_first=True)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Separate features and target variable
+X_train = train_df.drop(columns=["Exited"])
+y_train = train_df["Exited"]
+
+# Split the training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Create the XGBoost DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dval = xgb.DMatrix(X_val, label=y_val)
+
+# Set the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8
+}
+
+# Train the XGBoost model
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds, evals=[(dval, 'eval')], early_stopping_rounds=10)
+
+# Prepare the test data
+dtest = xgb.DMatrix(test_df.drop(columns=["Exited"]))
+
+# Make predictions on the test set
+y_pred_proba = bst.predict(dtest)
+
+# Compute the area under the ROC curve
+y_test = test_df["Exited"]
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"Area Under ROC Curve: {roc_auc}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_7b7eed986e0acbfa77b9ee56e241f8b0c90227db40917389e34871f1fb5cdce1.py", line 4, in <module>
+    train_df = train_df.drop(columns=columns_to_drop)
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+except FileNotFoundError:
+    print(f"File not found: {train_data_path} or {test_data_path}")
+    exit(1)
+
+# Drop the columns "CustomerId", "Complain", and "Surname"
+columns_to_drop = ["CustomerId", "Complain", "Surname"]
+
+train_df = train_df.drop(columns=columns_to_drop)
+test_df = test_df.drop(columns=columns_to_drop)
+
+# One-hot encode "Geography" and "Card Type"
+train_df = pd.get_dummies(train_df, columns=["Geography", "Card Type"], drop_first=True)
+test_df = pd.get_dummies(test_df, columns=["Geography", "Card Type"], drop_first=True)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Separate features and target variable
+X_train = train_df.drop(columns=["Exited"])
+y_train = train_df["Exited"]
+
+# Split the training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Create the XGBoost DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dval = xgb.DMatrix(X_val, label=y_val)
+
+# Set the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8
+}
+
+# Train the XGBoost model
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds, evals=[(dval, 'eval')], early_stopping_rounds=10)
+
+# Prepare the test data
+dtest = xgb.DMatrix(test_df.drop(columns=["Exited"]))
+
+# Make predictions on the test set
+y_pred_proba = bst.predict(dtest)
+
+# Compute the area under the ROC curve
+y_test = test_df["Exited"]
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"Area Under ROC Curve: {roc_auc}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_7b7eed986e0acbfa77b9ee56e241f8b0c90227db40917389e34871f1fb5cdce1.py", line 4, in <module>
+    train_df = train_df.drop(columns=columns_to_drop)
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    print(f"Training data loaded successfully with shape: {train_df.shape}")
+except FileNotFoundError:
+    print(f"File not found: {train_data_path}")
+    exit(1)
+
+try:
+    test_df = pd.read_csv(test_data_path)
+    print(f"Test data loaded successfully with shape: {test_df.shape}")
+except FileNotFoundError:
+    print(f"File not found: {test_data_path}")
+    exit(1)
+
+# Drop the columns "CustomerId", "Complain", and "Surname"
+columns_to_drop = ["CustomerId", "Complain", "Surname"]
+
+train_df = train_df.drop(columns=columns_to_drop)
+test_df = test_df.drop(columns=columns_to_drop)
+
+# One-hot encode "Geography" and "Card Type"
+train_df = pd.get_dummies(train_df, columns=["Geography", "Card Type"], drop_first=True)
+test_df = pd.get_dummies(test_df, columns=["Geography", "Card Type"], drop_first=True)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Separate features and target variable
+X_train = train_df.drop(columns=["Exited"])
+y_train = train_df["Exited"]
+
+# Split the training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Create the XGBoost DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dval = xgb.DMatrix(X_val, label=y_val)
+
+# Set the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8
+}
+
+# Train the XGBoost model
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds, evals=[(dval, 'eval')], early_stopping_rounds=10)
+
+# Prepare the test data
+dtest = xgb.DMatrix(test_df.drop(columns=["Exited"]))
+
+# Make predictions on the test set
+y_pred_proba = bst.predict(dtest)
+
+# Compute the area under the ROC curve
+y_test = test_df["Exited"]
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+print(f"Area Under ROC Curve: {roc_auc}")
+
+
+执行结果：
+Training data loaded successfully with shape: (8000, 18)
+Test data loaded successfully with shape: (2000, 18)
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_7b7eed986e0acbfa77b9ee56e241f8b0c90227db40917389e34871f1fb5cdce1.py", line 4, in <module>
+    train_df = train_df.drop(columns=columns_to_drop)
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# Load the training and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+
+try:
+    train_df = pd.read_csv(train_data_path)
+    print(f"Training data loaded successfully with shape: {train_df.shape}")
+except FileNotFoundError:
+    print(f"File not found: {train_data_path}")
+    exit(1)
+
+try:
+    test_df = pd.read_csv(test_data_path)
+    print(f"Test data loaded successfully with shape: {test_df.shape}")
+except FileNotFoundError:
+    print(f"File not found: {test_data_path}")
+    exit(1)
+
+# Drop the columns "CustomerId", "Complain", and "Surname"
+columns_to_drop = ["CustomerId", "Complain", "Surname"]
+
+if 'train_df' in locals():
+    train_df = train_df.drop(columns=columns_to_drop)
+    print("Columns dropped from training data.")
+else:
+    print("train_df is not defined.")
+    exit(1)
+
+if 'test_df' in locals():
+    test_df = test_df.drop(columns=columns_to_drop)
+    print("Columns dropped from test data.")
+else:
+    print("test_df is not defined.")
+    exit(1)
+
+# One-hot encode "Geography" and "Card Type"
+if 'train_df' in locals():
+    train_df = pd.get_dummies(train_df, columns=["Geography", "Card Type"], drop_first=True)
+    print("One-hot encoding completed for training data.")
+else:
+    print("train_df is not defined.")
+    exit(1)
+
+if 'test_df' in locals():
+    test_df = pd.get_dummies(test_df, columns=["Geography", "Card Type"], drop_first=True)
+    print("One-hot encoding completed for test data.")
+else:
+    print("test_df is not defined.")
+    exit(1)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Separate features and target variable
+if 'train_df' in locals():
+    X_train = train_df.drop(columns=["Exited"])
+    y_train = train_df["Exited"]
+    print("Features and target variable separated for training data.")
+else:
+    print("train_df is not defined.")
+    exit(1)
+
+# Split the training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Create the XGBoost DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dval = xgb.DMatrix(X_val, label=y_val)
+
+# Set the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8
+}
+
+# Train the XGBoost model
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds, evals=[(dval, 'eval')], early_stopping_rounds=10)
+
+# Prepare the test data
+if 'test_df' in locals():
+    dtest = xgb.DMatrix(test_df.drop(columns=["Exited"]))
+    print("Test data prepared.")
+else:
+    print("test_df is not defined.")
+    exit(1)
+
+# Make predictions on the test set
+y_pred_proba = bst.predict(dtest)
+
+# Compute the area under the ROC curve
+if 'test_df' in locals():
+    y_test = test_df["Exited"]
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
+    print(f"Area Under ROC Curve: {roc_auc}")
+else:
+    print("test_df is not defined.")
+    exit(1)
+
+
+执行结果：
+Training data loaded successfully with shape: (8000, 18)
+Test data loaded successfully with shape: (2000, 18)
+train_df is not defined.

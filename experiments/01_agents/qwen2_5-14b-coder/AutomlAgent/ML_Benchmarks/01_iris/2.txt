@@ -1,0 +1,162 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(data):
+    # Convert the dataset into a pandas DataFrame
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+
+    # Inspect the dataset for missing values and anomalies
+    print("Missing values:\n", df.isnull().sum())
+    print("Data summary:\n", df.describe())
+
+    # Split the dataset into features and target
+    X = df.drop('target', axis=1)
+    y = df['target']
+
+    # Split the dataset into training, validation, and testing sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Save the preprocessed dataset to a file
+    df.to_csv('iris_preprocessed.csv', index=False)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+def train_model(model, X_train, y_train, X_val, y_val):
+    # Define the hyperparameter grid
+    if isinstance(model, SVC):
+        param_grid = {
+            'C': [0.1, 1, 10],
+            'kernel': ['linear', 'rbf'],
+            'gamma': ['scale', 'auto']
+        }
+    elif isinstance(model, RandomForestClassifier):
+        param_grid = {
+            'n_estimators': [50, 100, 200],
+            'max_depth': [None, 10, 20, 30],
+            'min_samples_split': [2, 5, 10]
+        }
+    elif isinstance(model, LogisticRegression):
+        param_grid = {
+            'C': [0.1, 1, 10],
+            'solver': ['liblinear']
+        }
+
+    # Use Grid Search for hyperparameter optimization
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = grid_search.best_estimator_
+
+    # Train the best model on the full training set
+    best_model.fit(X_train, y_train)
+
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    # Predict the classes
+    y_pred = model.predict(X_test)
+
+    # Calculate performance metrics
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+
+    # Generate a confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.show()
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = load_iris()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    models = [SVC(), RandomForestClassifier(), LogisticRegression()]
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    best_models = []
+    for model in models:
+        best_model = train_model(model, X_train, y_train, X_val, y_val)
+        best_models.append(best_model)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = []
+    for model in best_models:
+        performance = evaluate_model(model, X_test, y_test)
+        model_performance.append(performance)
+
+    # Save the trained model to the specified directory
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    joblib.dump(best_models[0], './agent_workspace/trained_models/iris_model.pkl')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Missing values:
+ sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+target               0
+dtype: int64
+Data summary:
+        sepal length (cm)  sepal width (cm)  ...  petal width (cm)      target
+count         150.000000        150.000000  ...        150.000000  150.000000
+mean            5.843333          3.057333  ...          1.199333    1.000000
+std             0.828066          0.435866  ...          0.762238    0.819232
+min             4.300000          2.000000  ...          0.100000    0.000000
+25%             5.100000          2.800000  ...          0.300000    0.000000
+50%             5.800000          3.000000  ...          1.300000    1.000000
+75%             6.400000          3.300000  ...          1.800000    2.000000
+max             7.900000          4.400000  ...          2.500000    2.000000
+
+[8 rows x 5 columns]
+Model Performance on Test Set: [{'ACC': 1.0, 'F1': 1.0}, {'ACC': 1.0, 'F1': 1.0}, {'ACC': 1.0, 'F1': 1.0}]

@@ -1,0 +1,223 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import mutual_info_classif
+from imblearn.over_sampling import SMOTE
+from sklearn.utils.class_weight import compute_class_weight
+from xgboost import XGBClassifier
+from skopt import BayesSearchCV
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import roc_auc_score
+import joblib
+import logging
+import shap
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Data Retrieval and Initial Exploration
+def load_and_explore_data(file_path):
+    logging.info("Loading dataset...")
+    df = pd.read_csv(file_path)
+    
+    logging.info("Performing initial data exploration...")
+    print(df.describe())
+    print(df.info())
+    print(df.head())
+    
+    if 'churn' in df.columns:
+        print(df['churn'].value_counts())
+    else:
+        raise ValueError("The target variable 'churn' is not present in the dataset.")
+    
+    print(df.isnull().sum())
+    
+    for column in df.select_dtypes(include=['float64', 'int64']).columns:
+        sns.boxplot(x=df[column])
+        plt.show()
+    
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    logging.info("Handling missing values...")
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+    
+    logging.info("Performing feature engineering...")
+    if 'total_transactions' in df.columns and 'account_age' in df.columns:
+        df['transaction_frequency'] = df['total_transactions'] / df['account_age']
+    if 'total_transaction_amount' in df.columns and 'total_transactions' in df.columns:
+        df['average_transaction_amount'] = df['total_transaction_amount'] / df['total_transactions']
+    
+    logging.info("Selecting features using mutual information...")
+    mutual_info = mutual_info_classif(df.drop(columns=['churn']), df['churn'])
+    mutual_info = pd.Series(mutual_info, index=df.drop(columns=['churn']).columns)
+    mutual_info.sort_values(ascending=False, inplace=True)
+    print(mutual_info)
+    
+    logging.info("Normalizing numerical features...")
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    return df, numerical_imputer, categorical_imputer, scaler
+
+# Data Augmentation
+def augment_data(df):
+    logging.info("Addressing class imbalance...")
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop(columns=['churn']), df['churn'])
+    
+    logging.info("Computing class weights...")
+    class_weights = compute_class_weight('balanced', classes=[0, 1], y=y_resampled)
+    class_weights = dict(enumerate(class_weights))
+    
+    return X_resampled, y_resampled, class_weights
+
+# Model Training and Optimization
+def train_model(X_resampled, y_resampled, class_weights):
+    logging.info("Selecting and training the model...")
+    model = XGBClassifier(n_estimators=300, max_depth=7, learning_rate=0.1, subsample=0.7, colsample_bytree=0.7, scale_pos_weight=class_weights[1])
+    
+    logging.info("Performing hyperparameter tuning...")
+    param_space = {
+        'n_estimators': (100, 500),
+        'max_depth': (3, 9),
+        'learning_rate': (0.01, 0.2),
+        'subsample': (0.5, 1.0),
+        'colsample_bytree': (0.5, 1.0)
+    }
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    bayes_search = BayesSearchCV(model, param_space, n_iter=50, cv=cv, scoring='roc_auc', n_jobs=-1, random_state=42)
+    bayes_search.fit(X_resampled, y_resampled)
+    best_params = bayes_search.best_params_
+    print(f"Best Hyperparameters: {best_params}")
+    
+    logging.info("Training the final model with best hyperparameters...")
+    best_model = XGBClassifier(**best_params, scale_pos_weight=class_weights[1])
+    best_model.fit(X_resampled, y_resampled)
+    
+    return best_model
+
+# Model Evaluation
+def evaluate_model(best_model, X_resampled, y_resampled, X_test, y_test):
+    logging.info("Evaluating model performance...")
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(best_model, X_resampled, y_resampled, cv=cv, scoring='roc_auc')
+    print(f"Cross-Validation AUC-ROC Scores: {cv_scores}")
+    print(f"Mean AUC-ROC Score: {cv_scores.mean()}")
+    
+    logging.info("Evaluating on test set...")
+    y_pred_proba = best_model.predict_proba(X_test)[:, 1]
+    test_auc_roc = roc_auc_score(y_test, y_pred_proba)
+    print(f"Test Set AUC-ROC Score: {test_auc_roc}")
+    
+    return test_auc_roc
+
+# Model Interpretation
+def interpret_model(best_model, X_resampled):
+    logging.info("Extracting feature importance...")
+    feature_importance = best_model.feature_importances_
+    feature_importance = pd.Series(feature_importance, index=X_resampled.columns)
+    feature_importance.sort_values(ascending=False, inplace=True)
+    print(feature_importance)
+    
+    logging.info("Computing SHAP values...")
+    explainer = shap.TreeExplainer(best_model)
+    shap_values = explainer.shap_values(X_resampled)
+    shap.summary_plot(shap_values, X_resampled, plot_type="bar")
+
+# Model Saving and Deployment
+def save_model(best_model, model_path):
+    logging.info("Saving the model...")
+    joblib.dump(best_model, model_path)
+
+def load_and_predict(model_path, numerical_imputer, categorical_imputer, scaler, new_data):
+    logging.info("Loading the model...")
+    loaded_model = joblib.load(model_path)
+    
+    logging.info("Preprocessing new data...")
+    new_data[numerical_features] = numerical_imputer.transform(new_data[numerical_features])
+    new_data[categorical_features] = categorical_imputer.transform(new_data[categorical_features])
+    new_data[numerical_features] = scaler.transform(new_data[numerical_features])
+    
+    logging.info("Making prediction...")
+    prediction = loaded_model.predict_proba(new_data)[:, 1]
+    print(f"Prediction: {prediction}")
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+    test_file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv'
+    
+    train_df = load_and_explore_data(train_file_path)
+    test_df = pd.read_csv(test_file_path)
+    
+    # Step 2. Preprocess the data
+    train_df, numerical_imputer, categorical_imputer, scaler = preprocess_data(train_df)
+    
+    # Step 3. Augment the data
+    X_resampled, y_resampled, class_weights = augment_data(train_df)
+    
+    # Step 4. Train the model
+    best_model = train_model(X_resampled, y_resampled, class_weights)
+    
+    # Step 5. Evaluate the model
+    X_test = test_df.drop(columns=['churn'])
+    y_test = test_df['churn']
+    test_auc_roc = evaluate_model(best_model, X_resampled, y_resampled, X_test, y_test)
+    
+    # Step 6. Interpret the model
+    interpret_model(best_model, X_resampled)
+    
+    # Step 7. Save the model
+    model_path = r'./agent_workspace/trained_models/bank_customer_churn_xgboost.pkl'
+    save_model(best_model, model_path)
+    
+    # Step 8. Load and predict using the saved model
+    new_data = pd.DataFrame([[1, 2, 3, 4, 5]], columns=X_resampled.columns)
+    load_and_predict(model_path, numerical_imputer, categorical_imputer, scaler, new_data)
+    
+    return test_auc_roc
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+2025-09-02 14:02:34,493 - INFO - Loading dataset...
+2025-09-02 14:02:34,694 - INFO - Performing initial data exploration...
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 205, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 174, in main
+    train_df = load_and_explore_data(train_file_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 44, in load_and_explore_data
+    raise ValueError("The target variable 'churn' is not present in the dataset.")
+ValueError: The target variable 'churn' is not present in the dataset.

@@ -1,0 +1,136 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first five rows of the dataset
+first_five_rows = train_df.head()
+first_five_rows
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+        Category  DayOfWeek PdDistrict           X          Y
+0  LARCENY/THEFT  Wednesday   SOUTHERN -122.388380  37.783310
+1   NON-CRIMINAL   Saturday   SOUTHERN -122.403405  37.775421
+2  LARCENY/THEFT  Wednesday   NORTHERN -122.419581  37.789214
+3  VEHICLE THEFT     Friday    BAYVIEW -122.389744  37.757909
+4        ASSAULT     Friday    TARAVAL -122.478377  37.742877import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Check for missing values
+missing_values = train_df.isnull().sum()
+
+# Handle missing values (if any)
+# For simplicity, we'll drop rows with missing values
+train_df.dropna(inplace=True)
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['Category'] = label_encoder.fit_transform(train_df['Category'])
+train_df['DayOfWeek'] = label_encoder.fit_transform(train_df['DayOfWeek'])
+train_df['PdDistrict'] = label_encoder.fit_transform(train_df['PdDistrict'])
+
+# Split the data into features and target
+X = train_df.drop(columns=['Category'])
+y = train_df['Category']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Put all the result variables in the last line
+X_train, X_test, y_train, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       DayOfWeek  PdDistrict           X          Y
+ 1169           6           7 -122.411979  37.780904
+ 2778           0           4 -122.429930  37.798697
+ ...          ...         ...         ...        ...
+ 860            2           0 -122.403544  37.759642
+ 15795          3           3 -122.421734  37.763300
+ 
+ [56195 rows x 4 columns],
+        DayOfWeek  PdDistrict           X          Y
+ 61896          1           1 -122.406959  37.789435
+ 62732          6           1 -122.423849  37.806221
+ ...          ...         ...         ...        ...
+ 1666           2           9 -122.409849  37.783276
+ 63494          6           4 -122.431314  37.801443
+ 
+ [14049 rows x 4 columns],
+ 1169     20
+ 2778      4
+          ..
+ 860      16
+ 15795    33
+ Name: Category, Length: 56195, dtype: int32,
+ 61896    16
+ 62732    16
+          ..
+ 1666      1
+ 63494    33
+ Name: Category, Length: 14049, dtype: int32)import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Check for missing values
+missing_values = train_df.isnull().sum()
+
+# Handle missing values (if any)
+# For simplicity, we'll drop rows with missing values
+train_df.dropna(inplace=True)
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['Category'] = label_encoder.fit_transform(train_df['Category'])
+train_df['DayOfWeek'] = label_encoder.fit_transform(train_df['DayOfWeek'])
+train_df['PdDistrict'] = label_encoder.fit_transform(train_df['PdDistrict'])
+
+# Split the data into features and target
+X = train_df.drop(columns=['Category'])
+y = train_df['Category']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a RandomForestClassifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)
+
+# Calculate log loss
+logloss = log_loss(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+logloss, y_pred_proba
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(10.48325701645335,
+ array([[0.        , 0.00417647, 0.        , ..., 0.01592647, 0.        ,
+         0.        ],
+        [0.        , 0.01      , 0.        , ..., 0.        , 0.        ,
+         0.        ],
+        [0.        , 0.09666667, 0.        , ..., 0.01333333, 0.02      ,
+         0.        ],
+        ...,
+        [0.        , 0.        , 0.        , ..., 0.055     , 0.        ,
+         0.005     ],
+        [0.        , 0.00515152, 0.        , ..., 0.        , 0.00720058,
+         0.        ],
+        [0.        , 0.        , 0.        , ..., 0.67      , 0.        ,
+         0.        ]]))

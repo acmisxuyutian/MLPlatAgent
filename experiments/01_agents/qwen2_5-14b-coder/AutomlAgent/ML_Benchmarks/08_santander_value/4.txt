@@ -1,0 +1,189 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from scipy import stats
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Initial exploration
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Handle missing values
+    df.fillna(df.median(), inplace=True)
+
+    # Detect and handle outliers using Z-score
+    z_scores = stats.zscore(df.select_dtypes(include=[np.number]))
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    # Encode categorical variables
+    df = pd.get_dummies(df, columns=df.select_dtypes(include=['object']).columns)
+
+    # Normalize or scale numerical features
+    scaler = MinMaxScaler()
+    numerical_columns = df.select_dtypes(include=[np.number]).columns
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    # Feature Engineering
+    df['interaction_feature'] = df['feature1'] * df['feature2']
+    df['log_feature'] = np.log1p(df['skewed_feature'])
+
+    # Data Splitting
+    X = df.iloc[:, :-1]
+    y = df.iloc[:, -1]
+    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=SEED)
+    val_df, test_df = train_test_split(temp_df, test_size=0.33, random_state=SEED)
+
+    return train_df, val_df, test_df
+
+# Define the Neural Network Architecture
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+    
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Train the Model
+def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(torch.log1p(outputs), torch.log1p(targets))
+            loss.backward()
+            optimizer.step()
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Evaluate the Model
+def evaluate_model(model, test_loader):
+    model.eval()
+    predictions = []
+    true_values = []
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            predictions.extend(outputs.cpu().numpy().flatten())
+            true_values.extend(targets.cpu().numpy().flatten())
+    
+    predictions = np.array(predictions)
+    true_values = np.array(true_values)
+
+    mae = mean_absolute_error(true_values, predictions)
+    mse = mean_squared_error(true_values, predictions)
+    rmsle = np.sqrt(mean_squared_error(np.log1p(true_values), np.log1p(predictions)))
+
+    performance_scores = {
+        "MAE": mae,
+        "MSE": mse,
+        "RMSLE": rmsle
+    }
+
+    return performance_scores
+
+# Save the Trained Model
+def save_model(model, model_save_path):
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+
+# Load the Trained Model
+def load_model(model, model_save_path):
+    model.load_state_dict(torch.load(model_save_path))
+    model.eval()
+    return model
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/08_santander_value/santander_value.csv'
+    
+    # Ensure the dataset is downloaded
+    if not os.path.exists(dataset_path):
+        os.system("wget https://example.com/santander_value.csv -O /remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/08_santander_value/santander_value.csv")
+    
+    # Load the dataset
+    try:
+        df = pd.read_csv(dataset_path)
+    except pd.errors.EmptyDataError:
+        print("The dataset file is empty or could not be parsed.")
+        return
+    except FileNotFoundError:
+        print("The dataset file was not found at the specified path.")
+        return
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_df, val_df, test_df = preprocess_data(df)
+
+    # Convert to tensors
+    X_train = torch.tensor(train_df.iloc[:, :-1].values, dtype=torch.float32)
+    y_train = torch.tensor(train_df.iloc[:, -1].values, dtype=torch.float32).view(-1, 1)
+    X_val = torch.tensor(val_df.iloc[:, :-1].values, dtype=torch.float32)
+    y_val = torch.tensor(val_df.iloc[:, -1].values, dtype=torch.float32).view(-1, 1)
+    X_test = torch.tensor(test_df.iloc[:, :-1].values, dtype=torch.float32)
+    y_test = torch.tensor(test_df.iloc[:, -1].values, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train, y_train)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    test_dataset = TensorDataset(X_test, y_test)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    input_size = train_df.shape[1] - 1  # Subtract 1 for the target column
+    model = FNN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model = train_model(model, train_loader, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Step 7. Save the trained model
+    model_save_path = "./agent_workspace/trained_models/santander_value_model.pth"
+    save_model(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+The dataset file is empty or could not be parsed.
+Model Performance on Test Set: None

@@ -1,0 +1,273 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(data_path)
+
+# 查看数据前几行
+print(data.head())
+
+# 检查缺失值
+print(data.isnull().sum())
+
+# 分离特征和目标变量
+X = data.drop(columns=['Exited'])
+y = data['Exited']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 定义数值和类别特征
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(include=[np.object]).columns.tolist()
+
+# 创建预处理管道
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 应用预处理
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# 检查预处理后的数据
+print(X_train_preprocessed.shape)
+print(X_test_preprocessed.shape)
+
+
+执行结果：
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_a50c2642be05ca3e1dd28facc1212e5bc033d7268d11b06af01b03653176d4c3.py:30: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  categorical_features = X_train.select_dtypes(include=[np.object]).columns.tolist()
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_a50c2642be05ca3e1dd28facc1212e5bc033d7268d11b06af01b03653176d4c3.py", line 30, in <module>
+    categorical_features = X_train.select_dtypes(include=[np.object]).columns.tolist()
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\numpy\__init__.py", line 410, in __getattr__
+    raise AttributeError(__former_attrs__[attr], name=None)
+AttributeError: module 'numpy' has no attribute 'object'.
+`np.object` was a deprecated alias for the builtin `object`. To avoid this error in existing code, use `object` by itself. Doing this will not modify any behavior and is safe. 
+The aliases was originally deprecated in NumPy 1.20; for more details and guidance see the original release note at:
+    https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations. Did you mean: 'object_'?
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(data_path)
+
+# 查看数据前几行
+print(data.head())
+
+# 检查缺失值
+print(data.isnull().sum())
+
+# 分离特征和目标变量
+X = data.drop(columns=['Exited'])
+y = data['Exited']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 定义数值和类别特征
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(include=[object]).columns.tolist()
+
+# 创建预处理管道
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 应用预处理
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# 检查预处理后的数据
+print(X_train_preprocessed.shape)
+print(X_test_preprocessed.shape)
+
+
+执行结果：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+id                 0
+CustomerId         0
+Surname            0
+CreditScore        0
+Geography          0
+Gender             0
+Age                0
+Tenure             0
+Balance            0
+NumOfProducts      0
+HasCrCard          0
+IsActiveMember     0
+EstimatedSalary    0
+Exited             0
+dtype: int64
+(105621, 2685)
+(26406, 2685)
+
+生成的代码：
+# 创建模型管道
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(random_state=42))
+])
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_45035ea530f07108a53cdacd0813c91b19468e2d078599c443acaa32e115c895.py", line 2, in <module>
+    model = Pipeline(steps=[
+NameError: name 'Pipeline' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
+# 加载数据
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+data = pd.read_csv(data_path)
+
+# 查看数据前几行
+print(data.head())
+
+# 检查缺失值
+print(data.isnull().sum())
+
+# 分离特征和目标变量
+X = data.drop(columns=['Exited'])
+y = data['Exited']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 定义数值和类别特征
+numeric_features = X_train.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X_train.select_dtypes(include=[object]).columns.tolist()
+
+# 创建预处理管道
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# 创建模型管道
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(random_state=42))
+])
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f"AUC-ROC: {auc_roc:.4f}")
+
+
+执行结果：
+
+Timeout

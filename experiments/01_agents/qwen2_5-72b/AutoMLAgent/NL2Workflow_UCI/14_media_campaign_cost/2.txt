@@ -1,0 +1,137 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_log_error
+import optuna
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+def load_data(file_path):
+    df = pd.read_csv(file_path)
+    return df
+
+def initial_exploration(df):
+    print("Head of the DataFrame:")
+    print(df.head())
+    print("\nInfo of the DataFrame:")
+    print(df.info())
+    print("\nDescriptive Statistics:")
+    print(df.describe())
+    print("\nMissing Values:")
+    print(df.isnull().sum())
+
+# Step 2. Preprocess the data
+def preprocess_data(df):
+    numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
+
+    if numerical_features:
+        imputer_num = SimpleImputer(strategy='mean')
+        df[numerical_features] = imputer_num.fit_transform(df[numerical_features])
+
+    if categorical_features:
+        imputer_cat = SimpleImputer(strategy='most_frequent')
+        df[categorical_features] = imputer_cat.fit_transform(df[categorical_features])
+
+    if numerical_features:
+        scaler = StandardScaler()
+        df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    if categorical_features:
+        df = pd.get_dummies(df, columns=categorical_features)
+
+    return df
+
+# Step 3. Split the data
+def split_data(df):
+    if 'media_campaign_cost' not in df.columns:
+        raise KeyError("The target variable 'media_campaign_cost' is not found in the dataset.")
+    
+    X = df.drop(columns=['media_campaign_cost'])
+    y = df['media_campaign_cost']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4. Train the model
+def train_model(X_train, y_train, X_val, y_val):
+    def objective(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 100, 500),
+            'max_depth': trial.suggest_int('max_depth', 3, 10),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 0.01, 0.3),
+            'subsample': trial.suggest_uniform('subsample', 0.5, 1.0),
+            'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.5, 1.0)
+        }
+        model = XGBRegressor(**params)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+        rmlse = np.sqrt(mean_squared_log_error(y_val, y_pred))
+        return rmlse
+
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=100)
+    best_params = study.best_params
+    best_model = XGBRegressor(**best_params)
+    best_model.fit(X_train, y_train)
+    return best_model
+
+# Step 5. Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred_test = model.predict(X_test)
+    rmlse = np.sqrt(mean_squared_log_error(y_test, y_pred_test))
+    performance_scores = {
+        'RMLSE': rmlse
+    }
+    print(f'Test RMLSE: {rmlse}')
+    return performance_scores
+
+# Step 6. Save the model
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# The main function to orchestrate the data loading, preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    df = load_data(file_path)
+    initial_exploration(df)
+
+    df = preprocess_data(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+    model = train_model(X_train, y_train, X_val, y_val)
+    model_performance = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:", model_performance)
+
+    model_path = r'./agent_workspace/trained_models/xgboost_media_campaign_cost_model.pkl'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 121, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 110, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+                                                     ^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 58, in split_data
+    raise KeyError("The target variable 'media_campaign_cost' is not found in the dataset.")
+KeyError: "The target variable 'media_campaign_cost' is not found in the dataset."

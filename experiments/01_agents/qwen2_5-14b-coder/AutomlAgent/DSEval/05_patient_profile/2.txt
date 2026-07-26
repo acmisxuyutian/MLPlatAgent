@@ -1,0 +1,149 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data():
+    # Load the datasets
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv')
+    
+    # Identify categorical features
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns
+    
+    # Apply one-hot encoding
+    train_encoded = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+    test_encoded = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+    
+    # Align encoded features
+    train_encoded, test_encoded = train_encoded.align(test_encoded, join='inner', axis=1)
+    
+    # Save the preprocessed datasets
+    train_encoded.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train_encoded.csv', index=False)
+    test_encoded.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test_encoded.csv', index=False)
+    
+    return train_encoded, test_encoded
+
+def train_model(train_loader, valid_loader):
+    # Split the training data into training and validation sets
+    X_train, y_train = train_loader.drop('outcome variable', axis=1), train_loader['outcome variable']
+    X_val, y_val = valid_loader.drop('outcome variable', axis=1), valid_loader['outcome variable']
+    
+    # Define hyperparameter search space
+    param_grid = {
+        'C': [0.1, 1, 10],
+        'solver': ['liblinear', 'saga']
+    }
+    
+    # Initialize and train the model
+    model = LogisticRegression(max_iter=1000)
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
+    grid_search.fit(X_train, y_train)
+    
+    # Retrieve optimal hyperparameters
+    best_params = grid_search.best_params_
+    best_model = grid_search.best_estimator_
+    
+    return best_model
+
+def evaluate_model(model, test_loader):
+    # Identify features and target variable
+    X_test_all = test_loader.drop('outcome variable', axis=1)
+    y_test_all = test_loader['outcome variable']
+    
+    # Make predictions on the test set
+    y_test_pred = model.predict(X_test_all)
+    
+    # Calculate performance metrics
+    test_accuracy = accuracy_score(y_test_all, y_test_pred)
+    test_precision = precision_score(y_test_all, y_test_pred)
+    test_recall = recall_score(y_test_all, y_test_pred)
+    
+    # Print performance metrics
+    print(f'Test Accuracy: {test_accuracy}')
+    print(f'Test Precision: {test_precision}')
+    print(f'Test Recall: {test_recall}')
+    
+    # Return performance scores
+    performance_scores = {
+        'ACC': test_accuracy,
+        'Precision': test_precision,
+        'Recall': test_recall
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_encoded, test_encoded = preprocess_data()
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_loader, valid_loader = train_test_split(train_encoded, test_size=0.3, random_state=SEED)
+    valid_loader, test_loader = train_test_split(valid_loader, test_size=0.33, random_state=SEED)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in the preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(train_loader, valid_loader)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Training is already done in the train_model function
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    # Save the model
+    os.makedirs('./agent_workspace/trained_models', exist_ok=True)
+    joblib.dump(model, './agent_workspace/trained_models/logistic_regression_model.pkl')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 121, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 106, in main
+    model = train_model(train_loader, valid_loader)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 41, in train_model
+    X_train, y_train = train_loader.drop('outcome variable', axis=1), train_loader['outcome variable']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['outcome variable'] not found in axis"

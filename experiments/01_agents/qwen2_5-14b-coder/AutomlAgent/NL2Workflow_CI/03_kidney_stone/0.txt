@@ -1,0 +1,200 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+import torch
+import torch.nn as nn
+import optuna
+from sklearn.metrics import roc_auc_score
+from flask import Flask, request, jsonify
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Model architecture
+class KidneyStoneModel(nn.Module):
+    def __init__(self, input_size):
+        super(KidneyStoneModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values
+    imputer_numeric = SimpleImputer(strategy='mean')
+    df_numeric = imputer_numeric.fit_transform(df.select_dtypes(include=['float64', 'int64']))
+    
+    imputer_categorical = SimpleImputer(strategy='most_frequent')
+    df_categorical = imputer_categorical.fit_transform(df.select_dtypes(include=['object']))
+    
+    # Standardize features
+    scaler = StandardScaler()
+    df_numeric_scaled = scaler.fit_transform(df_numeric)
+    
+    # Feature selection
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf.fit(df_numeric_scaled, df['has_kidney_stone'])
+    important_features = rf.feature_importances_ > 0.01
+    df_numeric_selected = df_numeric_scaled[:, important_features]
+    
+    return df_numeric_selected, important_features
+
+def train_model(model, train_loader, val_loader, best_params):
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
+
+    for epoch in range(best_params['num_epochs']):
+        model.train()
+        for i in range(0, len(train_loader[0]), best_params['batch_size']):
+            inputs = torch.tensor(train_loader[0][i:i+best_params['batch_size']], dtype=torch.float32)
+            labels = torch.tensor(train_loader[1][i:i+best_params['batch_size']].values, dtype=torch.float32).view(-1, 1)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        test_inputs = torch.tensor(test_loader[0], dtype=torch.float32)
+        test_labels = torch.tensor(test_loader[1].values, dtype=torch.float32).view(-1, 1)
+        test_outputs = model(test_inputs)
+        test_predictions = test_outputs.numpy().flatten()
+        test_auc_roc = roc_auc_score(test_labels.numpy(), test_predictions)
+    
+    performance_scores = {
+        'AUC-ROC': test_auc_roc
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=42)
+    val_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_data, important_features = preprocess_data(train_df)
+    val_data, _ = preprocess_data(val_df)
+    test_data, _ = preprocess_data(test_df)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = train_data.shape[1]
+    model = KidneyStoneModel(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    def objective(trial):
+        # Define hyperparameters
+        learning_rate = trial.suggest_loguniform('learning_rate', 1e-4, 1e-1)
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
+        num_epochs = trial.suggest_int('num_epochs', 20, 50)
+        dropout_rate = trial.suggest_uniform('dropout_rate', 0.1, 0.5)
+
+        # Initialize the model
+        model = KidneyStoneModel(input_size)
+        criterion = nn.BCELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+        # Training loop
+        for epoch in range(num_epochs):
+            model.train()
+            for i in range(0, len(train_data), batch_size):
+                inputs = torch.tensor(train_data[i:i+batch_size], dtype=torch.float32)
+                labels = torch.tensor(train_df['has_kidney_stone'][i:i+batch_size].values, dtype=torch.float32).view(-1, 1)
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+        # Validation loop
+        model.eval()
+        with torch.no_grad():
+            val_inputs = torch.tensor(val_data, dtype=torch.float32)
+            val_labels = torch.tensor(val_df['has_kidney_stone'].values, dtype=torch.float32).view(-1, 1)
+            val_outputs = model(val_inputs)
+            val_predictions = val_outputs.numpy().flatten()
+            auc_roc = roc_auc_score(val_labels.numpy(), val_predictions)
+        
+        return auc_roc
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+    best_params = study.best_params
+
+    # Train the model with the best hyperparameters
+    model = train_model(model, (train_data, train_df['has_kidney_stone']), (val_data, val_df['has_kidney_stone']), best_params)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, (test_data, test_df['has_kidney_stone']))
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 100, in main
+    train_data, important_features = preprocess_data(train_df)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 45, in preprocess_data
+    df_categorical = imputer_categorical.fit_transform(df.select_dtypes(include=['object']))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 436, in fit
+    X = self._validate_input(X, in_fit=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 363, in _validate_input
+    raise ve
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 929, in check_array
+    dtype_orig = np.result_type(*dtypes_orig)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: at least one array or dtype is required

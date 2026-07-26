@@ -1,0 +1,186 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import logging
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.metrics import roc_auc_score
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from scipy import stats
+import joblib
+import shap
+
+# Optional: Install lime if not already installed
+# !pip install lime
+
+from lime.lime_tabular import LimeTabularExplainer
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Data Retrieval
+def load_datasets():
+    logger.info("Loading datasets...")
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv')
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    logger.info("Preprocessing data...")
+
+    # Data Splitting
+    train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['label'])
+
+    # Data Cleaning
+    train_df.fillna(train_df.mean(), inplace=True)
+    train_df.fillna(train_df.mode().iloc[0], inplace=True)
+    val_df.fillna(val_df.mean(), inplace=True)
+    val_df.fillna(val_df.mode().iloc[0], inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+    test_df.fillna(test_df.mode().iloc[0], inplace=True)
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    train_features = scaler.fit_transform(train_df.drop(columns=['label']))
+    val_features = scaler.transform(val_df.drop(columns=['label']))
+    test_features = scaler.transform(test_df.drop(columns=['label']))
+
+    # Feature Engineering
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    if len(categorical_features) > 0:
+        train_categorical = encoder.fit_transform(train_df[categorical_features])
+        val_categorical = encoder.transform(val_df[categorical_features])
+        test_categorical = encoder.transform(test_df[categorical_features])
+        train_features = np.hstack((train_features, train_categorical))
+        val_features = np.hstack((val_features, val_categorical))
+        test_features = np.hstack((test_features, test_categorical))
+
+    # Data Augmentation
+    smote = SMOTE(random_state=42)
+    train_features, train_labels = smote.fit_resample(train_features, train_df['label'])
+
+    return train_features, train_labels, val_features, val_df['label'], test_features, test_df['label']
+
+# Exploratory Data Analysis
+def exploratory_data_analysis(train_df):
+    logger.info("Performing exploratory data analysis...")
+    summary_stats = train_df.describe()
+    class_distribution = train_df['label'].value_counts(normalize=True)
+    correlation_matrix = train_df.corr()
+    logger.info("Summary Statistics:\n%s", summary_stats)
+    logger.info("Class Distribution:\n%s", class_distribution)
+    logger.info("Correlation Matrix:\n%s", correlation_matrix)
+
+    # Outlier Detection
+    z_scores = stats.zscore(train_df.select_dtypes(include=[np.number]))
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    train_df = train_df[filtered_entries]
+
+    return summary_stats, class_distribution, correlation_matrix, train_df
+
+# Model Training
+def train_model(train_features, train_labels):
+    logger.info("Training model...")
+    model = XGBClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, subsample=0.7, random_state=42)
+    model.fit(train_features, train_labels)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, val_features, val_labels, test_features, test_labels):
+    logger.info("Evaluating model...")
+
+    # Validation Set Evaluation
+    val_predictions = model.predict_proba(val_features)[:, 1]
+    val_auc_roc = roc_auc_score(val_labels, val_predictions)
+    logger.info(f'Validation AUC-ROC: {val_auc_roc}')
+
+    # Test Set Evaluation
+    test_predictions = model.predict_proba(test_features)[:, 1]
+    test_auc_roc = roc_auc_score(test_labels, test_predictions)
+    logger.info(f'Test AUC-ROC: {test_auc_roc}')
+
+    performance_scores = {
+        'Validation AUC-ROC': val_auc_roc,
+        'Test AUC-ROC': test_auc_roc
+    }
+
+    return performance_scores
+
+# Model Saving
+def save_model(model, model_path):
+    logger.info("Saving model...")
+    joblib.dump(model, model_path)
+
+# Model Interpretability
+def model_interpretability(model, train_features, train_df):
+    logger.info("Interpreting model...")
+
+    # SHAP Values
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(train_features)
+    shap.summary_plot(shap_values, train_features, feature_names=train_df.drop(columns=['label']).columns)
+
+    # LIME
+    explainer = LimeTabularExplainer(train_features, feature_names=train_df.drop(columns=['label']).columns, class_names=['No Kidney Stone', 'Kidney Stone'], discretize_continuous=True)
+    explanation = explainer.explain_instance(test_features[0], model.predict_proba, num_features=10)
+    explanation.show_in_notebook(show_table=True)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    logger.info("Starting the pipeline...")
+
+    # Load datasets
+    train_df, test_df = load_datasets()
+
+    # Check if 'label' column exists
+    if 'label' not in train_df.columns:
+        raise ValueError("The 'label' column is missing in the training dataset.")
+    if 'label' not in test_df.columns:
+        raise ValueError("The 'label' column is missing in the testing dataset.")
+
+    # Exploratory Data Analysis
+    summary_stats, class_distribution, correlation_matrix, train_df = exploratory_data_analysis(train_df)
+
+    # Data Preprocessing
+    train_features, train_labels, val_features, val_labels, test_features, test_labels = preprocess_data(train_df, test_df)
+
+    # Model Training
+    model = train_model(train_features, train_labels)
+
+    # Model Evaluation
+    performance_scores = evaluate_model(model, val_features, val_labels, test_features, test_labels)
+
+    # Model Saving
+    model_path = r'./agent_workspace/trained_models/kidney_stone_model.pkl'
+    save_model(model, model_path)
+
+    # Model Interpretability
+    model_interpretability(model, train_features, train_df)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 21, in <module>
+    from lime.lime_tabular import LimeTabularExplainer
+ModuleNotFoundError: No module named 'lime'

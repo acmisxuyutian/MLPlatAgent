@@ -1,0 +1,211 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, LabelEncoder
+from sklearn.metrics import mean_squared_log_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data paths
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/08_santander_value/split_train.csv'
+eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/08_santander_value/split_eval.csv'
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, eval_df):
+    # Inspect the dataset
+    print(train_df.info())
+    print(train_df.describe())
+    print(train_df.isnull().sum())
+
+    # Handle missing values
+    train_df.fillna(train_df.mean(), inplace=True)
+    eval_df.fillna(train_df.mean(), inplace=True)
+
+    # Normalize/Standardize features
+    scaler = MinMaxScaler()
+    train_df[train_df.columns] = scaler.fit_transform(train_df[train_df.columns])
+    eval_df[eval_df.columns] = scaler.transform(eval_df[eval_df.columns])
+
+    # Encode categorical variables
+    train_df = pd.get_dummies(train_df)
+    eval_df = pd.get_dummies(eval_df)
+
+    # Split the dataset into features and target
+    X_train = train_df.drop('target', axis=1)
+    y_train = train_df['target']
+    X_eval = eval_df.drop('target', axis=1)
+    y_eval = eval_df['target']
+
+    return X_train, y_train, X_eval, y_eval
+
+# Define the neural network architecture
+class TabularRegressionModel(nn.Module):
+    def __init__(self, input_size):
+        super(TabularRegressionModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return x
+
+# Train the model
+def train_model(model, train_loader, valid_loader, criterion, optimizer, num_epochs):
+    model.train()
+    for epoch in range(num_epochs):
+        running_loss = 0.0
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        # Validate the model
+        model.eval()
+        valid_loss = 0.0
+        with torch.no_grad():
+            for inputs, targets in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                valid_loss += loss.item()
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Train Loss: {running_loss/len(train_loader):.4f}, Valid Loss: {valid_loss/len(valid_loader):.4f}')
+        model.train()
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    test_loss = 0.0
+    predictions = []
+    true_values = []
+
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            test_loss += loss.item()
+            predictions.extend(outputs.numpy())
+            true_values.extend(targets.numpy())
+
+    # Calculate RMSLE
+    rmsle = np.sqrt(mean_squared_log_error(true_values, predictions))
+    performance_scores = {
+        'RMSLE': rmsle
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+
+    # Step 2. Create a train-valid-test split of the data
+    X_train, y_train, X_eval, y_eval = preprocess_data(train_df, eval_df)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=SEED)
+
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+    X_eval_tensor = torch.tensor(X_eval.values, dtype=torch.float32)
+    y_eval_tensor = torch.tensor(y_eval.values, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    valid_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    test_dataset = TensorDataset(X_eval_tensor, y_eval_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model
+    input_size = X_train.shape[1]
+    model = TabularRegressionModel(input_size)
+
+    # Step 5. Train the model
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 100
+    model = train_model(model, train_loader, valid_loader, criterion, optimizer, num_epochs)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+
+    # Save the model
+    model_path = './agent_workspace/trained_models/tabular_regression_model.pth'
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 168, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 154, in main
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

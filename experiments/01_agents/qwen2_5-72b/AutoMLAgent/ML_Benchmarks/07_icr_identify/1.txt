@@ -1,0 +1,218 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import f1_score
+from scipy import stats
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Loading
+def load_data():
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_train.csv')
+    eval_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_eval.csv')
+    
+    print("Training Data Head:")
+    print(train_df.head())
+    print("Training Data Types:")
+    print(train_df.dtypes)
+    
+    return train_df, eval_df
+
+# Data Preprocessing
+def preprocess_data(train_df, eval_df):
+    # Exploratory Data Analysis (EDA)
+    print("Summary Statistics:")
+    print(train_df.describe())
+    
+    print("Missing Values:")
+    print(train_df.isnull().sum())
+    
+    print("Class Distribution:")
+    print(train_df['Class'].value_counts())
+    
+    # Handling Missing Values
+    numerical_features = train_df.select_dtypes(include=[np.number]).columns
+    train_df[numerical_features] = train_df[numerical_features].fillna(train_df[numerical_features].mean())
+    
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    for col in categorical_features:
+        train_df[col] = train_df[col].fillna(train_df[col].mode().iloc[0])
+    
+    # Feature Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    
+    # Encoding Categorical Variables
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    
+    # Data Splitting
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df.drop('Class', axis=1), train_df['Class'], test_size=0.2, random_state=42
+    )
+    
+    y_train = y_train.astype(int)
+    y_val = y_val.astype(int)
+    
+    return X_train, X_val, y_train, y_val
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    # Synthetic Data Generation using SMOTE
+    smote = SMOTE()
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    
+    # Feature Perturbation
+    perturbation = np.random.normal(0, 0.1, X_train_resampled.shape)
+    X_train_perturbed = X_train_resampled + perturbation
+    
+    return X_train_perturbed, y_train_resampled
+
+# Model Definition
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(MLP, self).__init__()
+        layers = []
+        layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        layers.append(nn.ReLU())
+        for i in range(1, len(hidden_sizes)):
+            layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+            layers.append(nn.ReLU())
+        layers.append(nn.Linear(hidden_sizes[-1], output_size))
+        layers.append(nn.Softmax(dim=1))
+        self.model = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.model(x)
+
+# Model Training
+def train_model(model, X_train, y_train, num_epochs=100, batch_size=64, lr=0.001):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    for epoch in range(num_epochs):
+        for i in range(0, len(X_train), batch_size):
+            X_batch = X_train[i:i+batch_size]
+            y_batch = y_train[i:i+batch_size]
+
+            X_batch = torch.tensor(X_batch, dtype=torch.float32)
+            y_batch = torch.tensor(y_batch, dtype=torch.long)
+
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+
+        if (epoch + 1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    model.eval()
+    with torch.no_grad():
+        X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+        y_val_tensor = torch.tensor(y_val, dtype=torch.long)
+        outputs = model(X_val_tensor)
+        _, predicted = torch.max(outputs, 1)
+        f1 = f1_score(y_val_tensor, predicted, average='weighted')
+        print(f'Validation F1 Score: {f1:.4f}')
+    
+    return f1
+
+# Model Saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Step 1. Load the dataset
+    train_df, eval_df = load_data()
+    
+    # Step 2. Preprocess the data
+    X_train, X_val, y_train, y_val = preprocess_data(train_df, eval_df)
+    
+    # Step 3. Augment the data
+    X_train_perturbed, y_train_resampled = augment_data(X_train, y_train)
+    
+    # Step 4. Define the model
+    input_size = X_train_perturbed.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = 3  # Number of classes
+    model = MLP(input_size, hidden_sizes, output_size)
+    
+    # Step 5. Train the model
+    model = train_model(model, X_train_perturbed, y_train_resampled)
+    
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_val, y_val)
+    
+    # Step 7. Save the model
+    model_path = './agent_workspace/trained_models/health_mlp_model.pth'
+    save_model(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 172, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in main
+    model = train_model(model, X_train_perturbed, y_train_resampled)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 103, in train_model
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/adam.py", line 45, in __init__
+    super().__init__(params, defaults)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/optim/optimizer.py", line 284, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_compile.py", line 22, in inner
+    import torch._dynamo
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/__init__.py", line 2, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/convert_frame.py", line 40, in <module>
+    from . import config, exc, trace_rules
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/trace_rules.py", line 50, in <module>
+    from .variables import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/__init__.py", line 34, in <module>
+    from .higher_order_ops import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/_dynamo/variables/higher_order_ops.py", line 13, in <module>
+    import torch.onnx.operators
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/__init__.py", line 59, in <module>
+    from ._internal.onnxruntime import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/torch/onnx/_internal/onnxruntime.py", line 36, in <module>
+    import onnx
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/__init__.py", line 131, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/compose.py", line 8, in <module>
+    from onnx import (
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/helper.py", line 21, in <module>
+    from onnx import _mapping, defs, subbyte
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/onnx/_mapping.py", line 104, in <module>
+    np.dtype(ml_dtypes.float4_e2m1fn),
+             ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'. Did you mean: 'float8_e4m3fn'?

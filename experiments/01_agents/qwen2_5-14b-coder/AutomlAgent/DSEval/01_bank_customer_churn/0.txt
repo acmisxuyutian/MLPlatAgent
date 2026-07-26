@@ -1,0 +1,115 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Drop irrelevant columns
+    train_df = train_df.drop(columns=['CustomerId', 'Complain', 'Surname'])
+    test_df = test_df.drop(columns=['CustomerId', 'Complain', 'Surname'])
+    
+    # Apply one-hot encoding
+    train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type', 'Gender'])
+    test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type', 'Gender'])
+    
+    # Ensure consistency in one-hot encoding
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    test_df = test_df[train_df.columns]
+    
+    return train_df, test_df
+
+def train_model(train_df):
+    # Prepare the data for training
+    X_train = train_df.drop('Exited', axis=1)
+    y_train = train_df['Exited']
+    
+    # Define the model with optimized hyperparameters
+    model = xgb.XGBClassifier(
+        n_estimators=200,
+        max_depth=4,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        use_label_encoder=False,
+        eval_metric='auc',
+        enable_categorical=True  # Enable categorical data handling
+    )
+    
+    # Train the model
+    model.fit(X_train, y_train)
+    
+    return model
+
+def evaluate_model(model, test_df):
+    # Prepare the test data
+    X_test = test_df.drop('Exited', axis=1)
+    y_test = test_df['Exited']
+    
+    # Make predictions
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Compute AUC-ROC
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    
+    # Compute Accuracy and F1 Score
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1,
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+    
+    # Step 2. Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3. Define required model and train it
+    model = train_model(train_df)
+    
+    # Step 4. Evaluate the trained model
+    model_performance = evaluate_model(model, test_df)
+    
+    # Step 5. Save the trained model
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/models/xgboost_churn_model.pkl'
+    joblib.dump(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'ACC': 0.861, 'F1': 0.5787878787878787, 'AUC-ROC': 0.8663069174144289}

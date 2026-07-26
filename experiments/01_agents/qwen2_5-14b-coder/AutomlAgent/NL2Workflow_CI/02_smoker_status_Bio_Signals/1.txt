@@ -1,0 +1,115 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
+import xgboost as xgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Handle missing values using mean imputation
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = imputer.fit_transform(df)
+
+    # Encode categorical variables using one-hot encoding
+    categorical_columns = df.select_dtypes(include=['object']).columns
+    numerical_columns = df.select_dtypes(exclude=['object']).columns
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_columns),
+            ('cat', OneHotEncoder(), categorical_columns)
+        ])
+
+    df_encoded = preprocessor.fit_transform(df)
+
+    # Split the dataset into features and target
+    X = df_encoded[:, :-1]
+    y = df_encoded[:, -1]
+
+    return X, y
+
+def train_model(X_train, y_train, X_val, y_val):
+    # Configure the XGBoost model with the DART variant
+    model = xgb.XGBClassifier(
+        objective='binary:logistic',
+        booster='dart',
+        learning_rate=0.1,
+        random_state=42,
+        n_estimators=100,
+        max_depth=6,
+        reg_alpha=1,
+        reg_lambda=1
+    )
+
+    # Train the model using the training and validation datasets
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], early_stopping_rounds=10, verbose=False)
+
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model's performance on the test set using the AUC-ROC metric
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from user's local storage
+    dataset_path = './data/smoker_status_Bio_Signals.csv'
+    if not os.path.exists(dataset_path):
+        print(f"Error: The dataset file {dataset_path} does not exist.")
+        return
+
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Create a train-valid-test split of the data
+    X, y = preprocess_data(df)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Step 3. Define required model and train it
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 4. Evaluate the trained model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 5. Save the trained model
+    model_save_path = './agent_workspace/trained_models/smoker_status_XGBoost_DART.pkl'
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error: The dataset file ./data/smoker_status_Bio_Signals.csv does not exist.

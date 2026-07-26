@@ -1,0 +1,150 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.metrics import roc_auc_score
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the paths to the datasets
+TRAIN_DATA_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+TEST_DATA_PATH = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+
+# Define the path to save the trained model
+MODEL_PATH = './agent_workspace/trained_models/xgboost_churn_model.pkl'
+
+# Function to load the datasets
+def load_data():
+    train_df = pd.read_csv(TRAIN_DATA_PATH)
+    test_df = pd.read_csv(TEST_DATA_PATH)
+    return train_df, test_df
+
+# Function to preprocess the data
+def preprocess_data(train_df, test_df):
+    # Drop non-informative features
+    train_df = train_df.drop(columns=['CustomerId', 'Complain', 'Surname'])
+    test_df = test_df.drop(columns=['CustomerId', 'Complain', 'Surname'])
+
+    # One-hot encoding for categorical variables
+    train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type', 'Gender'])
+    test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type', 'Gender'])
+
+    return train_df, test_df
+
+# Function to handle class imbalance
+def handle_class_imbalance(train_df):
+    # Check class distribution
+    print(train_df['Exited'].value_counts())
+
+    # Separate features and target variable
+    X_train = train_df.drop(columns=['Exited'])
+    y_train = train_df['Exited']
+
+    # Apply SMOTE (if needed)
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    # Combine resampled features and target variable back into a DataFrame
+    train_df_resampled = pd.concat([X_train_resampled, y_train_resampled], axis=1)
+    return train_df_resampled
+
+# Function to train the XGBoost model
+def train_model(X_train, y_train, X_val, y_val):
+    # Define the XGBoost model
+    xgb_model = xgb.XGBClassifier(random_state=42)
+
+    # Define the hyperparameter search space
+    param_dist = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.5, 0.8, 1.0],
+        'colsample_bytree': [0.5, 0.8, 1.0]
+    }
+
+    # Perform Random Search for hyperparameter tuning
+    random_search = RandomizedSearchCV(xgb_model, param_distributions=param_dist, n_iter=10, scoring='roc_auc', cv=5, random_state=42)
+    random_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = random_search.best_estimator_
+
+    # Evaluate the model on the validation set
+    y_val_pred = best_model.predict_proba(X_val)[:, 1]
+    val_roc_auc = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation ROC AUC: {val_roc_auc}')
+
+    return best_model
+
+# Function to evaluate the model
+def evaluate_model(model, X_test, y_test):
+    # Make predictions on the test set
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    test_roc_auc = roc_auc_score(y_test, y_test_pred)
+    print(f'Test ROC AUC: {test_roc_auc}')
+
+    # Return the performance scores
+    performance_scores = {
+        'Test ROC AUC': test_roc_auc
+    }
+    return performance_scores
+
+# The main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data()
+
+    # Step 2: Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Handle class imbalance (if needed)
+    train_df_resampled = handle_class_imbalance(train_df)
+
+    # Step 4: Split the data into training, validation, and test sets
+    X_train, X_val, y_train, y_val = train_test_split(
+        train_df_resampled.drop(columns=['Exited']), train_df_resampled['Exited'], test_size=0.2, random_state=42
+    )
+    X_test = test_df.drop(columns=['Exited'])
+    y_test = test_df['Exited']
+
+    # Step 5: Train the model
+    best_model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(best_model, X_test, y_test)
+
+    # Step 7: Save the trained model
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+    joblib.dump(best_model, MODEL_PATH)
+
+    # Step 8: Save the preprocessed datasets
+    train_df_resampled.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/preprocessed_train.csv', index=False)
+    test_df.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/preprocessed_test.csv', index=False)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Exited
+0    6355
+1    1645
+Name: count, dtype: int64
+Validation ROC AUC: 0.9619405554564732
+Test ROC AUC: 0.8608885109832776
+Model Performance on Test Set: {'Test ROC AUC': 0.8608885109832776}

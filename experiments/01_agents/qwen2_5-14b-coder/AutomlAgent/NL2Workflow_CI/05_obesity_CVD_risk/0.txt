@@ -1,0 +1,249 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+from sklearn.preprocessing import MinMaxScaler, KNNImputer, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import PolynomialFeatures
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the URL and the local paths to save the datasets
+train_url = 'https://example.com/path/to/obesity_CVD_risk/train.csv'
+test_url = 'https://example.com/path/to/obesity_CVD_risk/test.csv'
+train_local_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_local_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+preprocessed_train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train_preprocessed.csv'
+preprocessed_test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test_preprocessed.csv'
+engineered_train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train_engineered.csv'
+engineered_test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test_engineered.csv'
+model_path = './agent_workspace/trained_models/obesity_risk_fcn.pth'
+
+# Download the datasets
+def download_dataset(url, local_path):
+    response = requests.get(url)
+    with open(local_path, 'wb') as file:
+        file.write(response.content)
+
+# Load the datasets into pandas DataFrames
+def load_datasets():
+    download_dataset(train_url, train_local_path)
+    download_dataset(test_url, test_local_path)
+    train_df = pd.read_csv(train_local_path, encoding='latin1')  # Adjust encoding if necessary
+    test_df = pd.read_csv(test_local_path, encoding='latin1')  # Adjust encoding if necessary
+    return train_df, test_df
+
+# Preprocess the datasets
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+
+    # Define preprocessing steps
+    numerical_transformer = Pipeline(steps=[
+        ('scaler', MinMaxScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', KNNImputer(n_neighbors=5)),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Apply preprocessing to both train and test datasets
+    train_preprocessed = preprocessor.fit_transform(train_df)
+    test_preprocessed = preprocessor.transform(test_df)
+
+    # Save the preprocessed datasets
+    pd.DataFrame(train_preprocessed, columns=preprocessor.get_feature_names_out()).to_csv(preprocessed_train_path, index=False)
+    pd.DataFrame(test_preprocessed, columns=preprocessor.get_feature_names_out()).to_csv(preprocessed_test_path, index=False)
+
+    return train_preprocessed, test_preprocessed
+
+# Feature engineering
+def feature_engineering(train_preprocessed, test_preprocessed):
+    # Load the preprocessed datasets
+    train_preprocessed = pd.read_csv(preprocessed_train_path)
+    test_preprocessed = pd.read_csv(preprocessed_test_path)
+
+    # Define target and features
+    X_train = train_preprocessed.drop('obesity_risk_level', axis=1)
+    y_train = train_preprocessed['obesity_risk_level']
+    X_test = test_preprocessed.drop('obesity_risk_level', axis=1)
+    y_test = test_preprocessed['obesity_risk_level']
+
+    # Create polynomial features
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    X_train_poly = poly.fit_transform(X_train)
+    X_test_poly = poly.transform(X_test)
+
+    # Feature selection using RFE
+    model = LogisticRegression(max_iter=1000)
+    rfe = RFE(model, n_features_to_select=10)
+    X_train_rfe = rfe.fit_transform(X_train_poly, y_train)
+    X_test_rfe = rfe.transform(X_test_poly)
+
+    # Save the engineered datasets
+    pd.DataFrame(X_train_rfe, columns=[f'feature_{i}' for i in range(X_train_rfe.shape[1])]).to_csv(engineered_train_path, index=False)
+    pd.DataFrame(X_test_rfe, columns=[f'feature_{i}' for i in range(X_test_rfe.shape[1])]).to_csv(engineered_test_path, index=False)
+
+    return X_train_rfe, y_train, X_test_rfe, y_test
+
+# Define the model architecture
+class FCN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(FCN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        out = self.relu(self.fc1(x))
+        out = self.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out
+
+# Train the model
+def train_model(X_train, y_train, X_val, y_val):
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.long)
+
+    # Create DataLoader
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+
+    # Define the model
+    input_size = X_train.shape[1]
+    hidden_size = 128
+    num_classes = len(np.unique(y_train))
+    model = FCN(input_size, hidden_size, num_classes)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Training loop
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        accuracy = 100 * correct / total
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Accuracy: {accuracy:.2f}%')
+
+    # Save the trained model
+    torch.save(model.state_dict(), model_path)
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    # Convert to PyTorch tensors
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+    # Create DataLoader
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    # Evaluate the model on the test set
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(predicted.cpu().numpy())
+
+    # Calculate performance metrics
+    accuracy = accuracy_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred, average='weighted')
+
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, test_df = load_datasets()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_preprocessed, test_preprocessed = preprocess_data(train_df, test_df)
+    X_train_rfe, y_train, X_test_rfe, y_test = feature_engineering(train_preprocessed, test_preprocessed)
+
+    # Split the training dataset into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X_train_rfe, y_train, test_size=0.2, random_state=42)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test_rfe, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 9, in <module>
+    from sklearn.preprocessing import MinMaxScaler, KNNImputer, OneHotEncoder
+ImportError: cannot import name 'KNNImputer' from 'sklearn.preprocessing' (/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/__init__.py)

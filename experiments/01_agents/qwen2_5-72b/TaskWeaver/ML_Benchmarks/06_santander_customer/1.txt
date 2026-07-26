@@ -1,0 +1,339 @@
+import pandas as pd
+
+# Load the train and eval data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_train.csv'
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\06_santander_customer\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Display the first few rows of both datasets
+train_df.head(), eval_df.head()
+
+# Result variables
+train_df, eval_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        target    var_0   var_1    var_2   var_3    var_4    var_5   var_6    var_7   var_8   var_9  var_10   var_11   var_12   var_13   var_14   var_15   var_16   var_17
+ 0            0  12.6407  2.9411  15.2365  4.5054   8.6145  -9.7186  5.7701  18.4411 -3.2308  8.0473 -5.0846 -14.0572  13.9378   2.8296  11.1089  15.0745   4.8570  -3.3979
+ 1            0   5.5300 -2.6867  10.0739  8.2687  13.3336  -3.1191  6.0252  14.0497 -1.9432  5.8347 -6.0402  -9.2018  14.2642   4.6178   2.8759  13.9574   6.2063   6.6106
+ ...        ...      ...     ...      ...     ...      ...      ...     ...      ...     ...     ...     ...      ...      ...      ...      ...      ...      ...      ...
+ 159998       0   9.2887  1.4557  11.3724  7.1170  11.5726 -12.4409  5.4532  11.3057  1.6678  8.9360 -5.3413   8.7698  14.3318  11.3570   4.5807  14.3060  13.1477 -14.3903
+ 159999       0   8.1665 -2.6094  10.6859  5.8518  12.2860  -2.1595  6.6230  16.6330  5.3914  8.5136  5.6076   6.4551  14.0459  16.8025   8.4039  14.4438  10.8316  -0.8596
+ 
+ [160000 rows x 19 columns],
+        target    var_0   var_1    var_2   var_3    var_4    var_5   var_6    var_7   var_8   var_9  var_10  var_11   var_12   var_13   var_14   var_15   var_16   var_17
+ 0           1   8.6646 -2.0466  12.2794  7.4769   9.2845 -10.3530  5.4983   9.6363  3.5107  5.1271  1.5590 -7.9079  14.0014  11.8124   6.1990  14.3138  11.9914 -18.2099
+ 1           1  18.2832 -0.0892  10.4312  5.3875  10.3064   1.1757  5.4857  13.9550  2.3137  6.1973  6.6627 -1.4375  14.0876  10.6907   8.2536  14.2073  10.8528  -2.7252
+ ...       ...      ...     ...      ...     ...      ...      ...     ...      ...     ...     ...     ...     ...      ...      ...      ...      ...      ...      ...
+ 39998       0   5.2031 -0.4821   9.7511  7.0318  12.8190   6.3888  3.9813  21.3386  0.3033  8.3452 -3.4636 -7.0653  14.2688  14.9532   5.5758  14.2620   7.9391 -14.2288
+ 39999       0   7.4701 -4.1942  13.8447  3.5708  13.0344 -14.3639  4.9674  19.9433 -0.3923  5.9208 -3.8158  0.2292  14.0224   9.8732  11.1467  14.2112  10.7221 -13.4663
+ 
+ [40000 rows x 19 columns])import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
+
+# Check for missing values
+missing_values_train = train_df.isnull().sum()
+missing_values_eval = eval_df.isnull().sum()
+
+# Analyze the distribution of the target variable
+sns.countplot(data=train_df, x='target')
+plt.title('Target Distribution in Train Data')
+plt.show()
+
+sns.countplot(data=eval_df, x='target')
+plt.title('Target Distribution in Eval Data')
+plt.show()
+
+# Visualize the distributions of the features
+for col in train_df.columns[1:]:  # Skip the 'target' column
+    plt.figure(figsize=(10, 4))
+    sns.histplot(train_df[col], kde=True, bins=30)
+    plt.title(f'Distribution of {col} in Train Data')
+    plt.show()
+
+    plt.figure(figsize=(10, 4))
+    sns.histplot(eval_df[col], kde=True, bins=30)
+    plt.title(f'Distribution of {col} in Eval Data')
+    plt.show()
+
+# Check for outliers in the features
+for col in train_df.columns[1:]:  # Skip the 'target' column
+    plt.figure(figsize=(10, 4))
+    sns.boxplot(x=train_df[col])
+    plt.title(f'Boxplot of {col} in Train Data')
+    plt.show()
+
+    plt.figure(figsize=(10, 4))
+    sns.boxplot(x=eval_df[col])
+    plt.title(f'Boxplot of {col} in Eval Data')
+    plt.show()
+
+# Evaluate the balance of the target variable
+train_target_balance = Counter(train_df['target'])
+eval_target_balance = Counter(eval_df['target'])
+
+# Result variables
+missing_values_train, missing_values_eval, train_target_balance, eval_target_balance
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(target    0
+ var_0     0
+          ..
+ var_16    0
+ var_17    0
+ Length: 19, dtype: int64,
+ target    0
+ var_0     0
+          ..
+ var_16    0
+ var_17    0
+ Length: 19, dtype: int64,
+ Counter({0: 143972, 1: 16028}),
+ Counter({0: 35930, 1: 4070}))from imblearn.over_sampling import SMOTE
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import numpy as np
+
+# Handle the imbalanced target variable using SMOTE
+smote = SMOTE()
+X_train_resampled, y_train_resampled = smote.fit_resample(train_df.drop(columns=['target']), train_df['target'])
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train_resampled)
+X_eval_scaled = scaler.transform(eval_df.drop(columns=['target']))
+
+# Remove or transform outliers using IQR method
+Q1_train = np.percentile(X_train_scaled, 25, axis=0)
+Q3_train = np.percentile(X_train_scaled, 75, axis=0)
+IQR_train = Q3_train - Q1_train
+
+lower_bound_train = Q1_train - 1.5 * IQR_train
+upper_bound_train = Q3_train + 1.5 * IQR_train
+
+# Replace outliers with bounds
+X_train_scaled = np.where(X_train_scaled < lower_bound_train, lower_bound_train, X_train_scaled)
+X_train_scaled = np.where(X_train_scaled > upper_bound_train, upper_bound_train, X_train_scaled)
+
+# Apply the same bounds to the eval data
+X_eval_scaled = np.where(X_eval_scaled < lower_bound_train, lower_bound_train, X_eval_scaled)
+X_eval_scaled = np.where(X_eval_scaled > upper_bound_train, upper_bound_train, X_eval_scaled)
+
+# Convert back to DataFrames
+X_train_preprocessed = pd.DataFrame(X_train_scaled, columns=train_df.columns[1:])
+y_train_preprocessed = pd.Series(y_train_resampled, name='target')
+X_eval_preprocessed = pd.DataFrame(X_eval_scaled, columns=eval_df.columns[1:])
+
+# Result variables
+X_train_preprocessed, y_train_preprocessed, X_eval_preprocessed
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 1
+    from imblearn.over_sampling import SMOTE
+
+ModuleNotFoundError: No module named 'imblearn'
+
+!pip install imbalanced-learn
+
+from imblearn.over_sampling import SMOTE
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import numpy as np
+
+# Handle the imbalanced target variable using SMOTE
+smote = SMOTE()
+X_train_resampled, y_train_resampled = smote.fit_resample(train_df.drop(columns=['target']), train_df['target'])
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train_resampled)
+X_eval_scaled = scaler.transform(eval_df.drop(columns=['target']))
+
+# Remove or transform outliers using IQR method
+Q1_train = np.percentile(X_train_scaled, 25, axis=0)
+Q3_train = np.percentile(X_train_scaled, 75, axis=0)
+IQR_train = Q3_train - Q1_train
+
+lower_bound_train = Q1_train - 1.5 * IQR_train
+upper_bound_train = Q3_train + 1.5 * IQR_train
+
+# Replace outliers with bounds
+X_train_scaled = np.where(X_train_scaled < lower_bound_train, lower_bound_train, X_train_scaled)
+X_train_scaled = np.where(X_train_scaled > upper_bound_train, upper_bound_train, X_train_scaled)
+
+# Apply the same bounds to the eval data
+X_eval_scaled = np.where(X_eval_scaled < lower_bound_train, lower_bound_train, X_eval_scaled)
+X_eval_scaled = np.where(X_eval_scaled > upper_bound_train, upper_bound_train, X_eval_scaled)
+
+# Convert back to DataFrames
+X_train_preprocessed = pd.DataFrame(X_train_scaled, columns=train_df.columns[1:])
+y_train_preprocessed = pd.Series(y_train_resampled, name='target')
+X_eval_preprocessed = pd.DataFrame(X_eval_scaled, columns=eval_df.columns[1:])
+
+# Result variables
+X_train_preprocessed, y_train_preprocessed, X_eval_preprocessed
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 3
+    from imblearn.over_sampling import SMOTE
+
+ModuleNotFoundError: No module named 'imblearn'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+!pip install imbalanced-learn
+
+# Re-importing necessary modules
+from imblearn.over_sampling import SMOTE
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import numpy as np
+
+# Handle the imbalanced target variable using SMOTE
+smote = SMOTE()
+X_train_resampled, y_train_resampled = smote.fit_resample(train_df.drop(columns=['target']), train_df['target'])
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train_resampled)
+X_eval_scaled = scaler.transform(eval_df.drop(columns=['target']))
+
+# Remove or transform outliers using IQR method
+Q1_train = np.percentile(X_train_scaled, 25, axis=0)
+Q3_train = np.percentile(X_train_scaled, 75, axis=0)
+IQR_train = Q3_train - Q1_train
+
+lower_bound_train = Q1_train - 1.5 * IQR_train
+upper_bound_train = Q3_train + 1.5 * IQR_train
+
+# Replace outliers with bounds
+X_train_scaled = np.where(X_train_scaled < lower_bound_train, lower_bound_train, X_train_scaled)
+X_train_scaled = np.where(X_train_scaled > upper_bound_train, upper_bound_train, X_train_scaled)
+
+# Apply the same bounds to the eval data
+X_eval_scaled = np.where(X_eval_scaled < lower_bound_train, lower_bound_train, X_eval_scaled)
+X_eval_scaled = np.where(X_eval_scaled > upper_bound_train, upper_bound_train, X_eval_scaled)
+
+# Convert back to DataFrames
+X_train_preprocessed = pd.DataFrame(X_train_scaled, columns=train_df.columns[1:])
+y_train_preprocessed = pd.Series(y_train_resampled, name='target')
+X_eval_preprocessed = pd.DataFrame(X_eval_scaled, columns=eval_df.columns[1:])
+
+# Result variables
+X_train_preprocessed, y_train_preprocessed, X_eval_preprocessed
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 4
+    from imblearn.over_sampling import SMOTE
+
+ModuleNotFoundError: No module named 'imblearn'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import numpy as np
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(train_df.drop(columns=['target']))
+X_eval_scaled = scaler.transform(eval_df.drop(columns=['target']))
+
+# Remove or transform outliers using IQR method
+Q1_train = np.percentile(X_train_scaled, 25, axis=0)
+Q3_train = np.percentile(X_train_scaled, 75, axis=0)
+IQR_train = Q3_train - Q1_train
+
+lower_bound_train = Q1_train - 1.5 * IQR_train
+upper_bound_train = Q3_train + 1.5 * IQR_train
+
+# Replace outliers with bounds
+X_train_scaled = np.where(X_train_scaled < lower_bound_train, lower_bound_train, X_train_scaled)
+X_train_scaled = np.where(X_train_scaled > upper_bound_train, upper_bound_train, X_train_scaled)
+
+# Apply the same bounds to the eval data
+X_eval_scaled = np.where(X_eval_scaled < lower_bound_train, lower_bound_train, X_eval_scaled)
+X_eval_scaled = np.where(X_eval_scaled > upper_bound_train, upper_bound_train, X_eval_scaled)
+
+# Convert back to DataFrames
+X_train_preprocessed = pd.DataFrame(X_train_scaled, columns=train_df.columns[1:])
+y_train_preprocessed = train_df['target']
+X_eval_preprocessed = pd.DataFrame(X_eval_scaled, columns=eval_df.columns[1:])
+
+# Result variables
+X_train_preprocessed, y_train_preprocessed, X_eval_preprocessed
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           var_0     var_1     var_2     var_3     var_4     var_5     var_6     var_7     var_8     var_9    var_10    var_11    var_12    var_13    var_14    var_15    var_16    var_17
+ 0       0.646003  1.127083  1.714367 -1.121669 -1.517600 -0.592644  0.416168  0.554297 -1.054279  0.389619 -0.995321 -1.810310 -0.453565 -1.229543  1.589015  1.217056 -1.751116  0.342869
+ 1      -1.693697 -0.261292 -0.242032  0.720536  1.390741  0.247026  0.710194 -0.730054 -0.668138 -1.402135 -1.169117 -0.997011  1.264168 -0.843951 -2.074646 -1.494532 -1.223731  1.833321
+ ...          ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 159998 -0.456937  0.760635  0.250042  0.156757  0.305452 -0.939008  0.050911 -1.532590  0.414771  1.109284 -1.042007  2.013304  1.619924  0.609230 -1.316015 -0.648359  1.489370 -1.294104
+ 159999 -0.826185 -0.242222 -0.010111 -0.462581  0.745114  0.369119  1.399213  0.025483  1.531448  0.767227  0.949287  1.625582  0.115329  1.783449  0.385298 -0.313871  0.584104  0.720869
+ 
+ [160000 rows x 18 columns],
+ 0         0
+ 1         0
+          ..
+ 159998    0
+ 159999    0
+ Name: target, Length: 160000, dtype: int64,
+           var_0     var_1     var_2     var_3     var_4     var_5     var_6     var_7     var_8     var_9    var_10    var_11    var_12    var_13    var_14    var_15    var_16    var_17
+ 0     -0.662291 -0.103380  0.593756  0.332935 -1.104685 -0.673360  0.102893 -2.020839  0.967441 -1.975147  0.212961 -0.780278 -0.118860  0.707428 -0.595876 -0.629426  1.037421 -1.862914
+ 1      2.502607  0.379510 -0.106631 -0.689865 -0.474896  0.793464  0.088371 -0.757751  0.608471 -1.108503  1.141180  0.303540  0.334782  0.465555  0.318415 -0.887938  0.592390  0.443047
+ ...         ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 39998 -1.801260  0.282581 -0.364359  0.115050  1.073597  1.456739 -1.645588  1.401728  0.005569  0.630857 -0.700507 -0.639139  1.288376  1.384682 -0.873198 -0.755162 -0.546453 -1.270054
+ 39999 -1.055328 -0.633191  1.186936 -1.579173  1.206347 -1.183676 -0.509018  0.993645 -0.203036 -1.332412 -0.764562  0.582719 -0.008344  0.289276  1.605836 -0.878471  0.541305 -1.156503
+ 
+ [40000 rows x 18 columns])from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Split the preprocessed train data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train_preprocessed, y_train_preprocessed, test_size=0.2, random_state=42
+)
+
+# Train a machine learning model using the training set
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Validate the model using the validation set
+y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+auc_val = roc_auc_score(y_val, y_val_pred_proba)
+
+# Result variables
+X_train, X_val, y_train, y_val, model, auc_val

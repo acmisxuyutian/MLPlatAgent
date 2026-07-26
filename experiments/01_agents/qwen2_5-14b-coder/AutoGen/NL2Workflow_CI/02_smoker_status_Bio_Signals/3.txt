@@ -1,0 +1,208 @@
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv')
+
+# 假设 'smoker' 是目标变量
+X_train = train_data.drop('smoker', axis=1)
+y_train = train_data['smoker']
+
+# 处理缺失值（这里简单地用均值填充）
+X_train.fillna(X_train.mean(), inplace=True)
+
+# 假设测试集没有目标变量
+X_test = test_data
+X_test.fillna(X_test.mean(), inplace=True)
+
+# 定义参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'eta': 0.1,
+    'tree_method': 'dart',
+    'sample_type': 'uniform',
+    'normalize_type': 'tree',
+    'rate_drop': 0.1,
+    'skip_drop': 0.5
+}
+
+# 创建DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 预测概率
+dtest = xgb.DMatrix(X_test)
+y_pred_proba = bst.predict(dtest)
+
+# 假设测试集有目标变量
+y_test = test_data['smoker']
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_08b2637929c962735265471a580f8b8c2de8820f731a729fc19883dd84391d3d.py", line 1, in <module>
+    train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+
+# 加载数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv')
+
+# 数据预处理
+X_train = train_data.drop('smoker', axis=1)
+y_train = train_data['smoker']
+
+# 处理缺失值（这里简单地用均值填充）
+X_train.fillna(X_train.mean(), inplace=True)
+
+# 假设测试集没有目标变量
+X_test = test_data.drop('smoker', axis=1)
+X_test.fillna(X_test.mean(), inplace=True)
+
+# 定义参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'eta': 0.1,
+    'tree_method': 'dart',
+    'sample_type': 'uniform',
+    'normalize_type': 'tree',
+    'rate_drop': 0.1,
+    'skip_drop': 0.5
+}
+
+# 创建DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 预测概率
+dtest = xgb.DMatrix(X_test)
+y_pred_proba = bst.predict(dtest)
+
+# 假设测试集有目标变量
+y_test = test_data['smoker']
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b0bf1b54253d4069ac2513d4a9e17c3c263cb627bd2bf01d382aaefe398682f6.py", line 11, in <module>
+    X_train = train_data.drop('smoker', axis=1)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 5581, in drop
+    return super().drop(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['smoker'] not found in axis"
+
+生成的代码：
+import pandas as pd
+
+# 加载数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+
+# 查看列名
+print(train_data.columns)
+
+
+执行结果：
+Index(['id', 'age', 'height', 'weight', 'waist', 'eyesight_left',
+       'eyesight_right', 'hearing_left', 'hearing_right', 'systolic',
+       'relaxation', 'fasting_blood_sugar', 'Cholesterol', 'triglyceride',
+       'HDL', 'LDL', 'hemoglobin', 'Urine_protein', 'serum_creatinine', 'AST',
+       'ALT', 'Gtp', 'dental_caries', 'smoking'],
+      dtype='object')
+
+生成的代码：
+import pandas as pd
+import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+
+# 加载数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv')
+
+# 数据预处理
+X_train = train_data.drop('smoker', axis=1)
+y_train = train_data['smoker']
+
+# 处理缺失值（这里简单地用均值填充）
+X_train.fillna(X_train.mean(), inplace=True)
+
+# 假设测试集没有目标变量
+X_test = test_data.drop('smoker', axis=1)
+X_test.fillna(X_test.mean(), inplace=True)
+
+# 定义参数
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'eta': 0.1,
+    'tree_method': 'dart',
+    'sample_type': 'uniform',
+    'normalize_type': 'tree',
+    'rate_drop': 0.1,
+    'skip_drop': 0.5
+}
+
+# 创建DMatrix
+dtrain = xgb.DMatrix(X_train, label=y_train)
+
+# 训练模型
+num_rounds = 100
+bst = xgb.train(params, dtrain, num_rounds)
+
+# 预测概率
+dtest = xgb.DMatrix(X_test)
+y_pred_proba = bst.predict(dtest)
+
+# 假设测试集有目标变量
+y_test = test_data['smoker']
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_05644b9d530652df8f1e873766af4f7bf2e75c654247b3acefb9931e6f8ca16d.py", line 10, in <module>
+    X_train = train_data.drop('smoker', axis=1)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 5581, in drop
+    return super().drop(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['smoker'] not found in axis"

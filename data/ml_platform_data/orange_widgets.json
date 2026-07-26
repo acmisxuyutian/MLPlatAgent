@@ -1,0 +1,1000 @@
+[
+  {
+    "widget_name": "File",
+    "widget_id": "orange.widgets.data.file",
+    "description": "Reads attribute-value data from an input file.",
+    "type": "io",
+    "params": [
+      {
+        "name": "source",
+        "type": "int",
+        "default": 0,
+        "description": "数据来源：0 表示本地文件，1 表示 URL。设置本地文件时同时提供 path；设置网络资源时同时提供 url。"
+      },
+      {
+        "name": "path",
+        "type": "str",
+        "default": "",
+        "description": "本地数据文件路径。支持绝对路径；相对路径按当前 .ows 工作流所在目录解析。source 为 0 时使用。"
+      },
+      {
+        "name": "url",
+        "type": "str",
+        "default": "",
+        "description": "网络数据文件 URL，支持 http、https 和 ftp。source 为 1 时使用。"
+      },
+      {
+        "name": "sheet",
+        "type": "str",
+        "default": "",
+        "description": "Excel 等多工作表文件中要读取的工作表名称；留空时使用文件读取器的默认工作表。"
+      },
+      {
+        "name": "file_format",
+        "type": "str",
+        "default": "",
+        "description": "可选的 Orange 文件读取器限定名，例如 Orange.data.io.CSVReader；留空时根据文件扩展名自动识别。"
+      }
+    ]
+  },
+  {
+    "widget_name": "SQL Table",
+    "widget_id": "orange.widgets.data.sql",
+    "description": "Reads data from an SQL database.",
+    "type": "io",
+    "params": [
+      {
+        "name": "selected_backend",
+        "type": "any",
+        "default": null,
+        "description": "SQL 后端显示名称，例如 PostgreSQL；为 null 时使用当前环境中的第一个可用后端。"
+      },
+      {
+        "name": "host",
+        "type": "str",
+        "default": "",
+        "description": "数据库服务器主机名或 IP 地址，例如 localhost。"
+      },
+      {
+        "name": "port",
+        "type": "str",
+        "default": "",
+        "description": "数据库服务器端口，使用字符串表示，例如 PostgreSQL 的 5432；留空时使用后端默认端口。"
+      },
+      {
+        "name": "database",
+        "type": "str",
+        "default": "",
+        "description": "要连接的数据库名称。"
+      },
+      {
+        "name": "schema",
+        "type": "str",
+        "default": "",
+        "description": "数据库模式名称，例如 public；留空时使用数据库默认模式。"
+      },
+      {
+        "name": "data_source",
+        "type": "int",
+        "default": 0,
+        "description": "数据选择方式：0 表示读取 table 指定的表，1 表示执行 sql 指定的自定义查询。"
+      },
+      {
+        "name": "table",
+        "type": "str",
+        "default": "",
+        "description": "要读取的表名。data_source 为 0 时使用；应填写表名而不是 TableDesc 对象。"
+      },
+      {
+        "name": "sql",
+        "type": "str",
+        "default": "",
+        "description": "自定义 SQL 查询语句。data_source 为 1 时使用。"
+      },
+      {
+        "name": "guess_values",
+        "type": "bool",
+        "default": true,
+        "description": "是否自动检查字段值并识别离散变量；大表关闭后可缩短加载时间。"
+      },
+      {
+        "name": "materialize",
+        "type": "bool",
+        "default": false,
+        "description": "执行自定义 SQL 时，是否先把查询结果物化为数据库表。"
+      },
+      {
+        "name": "materialize_table_name",
+        "type": "str",
+        "default": "",
+        "description": "物化查询结果时使用的目标表名；仅在 materialize 为 true 时需要。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Rank",
+    "widget_id": "Orange.widgets.data.owrank",
+    "description": "Rank 组件，属于“数据读取、查看与字段管理”类别。Orange 官方说明：Ranking of attributes in classification or regression datasets.",
+    "type": "data",
+    "params": []
+  },
+  {
+    "widget_name": "Edit Domain",
+    "widget_id": "Orange.widgets.data.oweditdomain",
+    "description": "Edit Domain 组件，属于“数据读取、查看与字段管理”类别。Orange 官方说明：Rename features and their values.",
+    "type": "data",
+    "params": [
+      {
+        "name": "_domain_change_hints",
+        "type": "dict",
+        "default": {},
+        "description": "按数据域保存的字段重命名、类型和值变换提示。"
+      },
+      {
+        "name": "output_table_name",
+        "type": "str",
+        "default": "",
+        "description": "输出数据表使用的名称。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Save Data",
+    "widget_id": "Orange.widgets.data.owsave",
+    "description": "Save Data 组件，属于“数据读取、查看与字段管理”类别。Orange 官方说明：Saves data to a file.",
+    "type": "data",
+    "params": []
+  },
+  {
+    "widget_name": "Data Sampler",
+    "widget_id": "Orange.widgets.data.owdatasampler",
+    "description": "Data Sampler 组件，属于“数据转换与预处理”类别。Orange 官方说明：Selects a subset of data instances from an input dataset.",
+    "type": "transform",
+    "params": [
+      {
+        "name": "number_of_folds",
+        "type": "int",
+        "default": 10,
+        "description": "交叉验证的折数。"
+      },
+      {
+        "name": "replacement",
+        "type": "bool",
+        "default": false,
+        "description": "抽样时是否允许有放回抽样。"
+      },
+      {
+        "name": "sampleSizePercentage",
+        "type": "int",
+        "default": 10,
+        "description": "按固定比例抽样时的样本百分比。"
+      },
+      {
+        "name": "sampling_type",
+        "type": "int",
+        "default": 0,
+        "description": "抽样方式的选项索引，例如固定比例、固定数量、交叉验证或自助抽样。"
+      },
+      {
+        "name": "selectedFold",
+        "type": "int",
+        "default": 1,
+        "description": "交叉验证输出中当前选择的折。"
+      },
+      {
+        "name": "stratify",
+        "type": "bool",
+        "default": false,
+        "description": "抽样时是否按照目标类别进行分层。"
+      },
+      {
+        "name": "use_seed",
+        "type": "bool",
+        "default": true,
+        "description": "是否使用固定随机种子，使抽样结果可复现。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Select Columns",
+    "widget_id": "Orange.widgets.data.owselectcolumns",
+    "description": "Select Columns 组件，属于“数据转换与预处理”类别。Orange 官方说明：Manual selection of data attributes and composition of data domain.",
+      "type": "transform",
+      "params": [
+        {
+          "name": "ignores",
+          "type": "list",
+          "default": [],
+          "description": "需要移除的属性"
+        },
+        {
+          "name": "features",
+          "type": "list",
+          "default": [],
+          "description": "一般特征属性"
+        },
+        {
+          "name": "targets",
+          "type": "str",
+          "default": "",
+          "description": "目标属性，有且只能有一个。该列必须进行配置！"
+        }
+      ]
+  },
+  {
+    "widget_name": "Unique",
+    "widget_id": "Orange.widgets.data.owunique",
+    "description": "Unique 组件，属于“数据转换与预处理”类别。Orange 官方说明：Remove duplicated data instances.",
+    "type": "transform",
+    "params": [
+      {
+        "name": "selected_vars",
+        "type": "list",
+        "default": [],
+        "description": "去重、统计或变换时当前选中的字段。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "tiebreaker",
+        "type": "str",
+        "default": "Last instance",
+        "description": "去重时多行具有相同键值后的保留策略。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Impute",
+    "widget_id": "Orange.widgets.data.owimpute",
+    "description": "Impute 组件，属于“数据转换与预处理”类别。Orange 官方说明：Replaces unknown values in the data.",
+    "type": "transform",
+    "params": [
+      {
+        "name": "_default_method_index",
+        "type": "int",
+        "default": 1,
+        "description": "缺失值默认处理方法的选项索引。"
+      },
+      {
+        "name": "_variable_imputation_state",
+        "type": "dict",
+        "default": {},
+        "description": "按字段保存的缺失值填补方法及其参数。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "default_numeric_value",
+        "type": "float",
+        "default": 0,
+        "description": "使用固定值填补数值字段时采用的默认数值。"
+      },
+      {
+        "name": "default_time",
+        "type": "int",
+        "default": 0,
+        "description": "使用固定值填补时间字段时采用的默认时间值。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Continuize",
+    "widget_id": "Orange.widgets.data.owcontinuize",
+    "description": "Continuize 组件，属于“数据转换与预处理”类别。Orange 官方说明：Turns categorical variables (attributes) into numeric (\"continuous\") dummy variables.",
+    "type": "transform",
+    "params": [
+      {
+        "name": "cont_var_hints",
+        "type": "dict",
+        "default": {
+          "": 0
+        },
+        "description": "保存“污染率 变量 提示信息”的键值配置。"
+      },
+      {
+        "name": "disc_var_hints",
+        "type": "dict",
+        "default": {
+          "": 2
+        },
+        "description": "保存“离散变量 变量 提示信息”的键值配置。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Formula",
+    "widget_id": "Orange.widgets.data.owfeatureconstructor",
+    "description": "Add new features to your dataset.",
+    "type": "transform",
+    "params": [
+      {
+        "name": "descriptors",
+        "type": "list",
+        "default": [],
+        "description": "公式组件中定义的新字段及其表达式描述列表。"
+      },
+      {
+        "name": "expressions_with_values",
+        "type": "bool",
+        "default": false,
+        "description": "公式表达式是否使用离散值文本而不是内部编码。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Scatter Plot",
+    "widget_id": "Orange.widgets.visualize.owscatterplot",
+    "description": "Scatter Plot 组件，属于“数据和模型可视化”类别。Orange 官方说明：Scatter plot visualization with exploratory analysis and intelligent data visualization enhancements.",
+    "type": "visualize",
+    "params": []
+  },
+  {
+    "widget_name": "Line Plot",
+    "widget_id": "Orange.widgets.visualize.owlineplot",
+    "description": "Line Plot 组件，属于“数据和模型可视化”类别。Orange 官方说明：Visualization of data profiles (e.g., time series).",
+    "type": "visualize",
+    "params": [
+      {
+        "name": "group_var",
+        "type": "any",
+        "default": null,
+        "description": "“分组 变量”使用的数值或选项值。 该值按输入数据域分别保存。 默认未指定，由输入数据或组件运行时决定。"
+      },
+      {
+        "name": "show_error",
+        "type": "bool",
+        "default": false,
+        "description": "控制是否启用或显示“显示 误差”。"
+      },
+      {
+        "name": "show_mean",
+        "type": "bool",
+        "default": true,
+        "description": "控制是否启用或显示“显示 均值”。"
+      },
+      {
+        "name": "show_profiles",
+        "type": "bool",
+        "default": false,
+        "description": "控制是否启用或显示“显示 轮廓线”。"
+      },
+      {
+        "name": "show_range",
+        "type": "bool",
+        "default": true,
+        "description": "控制是否启用或显示“显示 范围”。"
+      }
+    ]
+  },
+  {
+    "widget_name": "kNN",
+    "widget_id": "Orange.widgets.model.owknn",
+    "description": "kNN 组件，属于“机器学习模型构建”类别。Orange 官方说明：Predict according to the nearest training instances.",
+    "type": "model",
+    "params": [
+      {
+        "name": "metric_index",
+        "type": "int",
+        "default": 0,
+        "description": "距离度量的选项索引。"
+      },
+      {
+        "name": "n_neighbors",
+        "type": "int",
+        "default": 5,
+        "description": "近邻算法使用的邻居数量。"
+      },
+      {
+        "name": "weight_index",
+        "type": "int",
+        "default": 0,
+        "description": "近邻样本权重计算方法的选项索引。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Tree",
+    "widget_id": "Orange.widgets.model.owtree",
+    "description": "Tree 组件，属于“机器学习模型构建”类别。Orange 官方说明：A tree algorithm with forward pruning.",
+    "type": "model",
+    "params": [
+      {
+        "name": "binary_trees",
+        "type": "bool",
+        "default": true,
+        "description": "是否只生成二叉决策树。"
+      },
+      {
+        "name": "limit_depth",
+        "type": "bool",
+        "default": true,
+        "description": "是否启用决策树最大深度限制。"
+      },
+      {
+        "name": "limit_majority",
+        "type": "bool",
+        "default": true,
+        "description": "是否在某一类别达到足够占比时停止划分。"
+      },
+      {
+        "name": "limit_min_internal",
+        "type": "bool",
+        "default": true,
+        "description": "是否限制内部节点继续划分所需的最少样本数。"
+      },
+      {
+        "name": "limit_min_leaf",
+        "type": "bool",
+        "default": true,
+        "description": "是否限制叶节点中的最少样本数。"
+      },
+      {
+        "name": "max_depth",
+        "type": "int",
+        "default": 100,
+        "description": "树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "min_internal",
+        "type": "int",
+        "default": 5,
+        "description": "内部节点继续划分所需的最少样本数。"
+      },
+      {
+        "name": "min_leaf",
+        "type": "int",
+        "default": 2,
+        "description": "叶节点允许包含的最少样本数。"
+      },
+      {
+        "name": "sufficient_majority",
+        "type": "int",
+        "default": 95,
+        "description": "停止划分所需的多数类别占比。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Random Forest",
+    "widget_id": "Orange.widgets.model.owrandomforest",
+    "description": "Random Forest 组件，属于“机器学习模型构建”类别。Orange 官方说明：Predict using an ensemble of decision trees.",
+    "type": "model",
+    "params": [
+      {
+        "name": "class_weight",
+        "type": "bool",
+        "default": false,
+        "description": "是否按类别频率调整类别权重，以缓解类别不平衡。"
+      },
+      {
+        "name": "index_output",
+        "type": "int",
+        "default": 0,
+        "description": "旧版随机森林工作流使用的输出选择状态；当前 Orange 3.40 实现保留该值用于兼容，但不参与模型参数构造。"
+      },
+      {
+        "name": "max_depth",
+        "type": "int",
+        "default": 3,
+        "description": "树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "max_features",
+        "type": "int",
+        "default": 5,
+        "description": "每次寻找最佳划分时最多考虑的特征数。"
+      },
+      {
+        "name": "min_samples_split",
+        "type": "int",
+        "default": 5,
+        "description": "允许继续划分一个节点所需的最少样本数。"
+      },
+      {
+        "name": "n_estimators",
+        "type": "int",
+        "default": 10,
+        "description": "集成模型中使用的基学习器数量；对树模型通常表示树的数量。"
+      },
+      {
+        "name": "use_max_depth",
+        "type": "bool",
+        "default": false,
+        "description": "是否启用最大深度限制。"
+      },
+      {
+        "name": "use_max_features",
+        "type": "bool",
+        "default": false,
+        "description": "是否限制每次划分时参与候选的特征数。"
+      },
+      {
+        "name": "use_min_samples_split",
+        "type": "bool",
+        "default": true,
+        "description": "是否启用最小划分样本数限制。"
+      },
+      {
+        "name": "use_random_state",
+        "type": "bool",
+        "default": true,
+        "description": "是否使用固定随机种子以获得可复现结果。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Gradient Boosting",
+    "widget_id": "Orange.widgets.model.owgradientboosting",
+    "description": "Gradient Boosting 组件，属于“机器学习模型构建”类别。Orange 官方说明：Predict using gradient boosting on decision trees.",
+    "type": "model",
+    "params": [
+      {
+        "name": "catgb_editor.colsample_bylevel",
+        "type": "int",
+        "default": 1,
+        "description": "在CatBoost设置中，“特征采样比例 按层”使用的数值或选项值。"
+      },
+      {
+        "name": "catgb_editor.lambda_index",
+        "type": "int",
+        "default": 55,
+        "description": "在CatBoost设置中，“L2 正则化 索引”的枚举选项索引；实际选项顺序由组件界面定义。"
+      },
+      {
+        "name": "catgb_editor.learning_rate",
+        "type": "float",
+        "default": 0.3,
+        "description": "在CatBoost设置中，每次迭代中新模型贡献的缩放系数；值越小通常需要更多迭代。"
+      },
+      {
+        "name": "catgb_editor.max_depth",
+        "type": "int",
+        "default": 6,
+        "description": "在CatBoost设置中，树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "catgb_editor.n_estimators",
+        "type": "int",
+        "default": 100,
+        "description": "在CatBoost设置中，集成模型中使用的基学习器数量；对树模型通常表示树的数量。"
+      },
+      {
+        "name": "catgb_editor.random_state",
+        "type": "bool",
+        "default": true,
+        "description": "在CatBoost设置中，随机数生成器种子。"
+      },
+      {
+        "name": "gb_editor.learning_rate",
+        "type": "float",
+        "default": 0.1,
+        "description": "在梯度提升树设置中，每次迭代中新模型贡献的缩放系数；值越小通常需要更多迭代。"
+      },
+      {
+        "name": "gb_editor.max_depth",
+        "type": "int",
+        "default": 3,
+        "description": "在梯度提升树设置中，树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "gb_editor.min_samples_split",
+        "type": "int",
+        "default": 2,
+        "description": "在梯度提升树设置中，允许继续划分一个节点所需的最少样本数。"
+      },
+      {
+        "name": "gb_editor.n_estimators",
+        "type": "int",
+        "default": 100,
+        "description": "在梯度提升树设置中，集成模型中使用的基学习器数量；对树模型通常表示树的数量。"
+      },
+      {
+        "name": "gb_editor.random_state",
+        "type": "bool",
+        "default": true,
+        "description": "在梯度提升树设置中，随机数生成器种子。"
+      },
+      {
+        "name": "gb_editor.subsample",
+        "type": "int",
+        "default": 1,
+        "description": "在梯度提升树设置中，“样本采样比例”使用的数值或选项值。"
+      },
+      {
+        "name": "method_index",
+        "type": "int",
+        "default": 0,
+        "description": "“方法 索引”的枚举选项索引；实际选项顺序由组件界面定义。"
+      },
+      {
+        "name": "xgb_editor.colsample_bylevel",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost设置中，“特征采样比例 按层”使用的数值或选项值。"
+      },
+      {
+        "name": "xgb_editor.colsample_bynode",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost设置中，“特征采样比例 按节点”使用的数值或选项值。"
+      },
+      {
+        "name": "xgb_editor.colsample_bytree",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost设置中，“特征采样比例 按树”使用的数值或选项值。"
+      },
+      {
+        "name": "xgb_editor.lambda_index",
+        "type": "int",
+        "default": 53,
+        "description": "在XGBoost设置中，“L2 正则化 索引”的枚举选项索引；实际选项顺序由组件界面定义。"
+      },
+      {
+        "name": "xgb_editor.learning_rate",
+        "type": "float",
+        "default": 0.3,
+        "description": "在XGBoost设置中，每次迭代中新模型贡献的缩放系数；值越小通常需要更多迭代。"
+      },
+      {
+        "name": "xgb_editor.max_depth",
+        "type": "int",
+        "default": 6,
+        "description": "在XGBoost设置中，树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "xgb_editor.n_estimators",
+        "type": "int",
+        "default": 100,
+        "description": "在XGBoost设置中，集成模型中使用的基学习器数量；对树模型通常表示树的数量。"
+      },
+      {
+        "name": "xgb_editor.random_state",
+        "type": "bool",
+        "default": true,
+        "description": "在XGBoost设置中，随机数生成器种子。"
+      },
+      {
+        "name": "xgb_editor.subsample",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost设置中，“样本采样比例”使用的数值或选项值。"
+      },
+      {
+        "name": "xgbrf_editor.colsample_bylevel",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost 随机森林设置中，“特征采样比例 按层”使用的数值或选项值。"
+      },
+      {
+        "name": "xgbrf_editor.colsample_bynode",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost 随机森林设置中，“特征采样比例 按节点”使用的数值或选项值。"
+      },
+      {
+        "name": "xgbrf_editor.colsample_bytree",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost 随机森林设置中，“特征采样比例 按树”使用的数值或选项值。"
+      },
+      {
+        "name": "xgbrf_editor.lambda_index",
+        "type": "int",
+        "default": 53,
+        "description": "在XGBoost 随机森林设置中，“L2 正则化 索引”的枚举选项索引；实际选项顺序由组件界面定义。"
+      },
+      {
+        "name": "xgbrf_editor.learning_rate",
+        "type": "float",
+        "default": 0.3,
+        "description": "在XGBoost 随机森林设置中，每次迭代中新模型贡献的缩放系数；值越小通常需要更多迭代。"
+      },
+      {
+        "name": "xgbrf_editor.max_depth",
+        "type": "int",
+        "default": 6,
+        "description": "在XGBoost 随机森林设置中，树或搜索结构允许达到的最大深度。"
+      },
+      {
+        "name": "xgbrf_editor.n_estimators",
+        "type": "int",
+        "default": 100,
+        "description": "在XGBoost 随机森林设置中，集成模型中使用的基学习器数量；对树模型通常表示树的数量。"
+      },
+      {
+        "name": "xgbrf_editor.random_state",
+        "type": "bool",
+        "default": true,
+        "description": "在XGBoost 随机森林设置中，随机数生成器种子。"
+      },
+      {
+        "name": "xgbrf_editor.subsample",
+        "type": "int",
+        "default": 1,
+        "description": "在XGBoost 随机森林设置中，“样本采样比例”使用的数值或选项值。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Linear Regression",
+    "widget_id": "Orange.widgets.model.owlinearregression",
+    "description": "Linear Regression 组件，属于“机器学习模型构建”类别。Orange 官方说明：A linear regression algorithm with optional L1 (LASSO), L2 (ridge) or L1L2 (elastic net) regularization.",
+    "type": "model",
+    "params": [
+      {
+        "name": "alpha_index",
+        "type": "int",
+        "default": 0,
+        "description": "正则化强度在组件预设数值序列中的索引。"
+      },
+      {
+        "name": "fit_intercept",
+        "type": "bool",
+        "default": true,
+        "description": "模型拟合时是否计算截距项。"
+      },
+      {
+        "name": "l2_ratio",
+        "type": "float",
+        "default": 0.5,
+        "description": "弹性网络中 L2 部分所占的混合比例。"
+      },
+      {
+        "name": "reg_type",
+        "type": "int",
+        "default": 0,
+        "description": "线性回归正则化类型索引，例如无正则、Ridge、Lasso 或弹性网络。"
+      },
+      {
+        "name": "ridge",
+        "type": "bool",
+        "default": false,
+        "description": "是否使用 Ridge 回归；用于兼容旧版工作流设置。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Logistic Regression",
+    "widget_id": "Orange.widgets.model.owlogisticregression",
+    "description": "Logistic Regression 组件，属于“机器学习模型构建”类别。Orange 官方说明：The logistic regression classification algorithm with LASSO (L1) or ridge (L2) regularization.",
+    "type": "model",
+    "params": [
+      {
+        "name": "C_index",
+        "type": "int",
+        "default": 61,
+        "description": "正则化参数 C 在组件预设数值序列中的索引。"
+      },
+      {
+        "name": "class_weight",
+        "type": "bool",
+        "default": false,
+        "description": "是否按类别频率调整类别权重，以缓解类别不平衡。"
+      },
+      {
+        "name": "penalty_type",
+        "type": "int",
+        "default": 1,
+        "description": "正则化类型的选项索引，例如 L1、L2 或不使用正则化。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Naive Bayes",
+    "widget_id": "Orange.widgets.model.ownaivebayes",
+    "description": "Naive Bayes 组件，属于“机器学习模型构建”类别。Orange 官方说明：A fast and simple probabilistic classifier based on Bayes' theorem with the assumption of feature independence.",
+    "type": "model",
+    "params": []
+  },
+  {
+    "widget_name": "Neural Network",
+    "widget_id": "Orange.widgets.model.owneuralnetwork",
+    "description": "Neural Network 组件，属于“机器学习模型构建”类别。Orange 官方说明：A multi-layer perceptron (MLP) algorithm with backpropagation.",
+    "type": "model",
+    "params": [
+      {
+        "name": "activation_index",
+        "type": "int",
+        "default": 3,
+        "description": "神经网络激活函数的选项索引。"
+      },
+      {
+        "name": "alpha_index",
+        "type": "int",
+        "default": 1,
+        "description": "正则化强度在组件预设数值序列中的索引。"
+      },
+      {
+        "name": "hidden_layers_input",
+        "type": "str",
+        "default": "100,",
+        "description": "神经网络隐藏层结构，按顺序填写每个隐藏层的神经元数量。"
+      },
+      {
+        "name": "max_iterations",
+        "type": "int",
+        "default": 200,
+        "description": "算法允许执行的最大迭代次数。"
+      },
+      {
+        "name": "replicable",
+        "type": "bool",
+        "default": true,
+        "description": "是否固定随机过程以便重复运行得到一致结果。"
+      },
+      {
+        "name": "solver_index",
+        "type": "int",
+        "default": 2,
+        "description": "神经网络优化求解器的选项索引。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Test and Score",
+    "widget_id": "Orange.widgets.evaluate.owtestandscore",
+    "description": "Test and Score 组件，属于“模型评估与预测分析”类别。Orange 官方说明：Tests learning algorithms on data.",
+    "type": "evaluate",
+    "params": [
+      {
+        "name": "class_selection",
+        "type": "str",
+        "default": "(None, show average over classes)",
+        "description": "多类别评估时选择单个类别或类别平均方式。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "comparison_criterion",
+        "type": "int",
+        "default": 0,
+        "description": "模型比较所使用的评价指标索引。"
+      },
+      {
+        "name": "cv_stratified",
+        "type": "bool",
+        "default": true,
+        "description": "交叉验证时是否按照类别进行分层。"
+      },
+      {
+        "name": "fold_feature",
+        "type": "any",
+        "default": null,
+        "description": "按字段定义折号时使用的字段。 该值按输入数据域分别保存。 默认未指定，由输入数据或组件运行时决定。"
+      },
+      {
+        "name": "fold_feature_selected",
+        "type": "bool",
+        "default": false,
+        "description": "是否使用输入数据中的折号字段。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "n_folds",
+        "type": "int",
+        "default": 2,
+        "description": "交叉验证使用的折数。"
+      },
+      {
+        "name": "n_repeats",
+        "type": "int",
+        "default": 3,
+        "description": "重复交叉验证或重复抽样的次数。"
+      },
+      {
+        "name": "resampling",
+        "type": "int",
+        "default": 0,
+        "description": "模型评估采用的重采样方法索引。"
+      },
+      {
+        "name": "rope",
+        "type": "float",
+        "default": 0.1,
+        "description": "贝叶斯模型比较中的实际等效区域宽度。"
+      },
+      {
+        "name": "sample_size",
+        "type": "int",
+        "default": 9,
+        "description": "随机抽样评估中训练样本所占比例或大小。"
+      },
+      {
+        "name": "shuffle_stratified",
+        "type": "bool",
+        "default": true,
+        "description": "随机划分数据时是否保持类别分层。"
+      },
+      {
+        "name": "use_rope",
+        "type": "bool",
+        "default": false,
+        "description": "是否在模型比较时使用实际等效区域。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Predictions",
+    "widget_id": "Orange.widgets.evaluate.owpredictions",
+    "description": "Predictions 组件，属于“模型评估与预测分析”类别。Orange 官方说明：Shows models' predictions on the data.",
+    "type": "evaluate",
+    "params": [
+      {
+        "name": "show_probability_errors",
+        "type": "bool",
+        "default": true,
+        "description": "分类预测时是否显示概率误差。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "show_reg_errors",
+        "type": "int",
+        "default": 1,
+        "description": "回归预测时误差列的显示模式。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "show_scores",
+        "type": "bool",
+        "default": true,
+        "description": "是否在预测结果中显示模型评分列。"
+      },
+      {
+        "name": "shown_probs",
+        "type": "int",
+        "default": 0,
+        "description": "分类概率列的显示模式或选项索引。 该值按输入数据域分别保存。"
+      },
+      {
+        "name": "target_class",
+        "type": "str",
+        "default": "",
+        "description": "当前关注或显示概率的目标类别。 该值按输入数据域分别保存。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Confusion Matrix",
+    "widget_id": "Orange.widgets.evaluate.owconfusionmatrix",
+    "description": "Confusion Matrix 组件，属于“模型评估与预测分析”类别。Orange 官方说明：Shows proportions between the predicted and actual class.",
+    "type": "evaluate",
+    "params": [
+      {
+        "name": "append_predictions",
+        "type": "bool",
+        "default": true,
+        "description": "输出数据时是否追加预测类别或预测值。"
+      },
+      {
+        "name": "append_probabilities",
+        "type": "bool",
+        "default": false,
+        "description": "输出数据时是否追加各类别的预测概率。"
+      },
+      {
+        "name": "selected_quantity",
+        "type": "int",
+        "default": 0,
+        "description": "混淆矩阵当前显示数量、比例等内容的选项索引。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Correlations",
+    "widget_id": "Orange.widgets.data.owcorrelations",
+    "description": "Correlations 组件，属于“无监督学习与距离分析”类别。Orange 官方说明：Compute all pairwise attribute correlations.",
+    "type": "unsupervised",
+    "params": [
+      {
+        "name": "correlation_type",
+        "type": "int",
+        "default": 0,
+        "description": "相关系数类型的选项索引，例如 Pearson 或 Spearman。"
+      },
+      {
+        "name": "feature",
+        "type": "any",
+        "default": null,
+        "description": "当前作为参考或重点分析的特征。 该值按输入数据域分别保存。 默认未指定，由输入数据或组件运行时决定。"
+      },
+      {
+        "name": "impute_missing",
+        "type": "bool",
+        "default": true,
+        "description": "计算相关性前是否填补缺失值。"
+      }
+    ]
+  }
+]

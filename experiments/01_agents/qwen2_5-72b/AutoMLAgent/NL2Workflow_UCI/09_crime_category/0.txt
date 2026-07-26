@@ -1,0 +1,232 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.metrics import log_loss, classification_report, confusion_matrix
+from sklearn.utils.class_weight import compute_class_weight
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import joblib
+import shap
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_data(path):
+    df = pd.read_csv(path)
+    return df
+
+def initial_exploration(df):
+    print("Basic statistics:")
+    print(df.describe())
+    print("\nData types and missing values:")
+    print(df.info())
+    print(df.isnull().sum())
+    print("\nTarget variable distribution:")
+    if 'crime_category' in df.columns:
+        print(df['crime_category'].value_counts())
+    else:
+        raise ValueError("Column 'crime_category' not found in the dataset.")
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Identify numerical and categorical columns
+    numerical_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_columns = df.select_dtypes(include=[np.object, 'category']).columns.tolist()
+
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[numerical_columns] = numerical_imputer.fit_transform(df[numerical_columns])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[categorical_columns] = categorical_imputer.fit_transform(df[categorical_columns])
+
+    # Categorical Encoding
+    df = pd.get_dummies(df, columns=categorical_columns, drop_first=True)
+
+    # Feature Engineering
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+        df['day_of_week'] = df['date'].dt.dayofweek
+        df['hour_of_day'] = df['date'].dt.hour
+        df['month'] = df['date'].dt.month
+        df['year'] = df['date'].dt.year
+
+    # Example spatial feature (distance to police station)
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        def calculate_distance(lat1, lon1, lat2, lon2):
+            from geopy.distance import geodesic
+            return geodesic((lat1, lon1), (lat2, lon2)).miles
+
+        police_station_latitude = 37.7749  # Example latitude
+        police_station_longitude = -122.4194  # Example longitude
+        df['distance_to_police_station'] = df.apply(lambda row: calculate_distance(row['latitude'], row['longitude'], police_station_latitude, police_station_longitude), axis=1)
+
+    # Interaction features
+    if 'feature1' in df.columns and 'feature2' in df.columns:
+        df['interaction_feature'] = df['feature1'] * df['feature2']
+
+    return df
+
+# Data Augmentation
+def handle_imbalanced_data(X, y):
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    class_weights = compute_class_weight('balanced', classes=np.unique(y), y=y)
+    return X_resampled, y_resampled, class_weights
+
+# Feature Selection
+def feature_selection(X, y):
+    from sklearn.feature_selection import mutual_info_classif, RFE
+    from sklearn.ensemble import RandomForestClassifier
+
+    # Mutual Information
+    mutual_info = mutual_info_classif(X, y)
+    important_features = [feature for feature, importance in zip(X.columns, mutual_info) if importance > 0.1]
+
+    # RFE
+    model = RandomForestClassifier()
+    rfe = RFE(model, n_features_to_select=10)
+    X_rfe = rfe.fit_transform(X, y)
+    selected_features = X.columns[rfe.support_]
+
+    return X_rfe, selected_features
+
+# Model Training and Optimization
+def train_model(X_train, y_train, class_weights):
+    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', scale_pos_weight=class_weights)
+    param_grid = {
+        'learning_rate': [0.01, 0.1, 0.2],
+        'n_estimators': [50, 100, 200],
+        'max_depth': [3, 6, 9],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0]
+    }
+    grid_search = GridSearchCV(xgb_model, param_grid, cv=StratifiedKFold(n_splits=5), scoring='neg_log_loss', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_pred = model.predict(X_val)
+    y_pred_proba = model.predict_proba(X_val)
+    logloss = log_loss(y_val, y_pred_proba)
+    print(f'Logloss: {logloss}')
+    print(classification_report(y_val, y_pred))
+    print(confusion_matrix(y_val, y_pred))
+    return logloss
+
+# Feature Importance and Interpretation
+def feature_importance(model, X):
+    feature_importances = model.feature_importances_
+    feature_importance_df = pd.DataFrame({'Feature': X.columns, 'Importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+    print(feature_importance_df)
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X)
+    shap.summary_plot(shap_values, X)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset
+    path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = load_data(path)
+    
+    try:
+        initial_exploration(df)
+    except ValueError as e:
+        print(e)
+        return
+
+    # Step 2. Create a train-valid-test split of the data
+    if 'crime_category' in df.columns:
+        X = df.drop(columns=['crime_category'])
+        y = df['crime_category']
+    else:
+        raise ValueError("Column 'crime_category' not found in the dataset.")
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED, stratify=y_temp)
+
+    # Step 3. Data Preprocessing and Feature Engineering
+    X_train = preprocess_data(X_train)
+    X_val = preprocess_data(X_val)
+    X_test = preprocess_data(X_test)
+
+    # Step 4. Handle Imbalanced Data
+    X_train_resampled, y_train_resampled, class_weights = handle_imbalanced_data(X_train, y_train)
+
+    # Step 5. Feature Selection
+    X_train_selected, selected_features = feature_selection(X_train_resampled, y_train_resampled)
+    X_val_selected = X_val[selected_features]
+    X_test_selected = X_test[selected_features]
+
+    # Step 6. Train the Model
+    model = train_model(X_train_selected, y_train_resampled, class_weights)
+
+    # Step 7. Evaluate the Model
+    logloss = evaluate_model(model, X_val_selected, y_val)
+
+    # Step 8. Feature Importance and Interpretation
+    feature_importance(model, X_train_selected)
+
+    # Step 9. Save the Model
+    model_path = r'./agent_workspace/trained_models/xgboost_crime_category_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return logloss
+
+if __name__ == "__main__":
+    logloss = main()
+    if logloss is not None:
+        print(f"Model Performance on Test Set: Logloss = {logloss}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Basic statistics:
+                  X             Y
+count  70244.000000  70244.000000
+mean    -122.422808     37.767867
+std        0.026338      0.198551
+min     -122.513642     37.707944
+25%     -122.432915     37.752590
+50%     -122.416452     37.775421
+75%     -122.406992     37.784400
+max     -120.500000     90.000000
+
+Data types and missing values:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 70244 entries, 0 to 70243
+Data columns (total 5 columns):
+ #   Column      Non-Null Count  Dtype  
+---  ------      --------------  -----  
+ 0   Category    70244 non-null  object 
+ 1   DayOfWeek   70244 non-null  object 
+ 2   PdDistrict  70244 non-null  object 
+ 3   X           70244 non-null  float64
+ 4   Y           70244 non-null  float64
+dtypes: float64(2), object(3)
+memory usage: 2.7+ MB
+None
+Category      0
+DayOfWeek     0
+PdDistrict    0
+X             0
+Y             0
+dtype: int64
+
+Target variable distribution:
+Column 'crime_category' not found in the dataset.

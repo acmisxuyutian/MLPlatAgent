@@ -1,0 +1,363 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 分离特征和标签
+X_train = train_df.drop(columns=['hardness'])
+y_train = train_df['hardness']
+X_test = test_df.drop(columns=['hardness'])
+y_test = test_df['hardness']
+
+# 标准化特征
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 转换为 PyTorch 张量
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.fc1(x))
+        x = self.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train.shape[1]
+model = Net(input_size)
+
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+    if (epoch + 1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+model.eval()
+with torch.no_grad():
+    y_pred = model(X_test)
+    mae = median_absolute_error(y_test, y_pred)
+    print(f'Median Absolute Error on Test Set: {mae:.4f}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_db4b34037da193bc3c6ec8112986cb0d1ebd6e9e6b53006df39084cabdf0f9ea.py", line 3, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'
+
+生成的代码：
+pip install torch
+
+conda install pytorch torchvision torchaudio -c pytorch
+
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 分离特征和标签
+X_train = train_df.drop(columns=['hardness'])
+y_train = train_df['hardness']
+X_test = test_df.drop(columns=['hardness'])
+y_test = test_df['hardness']
+
+# 标准化特征
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 转换为 PyTorch 张量
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.fc1(x))
+        x = self.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train.shape[1]
+model = Net(input_size)
+
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+    if (epoch + 1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+model.eval()
+with torch.no_grad():
+    y_pred = model(X_test)
+    mae = median_absolute_error(y_test, y_pred)
+    print(f'Median Absolute Error on Test Set: {mae:.4f}')
+
+
+执行结果：
+[0mTraceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_cbee4b8bbed9e986598c5c989e5c95a51a9b622d754a608ad7c7880594033067.py", line 4, in <module>
+    train_df = pd.read_csv(train_path)
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 分离特征和标签
+X_train = train_df.drop(columns=['hardness'])
+y_train = train_df['hardness']
+X_test = test_df.drop(columns=['hardness'])
+y_test = test_df['hardness']
+
+# 标准化特征
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 转换为 PyTorch 张量
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# 定义神经网络模型
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.fc1(x))
+        x = self.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train.shape[1]
+model = Net(input_size)
+
+# 定义损失函数和优化器
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# 训练模型
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+    if (epoch + 1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+# 评估模型
+model.eval()
+with torch.no_grad():
+    y_pred = model(X_test)
+    mae = median_absolute_error(y_test, y_pred)
+    print(f'Median Absolute Error on Test Set: {mae:.4f}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_099b88b3c6917bcb5f28a75c2935537f5699ea9ff10dfa1147f48afc7da94912.py", line 18, in <module>
+    X_train = train_df.drop(columns=['hardness'])
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 5581, in drop
+    return super().drop(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['hardness'] not found in axis"
+[0m
+生成的代码：
+import pandas as pd
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 打印列名
+print("Train dataset columns:", train_df.columns.tolist())
+print("Test dataset columns:", test_df.columns.tolist())
+
+
+执行结果：
+Train dataset columns: ['id', 'allelectrons_Total', 'density_Total', 'allelectrons_Average', 'val_e_Average', 'atomicweight_Average', 'ionenergy_Average', 'el_neg_chi_Average', 'R_vdw_element_Average', 'R_cov_element_Average', 'zaratio_Average', 'density_Average', 'Hardness']
+Test dataset columns: ['id', 'allelectrons_Total', 'density_Total', 'allelectrons_Average', 'val_e_Average', 'atomicweight_Average', 'ionenergy_Average', 'el_neg_chi_Average', 'R_vdw_element_Average', 'R_cov_element_Average', 'zaratio_Average', 'density_Average', 'Hardness']
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# 分离特征和标签
+X_train = train_df.drop(columns=['id', 'Hardness'])
+y_train = train_df['Hardness']
+X_test = test_df.drop(columns=['id', 'Hardness'])
+y_test = test_df['Hardness']
+
+# 标准化特征
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 转换为 PyTorch 张量
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# 定义神经网络模型
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.fc1(x))
+        x = self.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train.shape[1]
+model = Net(input_size)
+
+# 定义损失函数和优化器
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# 训练模型
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+    if (epoch + 1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+# 评估模型
+model.eval()
+with torch.no_grad():
+    y_pred = model(X_test)
+    mae = median_absolute_error(y_test, y_pred)
+    print(f'Median Absolute Error on Test Set: {mae:.4f}')
+
+
+执行结果：
+Epoch [10/100], Loss: 7.8151
+Epoch [20/100], Loss: 2.4126
+Epoch [30/100], Loss: 2.1580
+Epoch [40/100], Loss: 2.1020
+Epoch [50/100], Loss: 2.0700
+Epoch [60/100], Loss: 2.0483
+Epoch [70/100], Loss: 2.0318
+Epoch [80/100], Loss: 2.0183
+Epoch [90/100], Loss: 2.0068
+Epoch [100/100], Loss: 1.9967
+Median Absolute Error on Test Set: 0.9098
+[0m

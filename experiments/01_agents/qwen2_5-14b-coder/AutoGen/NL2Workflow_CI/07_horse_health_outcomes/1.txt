@@ -1,0 +1,420 @@
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+import joblib
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 假设目标变量是 'outcome'
+X_train = train_data.drop('outcome', axis=1)
+y_train = train_data['outcome']
+
+# 处理缺失值
+X_train.fillna(X_train.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    test_data[column] = le.transform(test_data[column])
+    label_encoders[column] = le
+
+# 3. 特征选择
+# 这里我们假设所有特征都是有用的，如果有特征选择的需求，可以使用特征选择方法
+
+# 4. 模型训练
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 5. 模型预测
+X_test_scaled = scaler.transform(test_data)
+y_pred = model.predict(X_test_scaled)
+
+# 6. 评估模型
+f1 = f1_score(test_data['outcome'], y_pred, average='weighted')
+print(f'F1 Score: {f1}')
+
+# 7. 保存预测结果
+test_data['predicted_outcome'] = y_pred
+test_data[['id', 'predicted_outcome']].to_csv('predicted_outcomes.csv', index=False)
+
+# 保存模型和预处理工具
+joblib.dump(model, 'horse_health_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+joblib.dump(label_encoders, 'label_encoders.pkl')
+
+print('模型训练和预测完成，预测结果已保存到 predicted_outcomes.csv')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_a64d9b784088c7559633746db195797054373b27d9b0fb51c41b055c7f856526.py", line 21, in <module>
+    X_train.fillna(X_train.mean(), inplace=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12420, in mean
+    return self._stat_function(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12377, in _stat_function
+    return self._reduce(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\blocks.py", line 404, in reduce
+    result = func(self.values)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 719, in nanmean
+    the_sum = values.sum(axis, dtype=dtype_sum)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\numpy\_core\_methods.py", line 52, in _sum
+    return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+TypeError: can only concatenate str (not "int") to str
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+import joblib
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 假设目标变量是 'outcome'
+X_train = train_data.drop('outcome', axis=1)
+y_train = train_data['outcome']
+
+# 检查数据类型
+print(X_train.dtypes)
+
+# 将所有对象类型列转换为数值类型
+for column in X_train.select_dtypes(include=['object']).columns:
+    try:
+        X_train[column] = pd.to_numeric(X_train[column], errors='coerce')
+        test_data[column] = pd.to_numeric(test_data[column], errors='coerce')
+    except ValueError:
+        print(f"无法将列 {column} 转换为数值类型")
+
+# 处理缺失值
+X_train.fillna(X_train.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    test_data[column] = le.transform(test_data[column])
+    label_encoders[column] = le
+
+# 3. 特征选择
+# 这里我们假设所有特征都是有用的，如果有特征选择的需求，可以使用特征选择方法
+
+# 4. 模型训练
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 5. 模型预测
+X_test_scaled = scaler.transform(test_data)
+y_pred = model.predict(X_test_scaled)
+
+# 6. 评估模型
+f1 = f1_score(test_data['outcome'], y_pred, average='weighted')
+print(f'F1 Score: {f1}')
+
+# 7. 保存预测结果
+test_data['predicted_outcome'] = y_pred
+test_data[['id', 'predicted_outcome']].to_csv('predicted_outcomes.csv', index=False)
+
+# 保存模型和预处理工具
+joblib.dump(model, 'horse_health_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+joblib.dump(label_encoders, 'label_encoders.pkl')
+
+print('模型训练和预测完成，预测结果已保存到 predicted_outcomes.csv')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_c1ddd96785f7214f1dd7639c1a7406a64bc2a68d7df05fc94a5ae378ddf8b86d.py", line 33, in <module>
+    test_data.fillna(test_data.mean(), inplace=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12420, in mean
+    return self._stat_function(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12377, in _stat_function
+    return self._reduce(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\blocks.py", line 404, in reduce
+    result = func(self.values)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 720, in nanmean
+    the_sum = _ensure_numeric(the_sum)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 1686, in _ensure_numeric
+    raise TypeError(f"Could not convert {x} to numeric")
+TypeError: Could not convert ['euthanizedeuthanizeddiedeuthanizedliveddieddieddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedeuthanizedlivedeuthanizedlivedeuthanizedeuthanizedlivedlivedeuthanizedeuthanizeddieddiedeuthanizeddiedlivedlivedlivedlivedlivedliveddieddiedeuthanizedeuthanizedeuthanizedeuthanizeddieddiedlivedlivedlivedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedeuthanizeddiedlivedeuthanizedeuthanizedliveddiedlivedlivedeuthanizedliveddiedeuthanizedlivedeuthanizedliveddiedlivedlivedlivedliveddiedlivedlivedlivedliveddiedliveddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedlivedliveddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedlivedeuthanizedeuthanizedlivedeuthanizeddiedlivedlivedlivedeuthanizedlivedlivedliveddieddieddiedliveddiedlivedliveddieddiedeuthanizedeuthanizedlivedlivedlivedliveddiedlivedlivedeuthanizedliveddiedlivedlivedliveddiedeuthanizedlivedeuthanizeddiedliveddiedlivedeuthanizedlivedlivedlivedliveddiedlivedeuthanizedlivedliveddiedliveddiedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedliveddiedlivedliveddieddieddieddiedliveddiedlivedliveddiedeuthanizedliveddieddieddiedlivedlivedliveddieddiedlivedlivedliveddiedlivedeuthanizedlivedlivedeuthanizeddieddiedliveddiedlivedliveddiedlivedlivedliveddiedeuthanizedeuthanizeddiedeuthanizedlivedlivedlivedlivedliveddiedeuthanizedlivedeuthanizedliveddiedliveddieddieddiedlivedlivedliveddieddieddieddiedeuthanized'] to numeric
+surgery                   object
+hospital_number            int64
+rectal_temp              float64
+pulse                    float64
+respiratory_rate         float64
+peripheral_pulse          object
+mucous_membrane           object
+capillary_refill_time     object
+dtype: object
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+import joblib
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 假设目标变量是 'outcome'
+X_train = train_data.drop('outcome', axis=1)
+y_train = train_data['outcome']
+
+# 检查数据类型
+print(X_train.dtypes)
+
+# 将所有对象类型列转换为数值类型
+for column in X_train.select_dtypes(include=['object']).columns:
+    try:
+        X_train[column] = pd.to_numeric(X_train[column], errors='coerce')
+        test_data[column] = pd.to_numeric(test_data[column], errors='coerce')
+    except ValueError:
+        print(f"无法将列 {column} 转换为数值类型")
+
+# 处理缺失值
+X_train.fillna(X_train.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    test_data[column] = le.transform(test_data[column])
+    label_encoders[column] = le
+
+# 3. 特征选择
+# 这里我们假设所有特征都是有用的，如果有特征选择的需求，可以使用特征选择方法
+
+# 4. 模型训练
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 5. 模型预测
+X_test_scaled = scaler.transform(test_data)
+y_pred = model.predict(X_test_scaled)
+
+# 6. 评估模型
+f1 = f1_score(test_data['outcome'], y_pred, average='weighted')
+print(f'F1 Score: {f1}')
+
+# 7. 保存预测结果
+test_data['predicted_outcome'] = y_pred
+test_data[['id', 'predicted_outcome']].to_csv('predicted_outcomes.csv', index=False)
+
+# 保存模型和预处理工具
+joblib.dump(model, 'horse_health_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+joblib.dump(label_encoders, 'label_encoders.pkl')
+
+print('模型训练和预测完成，预测结果已保存到 predicted_outcomes.csv')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_c1ddd96785f7214f1dd7639c1a7406a64bc2a68d7df05fc94a5ae378ddf8b86d.py", line 33, in <module>
+    test_data.fillna(test_data.mean(), inplace=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12420, in mean
+    return self._stat_function(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12377, in _stat_function
+    return self._reduce(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\blocks.py", line 404, in reduce
+    result = func(self.values)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 720, in nanmean
+    the_sum = _ensure_numeric(the_sum)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 1686, in _ensure_numeric
+    raise TypeError(f"Could not convert {x} to numeric")
+TypeError: Could not convert ['euthanizedeuthanizeddiedeuthanizedliveddieddieddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedeuthanizedlivedeuthanizedlivedeuthanizedeuthanizedlivedlivedeuthanizedeuthanizeddieddiedeuthanizeddiedlivedlivedlivedlivedlivedliveddieddiedeuthanizedeuthanizedeuthanizedeuthanizeddieddiedlivedlivedlivedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedeuthanizeddiedlivedeuthanizedeuthanizedliveddiedlivedlivedeuthanizedliveddiedeuthanizedlivedeuthanizedliveddiedlivedlivedlivedliveddiedlivedlivedlivedliveddiedliveddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedlivedliveddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedlivedeuthanizedeuthanizedlivedeuthanizeddiedlivedlivedlivedeuthanizedlivedlivedliveddieddieddiedliveddiedlivedliveddieddiedeuthanizedeuthanizedlivedlivedlivedliveddiedlivedlivedeuthanizedliveddiedlivedlivedliveddiedeuthanizedlivedeuthanizeddiedliveddiedlivedeuthanizedlivedlivedlivedliveddiedlivedeuthanizedlivedliveddiedliveddiedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedliveddiedlivedliveddieddieddieddiedliveddiedlivedliveddiedeuthanizedliveddieddieddiedlivedlivedliveddieddiedlivedlivedliveddiedlivedeuthanizedlivedlivedeuthanizeddieddiedliveddiedlivedliveddiedlivedlivedliveddiedeuthanizedeuthanizeddiedeuthanizedlivedlivedlivedlivedliveddiedeuthanizedlivedeuthanizedliveddiedliveddieddieddiedlivedlivedliveddieddieddieddiedeuthanized'] to numeric
+surgery                   object
+hospital_number            int64
+rectal_temp              float64
+pulse                    float64
+respiratory_rate         float64
+peripheral_pulse          object
+mucous_membrane           object
+capillary_refill_time     object
+dtype: object
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score
+import joblib
+
+# 1. 加载数据
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 2. 数据预处理
+# 假设目标变量是 'outcome'
+X_train = train_data.drop('outcome', axis=1)
+y_train = train_data['outcome']
+
+# 检查数据类型
+print(X_train.dtypes)
+
+# 将所有对象类型列转换为数值类型
+for column in X_train.select_dtypes(include=['object']).columns:
+    try:
+        X_train[column] = pd.to_numeric(X_train[column], errors='coerce')
+        test_data[column] = pd.to_numeric(test_data[column], errors='coerce')
+    except ValueError:
+        print(f"无法将列 {column} 转换为数值类型")
+
+# 处理缺失值
+X_train.fillna(X_train.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+label_encoders = {}
+for column in X_train.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X_train[column] = le.fit_transform(X_train[column])
+    test_data[column] = le.transform(test_data[column])
+    label_encoders[column] = le
+
+# 3. 特征选择
+# 这里我们假设所有特征都是有用的，如果有特征选择的需求，可以使用特征选择方法
+
+# 4. 模型训练
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 5. 模型预测
+X_test_scaled = scaler.transform(test_data)
+y_pred = model.predict(X_test_scaled)
+
+# 6. 评估模型
+f1 = f1_score(test_data['outcome'], y_pred, average='weighted')
+print(f'F1 Score: {f1}')
+
+# 7. 保存预测结果
+test_data['predicted_outcome'] = y_pred
+test_data[['id', 'predicted_outcome']].to_csv('predicted_outcomes.csv', index=False)
+
+# 保存模型和预处理工具
+joblib.dump(model, 'horse_health_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+joblib.dump(label_encoders, 'label_encoders.pkl')
+
+print('模型训练和预测完成，预测结果已保存到 predicted_outcomes.csv')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_c1ddd96785f7214f1dd7639c1a7406a64bc2a68d7df05fc94a5ae378ddf8b86d.py", line 33, in <module>
+    test_data.fillna(test_data.mean(), inplace=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12420, in mean
+    return self._stat_function(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 12377, in _stat_function
+    return self._reduce(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\internals\blocks.py", line 404, in reduce
+    result = func(self.values)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 720, in nanmean
+    the_sum = _ensure_numeric(the_sum)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\nanops.py", line 1686, in _ensure_numeric
+    raise TypeError(f"Could not convert {x} to numeric")
+TypeError: Could not convert ['euthanizedeuthanizeddiedeuthanizedliveddieddieddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedeuthanizedlivedeuthanizedlivedeuthanizedeuthanizedlivedlivedeuthanizedeuthanizeddieddiedeuthanizeddiedlivedlivedlivedlivedlivedliveddieddiedeuthanizedeuthanizedeuthanizedeuthanizeddieddiedlivedlivedlivedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedeuthanizeddiedlivedeuthanizedeuthanizedliveddiedlivedlivedeuthanizedliveddiedeuthanizedlivedeuthanizedliveddiedlivedlivedlivedliveddiedlivedlivedlivedliveddiedliveddiedeuthanizedeuthanizedliveddieddiedlivedeuthanizedlivedliveddiedeuthanizedlivedlivedeuthanizedeuthanizeddiedlivedeuthanizedeuthanizedlivedeuthanizeddiedlivedlivedlivedeuthanizedlivedlivedliveddieddieddiedliveddiedlivedliveddieddiedeuthanizedeuthanizedlivedlivedlivedliveddiedlivedlivedeuthanizedliveddiedlivedlivedliveddiedeuthanizedlivedeuthanizeddiedliveddiedlivedeuthanizedlivedlivedlivedliveddiedlivedeuthanizedlivedliveddiedliveddiedeuthanizeddiedlivedlivedlivedlivedlivedlivedlivedliveddiedliveddiedlivedliveddieddieddieddiedliveddiedlivedliveddiedeuthanizedliveddieddieddiedlivedlivedliveddieddiedlivedlivedliveddiedlivedeuthanizedlivedlivedeuthanizeddieddiedliveddiedlivedliveddiedlivedlivedliveddiedeuthanizedeuthanizeddiedeuthanizedlivedlivedlivedlivedliveddiedeuthanizedlivedeuthanizedliveddiedliveddieddieddiedlivedlivedliveddieddieddieddiedeuthanized'] to numeric
+surgery                   object
+hospital_number            int64
+rectal_temp              float64
+pulse                    float64
+respiratory_rate         float64
+peripheral_pulse          object
+mucous_membrane           object
+capillary_refill_time     object
+dtype: object

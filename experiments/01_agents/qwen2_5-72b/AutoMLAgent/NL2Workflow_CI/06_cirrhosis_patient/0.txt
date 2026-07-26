@@ -1,0 +1,146 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import log_loss
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Setup
+def load_data():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    print("Training Data:")
+    print(train_df.isnull().sum())
+    print(train_df.dtypes)
+
+    print("Test Data:")
+    print(test_df.isnull().sum())
+    print(test_df.dtypes)
+
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handling Missing Values
+    numerical_features = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # Encoding Categorical Variables
+    train_df = pd.get_dummies(train_df, columns=categorical_features)
+    test_df = pd.get_dummies(test_df, columns=categorical_features)
+
+    # Ensure the same columns in train and test
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for c in missing_cols:
+        test_df[c] = 0
+    test_df = test_df[train_df.columns]
+
+    return train_df, test_df
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    smote = SMOTE(random_state=42)
+    X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
+    return X_train_res, y_train_res
+
+# Model Training
+def train_model(X_train, y_train):
+    gbm = GradientBoostingClassifier(n_estimators=200, learning_rate=0.1, max_depth=5, subsample=0.8, random_state=42)
+    gbm.fit(X_train, y_train)
+    return gbm
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict_proba(X_val)
+    logloss_val = log_loss(y_val, y_val_pred)
+    print(f'Validation Logloss: {logloss_val}')
+
+    y_test_pred = model.predict_proba(X_test)
+    logloss_test = log_loss(y_test, y_test_pred)
+    print(f'Test Logloss: {logloss_test}')
+
+    performance_scores = {
+        'Validation Logloss': logloss_val,
+        'Test Logloss': logloss_test
+    }
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data()
+
+    # Step 2: Preprocess the datasets
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Split the training set into training and validation sets
+    if 'survival_status' not in train_df.columns:
+        raise ValueError("The target column 'survival_status' is not present in the training dataset.")
+    
+    X_train = train_df.drop(columns=['survival_status'])
+    y_train = train_df['survival_status']
+
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train, random_state=42)
+
+    # Step 4: Data Augmentation
+    X_train_res, y_train_res = augment_data(X_train, y_train)
+
+    # Step 5: Train the model
+    model = train_model(X_train_res, y_train_res)
+
+    # Step 6: Evaluate the model
+    X_test = test_df.drop(columns=['survival_status'])
+    y_test = test_df['survival_status']
+
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    # Step 7: Save the trained model
+    model_path = r'./agent_workspace/trained_models/cirrhosis_patient_survival_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 106, in main
+    raise ValueError("The target column 'survival_status' is not present in the training dataset.")
+ValueError: The target column 'survival_status' is not present in the training dataset.

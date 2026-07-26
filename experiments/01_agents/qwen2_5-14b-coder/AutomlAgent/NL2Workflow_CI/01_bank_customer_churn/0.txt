@@ -1,0 +1,157 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+from sklearn.model_selection import GridSearchCV
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Identify numeric and categorical columns separately
+    numeric_features = train_data.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = train_data.select_dtypes(include=['object']).columns
+
+    # Impute missing values for numeric columns using mean
+    numeric_imputer = SimpleImputer(strategy='mean')
+    train_data[numeric_features] = numeric_imputer.fit_transform(train_data[numeric_features])
+    test_data[numeric_features] = numeric_imputer.transform(test_data[numeric_features])
+
+    # Impute missing values for categorical columns using mode
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_data[categorical_features] = categorical_imputer.fit_transform(train_data[categorical_features])
+    test_data[categorical_features] = categorical_imputer.transform(test_data[categorical_features])
+
+    # Detect and handle outliers for numeric features using Z-score
+    from scipy import stats
+
+    for feature in numeric_features:
+        z_scores = stats.zscore(train_data[feature])
+        abs_z_scores = np.abs(z_scores)
+        filtered_entries = (abs_z_scores < 3)
+        train_data = train_data[filtered_entries]
+
+    # Convert categorical variables to strings
+    train_data = train_data.astype(str)
+    test_data = test_data.astype(str)
+
+    # Feature Engineering and Transformation
+    if 'tenure' in train_data.columns:
+        train_data['tenure_in_years'] = train_data['tenure'].astype(float) / 12
+        test_data['tenure_in_years'] = test_data['tenure'].astype(float) / 12
+
+    skewed_features = ['total_spent']
+    for feature in skewed_features:
+        if feature in train_data.columns:
+            train_data[feature] = np.log1p(train_data[feature].astype(float))
+            test_data[feature] = np.log1p(test_data[feature].astype(float))
+
+    # Encode Categorical Variables
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ])
+
+    train_data = preprocessor.fit_transform(train_data)
+    test_data = preprocessor.transform(test_data)
+
+    return train_data, test_data
+
+def train_model(train_loader, valid_loader):
+    # Define the Random Forest Model
+    rf_model = RandomForestClassifier(random_state=42)
+
+    # Hyperparameter Optimization
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 15],
+        'min_samples_leaf': [4, 6]
+    }
+
+    grid_search = GridSearchCV(estimator=rf_model, param_grid=param_grid, cv=3, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(train_loader.drop('churn', axis=1), train_loader['churn'])
+    best_rf_model = grid_search.best_estimator_
+
+    return best_rf_model
+
+def evaluate_model(model, test_loader):
+    # Evaluate the Model
+    y_pred = model.predict(test_loader.drop('churn', axis=1))
+    y_pred_proba = model.predict_proba(test_loader.drop('churn', axis=1))[:, 1]
+
+    auc_roc = roc_auc_score(test_loader['churn'], y_pred_proba)
+    cm = confusion_matrix(test_loader['churn'], y_pred)
+    cr = classification_report(test_loader['churn'], y_pred)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': cm,
+        'Classification Report': cr
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+    test_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_loader, temp_loader = train_test_split(train_data, test_size=0.3, random_state=SEED)
+    valid_loader, test_loader = train_test_split(temp_loader, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_loader, test_loader = preprocess_data(train_loader, test_loader)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(train_loader, valid_loader)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    # Save the trained model
+    joblib.dump(model, r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/bank_customer_churn_rf_model.pkl')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 140, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 126, in main
+    model = train_model(train_loader, valid_loader)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 85, in train_model
+    grid_search.fit(train_loader.drop('churn', axis=1), train_loader['churn'])
+                    ^^^^^^^^^^^^^^^^^
+AttributeError: 'csr_matrix' object has no attribute 'drop'

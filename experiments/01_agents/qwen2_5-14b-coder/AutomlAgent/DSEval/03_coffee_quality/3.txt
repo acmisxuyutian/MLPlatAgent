@@ -1,0 +1,109 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Remove duplicates
+    train_df.drop_duplicates(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+    
+    # Drop irrelevant columns
+    columns_to_drop = [
+        "ID", "ICO Number", "Owner", "Region", "Certification Contact", "Certification Address", 
+        "Farm Name", "Lot Number", "Mill", "ICO Number", "Producer", "Company", "Expiration", 
+        "Harvest Year", "Number of Bags", "Bag Weight", "In-Country Partner", 
+        "Country of Origin", "Processing Method", "Grading Date", "Variety", "Status", "Defects", 
+        "Uniformity", "Clean Cup", "Sweetness", "Certification Body"
+    ]
+    
+    # Ensure that 'Unnamed: 0' is not in the columns if it's not present
+    columns_to_drop = [col for col in columns_to_drop if col in train_df.columns]
+    
+    train_df.drop(columns=columns_to_drop, inplace=True)
+    test_df.drop(columns=columns_to_drop, inplace=True)
+    
+    # One-Hot Encoding for 'Color' Column
+    encoder = OneHotEncoder(sparse_output=False, drop='first')
+    train_encoded = encoder.fit_transform(train_df[['Color']])
+    test_encoded = encoder.transform(test_df[['Color']])
+    
+    train_encoded_df = pd.DataFrame(train_encoded, columns=encoder.get_feature_names_out(['Color']))
+    test_encoded_df = pd.DataFrame(test_encoded, columns=encoder.get_feature_names_out(['Color']))
+    
+    train_df = pd.concat([train_df.drop('Color', axis=1), train_encoded_df], axis=1)
+    test_df = pd.concat([test_df.drop('Color', axis=1), test_encoded_df], axis=1)
+    
+    return train_df, test_df
+
+def train_model(X_train, y_train):
+    model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=10,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        max_features='sqrt',  # Corrected the max_features parameter
+        random_state=42
+    )
+    
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    performance_scores = {
+        'MSE': mse
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+    
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    
+    # Step 2. Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    # Step 3. Define features and target variable
+    X_train = train_df.drop('Total Cup Points', axis=1)
+    y_train = train_df['Total Cup Points']
+    
+    X_test = test_df.drop('Total Cup Points', axis=1)
+    y_test = test_df['Total Cup Points']
+    
+    # Step 4. Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Step 6. Save the model
+    model_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/models/coffee_quality_random_forest_model.joblib'
+    joblib.dump(model, model_save_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'MSE': 0.08500038122309797}

@@ -1,0 +1,146 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from scipy.stats import zscore
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import cross_val_score
+import optuna
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(data_path):
+    df = pd.read_csv(data_path)
+    print("Data loaded successfully.")
+    print(df.head())
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Identify numerical and categorical columns
+    numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+
+    # Impute missing values
+    df[numerical_cols] = df[numerical_cols].fillna(df[numerical_cols].median())
+    if not categorical_cols.empty:
+        df[categorical_cols] = df[categorical_cols].fillna(df[categorical_cols].mode().iloc[0])
+
+    # Remove duplicates
+    df = df.drop_duplicates()
+
+    # Convert data types if necessary
+    df[numerical_cols] = df[numerical_cols].astype('float64')
+    df[categorical_cols] = df[categorical_cols].astype('object')
+
+    # Handle outliers
+    z_scores = zscore(df[numerical_cols])
+    df = df[(z_scores < 3).all(axis=1)]
+
+    # Encode categorical variables
+    label_encoders = {}
+    for col in categorical_cols:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+        label_encoders[col] = le
+
+    return df, label_encoders
+
+# Data Splitting
+def split_data(df, target_col):
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, stratify=y, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, stratify=y_temp, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Evaluation
+def train_model(X_train, y_train, X_val, y_val):
+    def objective(trial):
+        params = {
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
+            'n_estimators': trial.suggest_int('n_estimators', 100, 500),
+            'max_depth': trial.suggest_int('max_depth', 3, 10),
+            'subsample': trial.suggest_float('subsample', 0.6, 1.0),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+            'gamma': trial.suggest_float('gamma', 0, 0.3)
+        }
+        
+        model = XGBClassifier(**params, random_state=SEED)
+        model.fit(X_train, y_train)
+        y_pred = model.predict_proba(X_val)[:, 1]
+        auc_roc = roc_auc_score(y_val, y_pred)
+        return auc_roc
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+
+    best_params = study.best_params
+    best_model = XGBClassifier(**best_params, random_state=SEED)
+    best_model.fit(X_train, y_train)
+
+    return best_model, best_params
+
+def evaluate_model(model, X_test, y_test):
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    test_auc_roc = roc_auc_score(y_test, y_test_pred)
+    return test_auc_roc
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    df = load_data(data_path)
+
+    # Step 2: Preprocess the data
+    df, label_encoders = preprocess_data(df)
+
+    # Step 3: Split the data
+    target_col = 'smoker_status'
+    if target_col not in df.columns:
+        raise KeyError(f"Target column '{target_col}' not found in the dataset.")
+    
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df, target_col)
+
+    # Step 4: Train the model with hyperparameter tuning
+    best_model, best_params = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5: Evaluate the model
+    model_performance = evaluate_model(best_model, X_test, y_test)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 6: Save the model
+    model_path = r'./agent_workspace/trained_models/smoker_status_Bio_Signals/xgboost_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(best_model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 114, in main
+    raise KeyError(f"Target column '{target_col}' not found in the dataset.")
+KeyError: "Target column 'smoker_status' not found in the dataset."

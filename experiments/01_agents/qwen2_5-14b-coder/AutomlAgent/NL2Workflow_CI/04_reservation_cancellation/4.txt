@@ -1,0 +1,120 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from lightgbm import LGBMClassifier
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Summary statistics
+    print(train_df.describe())
+
+    # Handle missing values
+    train_df.fillna(train_df.mean(), inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+
+    # Encode categorical variables
+    train_df = pd.get_dummies(train_df, columns=['room_type', 'customer_type'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['room_type', 'customer_type'], drop_first=True)
+
+    # Feature engineering
+    train_df['booking_date'] = pd.to_datetime(train_df['booking_date'])
+    train_df['checkin_date'] = pd.to_datetime(train_df['checkin_date'])
+    train_df['checkout_date'] = pd.to_datetime(train_df['checkout_date'])
+
+    train_df['booking_to_checkin_days'] = (train_df['checkin_date'] - train_df['booking_date']).dt.days
+    train_df['stay_duration'] = (train_df['checkout_date'] - train_df['checkin_date']).dt.days
+
+    # Ensure the same columns in test_df as in train_df
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+
+    test_df = test_df[train_df.columns]
+
+    return train_df, test_df
+
+def train_model(X_train, y_train):
+    # Initialize the LightGBM model with the given hyperparameters
+    model = LGBMClassifier(learning_rate=0.1, num_leaves=63, max_depth=10, n_estimators=200, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_val, y_val):
+    # Evaluate the model's performance on the validation set using the AUC-ROC metric
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    auc_roc = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {auc_roc}')
+    return auc_roc
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/test.csv')
+
+    # Ensure the target variable is correctly identified
+    target_variable = 'cancellation'
+    if target_variable not in train_df.columns:
+        raise ValueError(f"Target variable '{target_variable}' not found in the training dataset.")
+    if target_variable not in test_df.columns:
+        raise ValueError(f"Target variable '{target_variable}' not found in the testing dataset.")
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X = train_df.drop(columns=[target_variable])
+    y = train_df[target_variable]
+
+    # Split into training and temporary sets (70-30)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+
+    # Split the temporary set into validation and testing sets (15-15)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val)
+
+    # Step 7. Save the trained model for future use
+    model_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/models/lightgbm_reservation_cancellation_model.joblib'
+    joblib.dump(model, model_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 107, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 73, in main
+    raise ValueError(f"Target variable '{target_variable}' not found in the training dataset.")
+ValueError: Target variable 'cancellation' not found in the training dataset.

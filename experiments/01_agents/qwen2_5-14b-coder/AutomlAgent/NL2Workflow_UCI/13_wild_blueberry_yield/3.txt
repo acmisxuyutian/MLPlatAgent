@@ -1,0 +1,168 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.ensemble import RandomForestRegressor
+from torch.utils.data import DataLoader, TensorDataset
+import torch
+import torch.nn as nn
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Inspect the dataset structure
+    print(dataset.head())
+    print(dataset.info())
+    
+    # Check for missing values
+    print(dataset.isnull().sum())
+    
+    # Handle missing values with mean imputation
+    dataset.fillna(dataset.mean(), inplace=True)
+    
+    # Feature scaling
+    scaler = StandardScaler()
+    dataset_scaled = pd.DataFrame(scaler.fit_transform(dataset.drop('yield', axis=1)), columns=dataset.drop('yield', axis=1).columns)
+    
+    # Feature selection using Random Forest
+    model = RandomForestRegressor(random_state=42)
+    model.fit(dataset_scaled.drop('yield', axis=1), dataset_scaled['yield'])
+    feature_importances = model.feature_importances_
+    
+    # Split the dataset into training, validation, and test sets
+    X = dataset_scaled.drop('yield', axis=1)
+    y = dataset_scaled['yield']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, best_params):
+    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
+    criterion = nn.MSELoss()
+
+    for epoch in range(best_params['num_epochs']):
+        model.train()
+        for inputs, targets in DataLoader(TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32)), batch_size=best_params['batch_size'], shuffle=True):
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        predictions = model(torch.tensor(X_test.values, dtype=torch.float32)).numpy().flatten()
+        mae = mean_absolute_error(y_test, predictions)
+    return mae
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv')
+
+    # Step 2. Create a train-valid-test split of the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+
+    # Step 3. Define required model
+    input_size = X_train.shape[1]
+    model = FNN(input_size)
+
+    # Step 4. Hyperparameter optimization
+    param_grid = {
+        'learning_rate': [0.001, 0.01, 0.1],
+        'batch_size': [16, 32, 64],
+        'num_epochs': [50, 100, 150]
+    }
+
+    def train_model_cv(params):
+        model = FNN(input_size)
+        optimizer = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
+        criterion = nn.MSELoss()
+
+        for epoch in range(params['num_epochs']):
+            model.train()
+            for inputs, targets in DataLoader(TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32)), batch_size=params['batch_size'], shuffle=True):
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, targets.view(-1, 1))
+                loss.backward()
+                optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            predictions = model(torch.tensor(X_val.values, dtype=torch.float32)).numpy().flatten()
+            mae = mean_absolute_error(y_val, predictions)
+        return mae
+
+    grid_search = GridSearchCV(estimator={}, param_grid=param_grid, scoring=make_scorer(mean_absolute_error, greater_is_better=False), cv=5)
+    grid_search.fit(X_train, y_train)
+    best_params = grid_search.best_params_
+
+    # Step 5. Train the model with the best hyperparameters
+    train_model(model, X_train, y_train, best_params)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Save the trained model
+    model_path = "./agent_workspace/trained_models/wild_blueberry_yield_model.pth"
+    torch.save(model.state_dict(), model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 140, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 90, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 37, in preprocess_data
+    model.fit(dataset_scaled.drop('yield', axis=1), dataset_scaled['yield'])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['yield'] not found in axis"

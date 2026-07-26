@@ -1,0 +1,252 @@
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataframe to understand its structure
+train_data.head()
+
+# Preprocessing steps will depend on the inspection of the data
+# For now, let's assume basic preprocessing such as handling missing values and converting types if necessary
+
+# Check for missing values
+missing_values = train_data.isnull().sum()
+
+# Convert types if necessary (for example, if there are columns that should be numeric but are stored as strings)
+# Here we assume all necessary conversions based on the inspection
+# train_data['some_column'] = pd.to_numeric(train_data['some_column'], errors='coerce')
+
+# Fill or drop missing values
+# train_data.fillna(method ='ffill', inplace = True)
+# or
+# train_data.dropna(inplace=True)
+
+# The final preprocessed training data
+preprocessed_train_data
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 26
+    preprocessed_train_data
+
+NameError: name 'preprocessed_train_data' is not defined
+
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataframe to understand its structure
+train_data.head()
+
+# Check for missing values
+missing_values = train_data.isnull().sum()
+
+# Convert types if necessary (for example, if there are columns that should be numeric but are stored as strings)
+# Here we assume all necessary conversions based on the inspection
+# train_data['some_column'] = pd.to_numeric(train_data['some_column'], errors='coerce')
+
+# Fill or drop missing values
+# train_data.fillna(method ='ffill', inplace = True)
+# or
+# train_data.dropna(inplace=True)
+
+# The final preprocessed training data
+train_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+          id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+0      20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+1       2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+...      ...  ..     ...       ...     ...        ...             ...             ...           ...  ...
+59238    860   M  1.5000    1.1750  0.4375  37.747359       12.190285        8.221355     10.616888   15
+59239  15795   I  0.4375    0.3375  0.2375   0.864660        0.311845        0.212621      0.283495    6
+
+[59240 rows x 10 columns]from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+
+# Split the data into features and target
+X = train_data.drop(columns=['Age'])
+y = train_data['Age']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Predict on the validation set
+y_pred = model.predict(X_val)
+
+# Calculate the Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_val, y_pred)
+
+# Store the trained model and MAE
+model, mae
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 16
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'I'
+
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import OneHotEncoder
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# One-hot encode the 'Sex' column
+train_data = pd.get_dummies(train_data, columns=['Sex'])
+
+# Split the data into features and target
+X = train_data.drop(columns=['Age'])
+y = train_data['Age']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Predict on the validation set
+y_pred = model.predict(X_val)
+
+# Calculate the Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_val, y_pred)
+
+# Store the trained model and MAE
+model, mae
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestRegressor(random_state=42), 1.4373793045239702)import pandas as pd
+
+# Load the test dataset
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv'
+test_data = pd.read_csv(test_file_path)
+
+# One-hot encode the 'Sex' column
+test_data = pd.get_dummies(test_data, columns=['Sex'])
+
+# Ensure the same columns as in the training data
+train_columns = X.columns
+test_data = test_data.reindex(columns=train_columns, fill_value=0)
+
+# The final preprocessed test data
+test_data, train_columns
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Sex_F  Sex_I  Sex_M
+ 0      27233  1.6125    1.3500  0.4375  35.692020       14.670866        6.435337     11.056305  False   True  False
+ 1      55493  0.6625    0.5000  0.1625   2.764076        1.133980        0.581165      0.793786  False   True  False
+ ...      ...     ...       ...     ...        ...             ...             ...           ...    ...    ...    ...
+ 14809  66724  0.7250    0.5375  0.0000   3.727959        1.502523        0.765436      1.162330  False   True  False
+ 14810  44994  1.9500    1.4500  0.5625  72.432973       35.096681       16.726205     15.308730  False  False   True
+ 
+ [14811 rows x 11 columns],
+ Index(['id', 'Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight',
+        'Viscera_Weight', 'Shell_Weight', 'Sex_F', 'Sex_I', 'Sex_M'],
+       dtype='object'))from sklearn.metrics import mean_absolute_error
+
+# Predict on the test set
+y_test_pred = model.predict(test_data)
+
+# Load the true labels for the test set
+true_labels_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/test_labels.csv'
+true_labels = pd.read_csv(true_labels_file_path)['Age']
+
+# Calculate the Mean Absolute Error (MAE)
+test_mae = mean_absolute_error(true_labels, y_test_pred)
+
+# Store the test MAE
+test_mae
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 8
+    true_labels = pd.read_csv(true_labels_file_path)['Age']
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1026 in read_csv
+    return _read(filepath_or_buffer, kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:620 in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1620 in __init__
+    self._engine = self._make_engine(f, self.engine)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\parsers\readers.py:1880 in _make_engine
+    self.handles = get_handle(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\io\common.py:873 in get_handle
+    handle = open(
+
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/NL2Workflow/datasets/tabular/crab_age/test_labels.csv'
+
+from sklearn.metrics import mean_absolute_error
+
+# Predict on the test set
+y_test_pred = model.predict(test_data)
+
+# Extract the true labels from the test dataset
+true_labels = pd.read_csv(test_file_path)['Age']
+
+# Calculate the Mean Absolute Error (MAE)
+test_mae = mean_absolute_error(true_labels, y_test_pred)
+
+# Store the test MAE
+test_mae, true_labels
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(1.4667348592262508,
+ 0        18
+ 1         6
+          ..
+ 14809     3
+ 14810     9
+ Name: Age, Length: 14811, dtype: int64)

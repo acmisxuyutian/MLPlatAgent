@@ -1,0 +1,197 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.impute import SimpleImputer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Identify numerical and categorical columns
+    numerical_columns = dataset.select_dtypes(include=[np.number]).columns
+    categorical_columns = dataset.select_dtypes(include=[object]).columns
+    
+    # Handle missing values
+    num_imputer = SimpleImputer(strategy='mean')
+    cat_imputer = SimpleImputer(strategy='most_frequent')
+    dataset[numerical_columns] = num_imputer.fit_transform(dataset[numerical_columns])
+    dataset[categorical_columns] = cat_imputer.fit_transform(dataset[categorical_columns])
+    
+    # Encode categorical variables
+    one_hot_encoder = OneHotEncoder(sparse_output=False)
+    encoded_categorical = one_hot_encoder.fit_transform(dataset[categorical_columns])
+    encoded_categorical_df = pd.DataFrame(encoded_categorical, columns=one_hot_encoder.get_feature_names_out(categorical_columns))
+    dataset = pd.concat([dataset[numerical_columns], encoded_categorical_df], axis=1)
+    
+    # Normalize numerical features
+    scaler = StandardScaler()
+    dataset[numerical_columns] = scaler.fit_transform(dataset[numerical_columns])
+    
+    # Feature engineering (e.g., day of the week)
+    if 'date_column' in dataset.columns:
+        dataset['day_of_week'] = pd.to_datetime(dataset['date_column']).dt.dayofweek
+    else:
+        print("Column 'date_column' not found in the dataset.")
+    
+    # Split the dataset into features and target
+    X = dataset.drop('犯罪类别', axis=1)
+    y = dataset['犯罪类别']
+    
+    return X, y
+
+# Define the neural network architecture
+class CrimeCategoryModel(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(CrimeCategoryModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.fc4(x)
+        return x
+
+def train_model(model, train_loader, valid_loader, num_epochs, criterion, optimizer):
+    best_val_loss = float('inf')
+    patience = 10
+    counter = 0
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for i, (inputs, labels) in enumerate(train_loader):
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(valid_loader.dataset.tensors[0])
+            val_loss = criterion(val_outputs, valid_loader.dataset.tensors[1])
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/crime_category_model.pth')
+        else:
+            counter += 1
+            if counter >= patience:
+                print(f"Early stopping at epoch {epoch}")
+                break
+    
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(test_loader.dataset.tensors[0])
+        _, predicted = torch.max(outputs.data, 1)
+        true_labels = test_loader.dataset.tensors[1]
+        logloss = log_loss(true_labels, outputs.softmax(dim=1))
+        accuracy = accuracy_score(true_labels, predicted)
+        f1 = f1_score(true_labels, predicted, average='weighted')
+    
+    performance_scores = {
+        'Logloss': logloss,
+        'Accuracy': accuracy,
+        'F1': f1
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X, y = preprocess_data(dataset)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.long))
+    valid_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.long))
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.long))
+    
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # This is already done in the previous step
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    num_classes = len(torch.unique(torch.tensor(y_train.values, dtype=torch.long)))
+    model = CrimeCategoryModel(input_size, num_classes)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 100
+    
+    model = train_model(model, train_loader, valid_loader, num_epochs, criterion, optimizer)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 169, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 134, in main
+    X, y = preprocess_data(dataset)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 50, in preprocess_data
+    X = dataset.drop('犯罪类别', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['犯罪类别'] not found in axis"

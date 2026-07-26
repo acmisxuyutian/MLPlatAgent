@@ -1,0 +1,201 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the path for saving the model
+MODEL_PATH = "./agent_workspace/trained_models/xgboost_wine_model.pkl"
+
+# Step 1: Data Retrieval and Loading
+def load_dataset():
+    # Load the Wine recognition dataset
+    data = load_wine()
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+    return df
+
+# Step 2: Data Preprocessing
+def preprocess_data(df):
+    # Normalize the features
+    scaler = StandardScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(df.drop('target', axis=1)), columns=df.columns[:-1])
+    df_scaled['target'] = df['target']
+
+    # Check for missing values
+    if df_scaled.isnull().sum().sum() > 0:
+        df_scaled.fillna(df_scaled.mean(), inplace=True)
+
+    # Outlier detection and handling
+    Q1 = df_scaled.quantile(0.25)
+    Q3 = df_scaled.quantile(0.75)
+    IQR = Q3 - Q1
+    df_scaled = df_scaled[~((df_scaled < (Q1 - 1.5 * IQR)) | (df_scaled > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    return df_scaled
+
+# Step 3: Data Augmentation
+def augment_data(df):
+    # Apply SMOTE to balance the dataset
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(df.drop('target', axis=1), df['target'])
+    df_resampled = pd.DataFrame(X_resampled, columns=df.columns[:-1])
+    df_resampled['target'] = y_resampled
+    return df_resampled
+
+# Step 4: Data Splitting
+def split_data(df):
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        df.drop('target', axis=1), df['target'], test_size=0.2, stratify=df['target'], random_state=SEED
+    )
+    return X_train, X_test, y_train, y_test
+
+# Step 5: Model Training and Evaluation
+def train_model(X_train, y_train):
+    # Define the XGBoost model
+    xgb_model = xgb.XGBClassifier()
+
+    # Define the parameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 0.9, 1.0],
+        'colsample_bytree': [0.8, 0.9, 1.0]
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(xgb_model, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = grid_search.best_estimator_
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    conf_matrix = confusion_matrix(y_test, y_pred).tolist()  # Convert to list for JSON serialization
+    class_report = classification_report(y_test, y_pred, output_dict=True)  # Convert to dict for JSON serialization
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Confusion Matrix': conf_matrix,
+        'Classification Report': class_report
+    }
+    return performance_scores
+
+# Step 6: Model Saving
+def save_model(model, model_path):
+    # Save the model
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+# The main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset()
+
+    # Step 2: Preprocess the data
+    df_preprocessed = preprocess_data(df)
+
+    # Step 3: Augment the data
+    df_augmented = augment_data(df_preprocessed)
+
+    # Step 4: Split the data
+    X_train, X_test, y_train, y_test = split_data(df_augmented)
+
+    # Step 5: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+    print("Model Performance on Test Set:")
+    print(json.dumps(model_performance, indent=4))
+
+    # Step 7: Save the model
+    save_model(model, MODEL_PATH)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set:
+{
+    "Accuracy": 0.972972972972973,
+    "Confusion Matrix": [
+        [
+            12,
+            0,
+            0
+        ],
+        [
+            0,
+            11,
+            1
+        ],
+        [
+            0,
+            0,
+            13
+        ]
+    ],
+    "Classification Report": {
+        "0": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 12.0
+        },
+        "1": {
+            "precision": 1.0,
+            "recall": 0.9166666666666666,
+            "f1-score": 0.9565217391304348,
+            "support": 12.0
+        },
+        "2": {
+            "precision": 0.9285714285714286,
+            "recall": 1.0,
+            "f1-score": 0.9629629629629629,
+            "support": 13.0
+        },
+        "accuracy": 0.972972972972973,
+        "macro avg": {
+            "precision": 0.9761904761904763,
+            "recall": 0.9722222222222222,
+            "f1-score": 0.9731615673644659,
+            "support": 37.0
+        },
+        "weighted avg": {
+            "precision": 0.9749034749034748,
+            "recall": 0.972972972972973,
+            "f1-score": 0.9728859294076686,
+            "support": 37.0
+        }
+    }
+}
+Model saved to ./agent_workspace/trained_models/xgboost_wine_model.pkl
+Model Performance on Test Set: {'Accuracy': 0.972972972972973, 'Confusion Matrix': [[12, 0, 0], [0, 11, 1], [0, 0, 13]], 'Classification Report': {'0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 12.0}, '1': {'precision': 1.0, 'recall': 0.9166666666666666, 'f1-score': 0.9565217391304348, 'support': 12.0}, '2': {'precision': 0.9285714285714286, 'recall': 1.0, 'f1-score': 0.9629629629629629, 'support': 13.0}, 'accuracy': 0.972972972972973, 'macro avg': {'precision': 0.9761904761904763, 'recall': 0.9722222222222222, 'f1-score': 0.9731615673644659, 'support': 37.0}, 'weighted avg': {'precision': 0.9749034749034748, 'recall': 0.972972972972973, 'f1-score': 0.9728859294076686, 'support': 37.0}}}

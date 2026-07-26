@@ -1,0 +1,227 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, log_loss
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval and Initial Setup
+def retrieve_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def save_dataset(df, save_path):
+    df.to_csv(save_path, index=False)
+
+def setup_environment():
+    required_libraries = ['pandas', 'numpy', 'scikit-learn', 'imbalanced-learn', 'torch', 'torchvision']
+    for lib in required_libraries:
+        try:
+            __import__(lib)
+        except ImportError:
+            print(f"Installing {lib}...")
+            os.system(f"pip install {lib}")
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Initial Exploration
+    print(df.info())
+    print(df.describe())
+    print(df.isnull().sum())
+
+    # Identify categorical and numerical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
+    numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+
+    # Handle Missing Data
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', KNNImputer(n_neighbors=5), numerical_cols),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
+        ]
+    )
+
+    df_imputed = preprocessor.fit_transform(df)
+    df_imputed = pd.DataFrame(df_imputed, columns=preprocessor.get_feature_names_out())
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(df_imputed), columns=df_imputed.columns)
+
+    return df_scaled
+
+# Data Augmentation
+def augment_data(df_encoded):
+    X = df_encoded.drop('survival_status', axis=1)
+    y = df_encoded['survival_status']
+
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    return X_resampled, y_resampled
+
+# Model Training and Optimization
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(FeedforwardNN, self).__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.layer2 = nn.Linear(hidden_size, hidden_size)
+        self.layer3 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.layer1(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer2(x))
+        x = self.dropout(x)
+        x = self.layer3(x)
+        x = self.sigmoid(x)
+        return x
+
+def train_model(model, train_loader, val_loader, num_epochs=100, lr=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_idx, (data, target) in enumerate(train_loader):
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0
+            for data, target in val_loader:
+                output = model(data)
+                val_loss += criterion(output, target).item()
+            val_loss /= len(val_loader)
+            print(f'Epoch {epoch+1}/{num_epochs}, Validation Loss: {val_loss:.4f}')
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        y_pred = []
+        y_true = []
+        for data, target in test_loader:
+            output = model(data)
+            y_pred.extend(output.squeeze().cpu().numpy())
+            y_true.extend(target.squeeze().cpu().numpy())
+
+    y_pred = np.array(y_pred)
+    y_true = np.array(y_true)
+    y_pred_binary = (y_pred > 0.5).astype(int)
+
+    logloss = log_loss(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred_binary)
+    precision = precision_score(y_true, y_pred_binary)
+    recall = recall_score(y_true, y_pred_binary)
+    f1 = f1_score(y_true, y_pred_binary)
+
+    performance_scores = {
+        'Logloss': logloss,
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-score': f1
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+    save_path = 'cirrhosis_patient.csv'
+    model_path = os.path.join("./agent_workspace/trained_models", "cirrhosis_model.pth")
+
+    # Step 1: Retrieve or load a dataset
+    df = retrieve_dataset(dataset_path)
+    save_dataset(df, save_path)
+
+    # Step 2: Preprocess the data
+    df_encoded = preprocess_data(df)
+
+    # Step 3: Augment the data
+    X_resampled, y_resampled = augment_data(df_encoded)
+
+    # Step 4: Create train-valid-test split
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.33, random_state=42)
+
+    train_dataset = TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1))
+    val_dataset = TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1))
+    test_dataset = TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1))
+
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    # Step 5: Define and train the model
+    input_size = X_resampled.shape[1]
+    hidden_size = 128
+    output_size = 1
+
+    model = FeedforwardNN(input_size, hidden_size, output_size)
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+    print(f'Model Performance on Test Set: {model_performance}')
+
+    # Step 7: Save the trained model
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 199, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 166, in main
+    X_resampled, y_resampled = augment_data(df_encoded)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 71, in augment_data
+    X = df_encoded.drop('survival_status', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['survival_status'] not found in axis"

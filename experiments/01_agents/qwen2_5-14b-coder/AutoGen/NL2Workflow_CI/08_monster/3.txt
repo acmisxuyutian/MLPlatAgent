@@ -1,0 +1,339 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+print(test_data.head())
+
+# 检查数据的基本信息
+print(train_data.info())
+print(test_data.info())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 处理缺失值（假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查异常值（假设用四分位数范围进行处理）
+Q1 = train_data.quantile(0.25)
+Q3 = train_data.quantile(0.75)
+IQR = Q3 - Q1
+
+# 移除异常值
+train_data = train_data[~((train_data < (Q1 - 1.5 * IQR)) | (train_data > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+# 特征选择和编码
+# 假设最后一列是目标变量，其余是特征
+X_train = train_data.iloc[:, :-1]
+y_train = train_data.iloc[:, -1]
+X_test = test_data.iloc[:, :-1]
+y_test = test_data.iloc[:, -1]
+
+# 对类别变量进行编码
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+y_train = label_encoder.fit_transform(y_train)
+y_test = label_encoder.transform(y_test)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test)
+
+# 计算准确性
+accuracy = accuracy_score(y_test, y_pred)
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+# 保存预测结果到文件
+import numpy as np
+
+np.savetxt(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', y_pred, delimiter=',', fmt='%d')
+
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+
+执行结果：
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f75fed212a1c54da46735098475e48c14d5121aba11ca484563a7e243dd765f4.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+print(test_data.head())
+
+# 检查数据的基本信息
+print(train_data.info())
+print(test_data.info())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 处理缺失值（假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查异常值（假设用四分位数范围进行处理）
+Q1 = train_data.quantile(0.25)
+Q3 = train_data.quantile(0.75)
+IQR = Q3 - Q1
+
+# 移除异常值
+train_data = train_data[~((train_data < (Q1 - 1.5 * IQR)) | (train_data > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+# 特征选择和编码
+# 假设最后一列是目标变量，其余是特征
+X_train = train_data.iloc[:, :-1]
+y_train = train_data.iloc[:, -1]
+X_test = test_data.iloc[:, :-1]
+y_test = test_data.iloc[:, -1]
+
+# 对类别变量进行编码
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+y_train = label_encoder.fit_transform(y_train)
+y_test = label_encoder.transform(y_test)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test)
+
+# 计算准确性
+accuracy = accuracy_score(y_test, y_pred)
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+# 保存预测结果到文件
+import numpy as np
+
+np.savetxt(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', y_pred, delimiter=',', fmt='%d')
+
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+
+执行结果：
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f75fed212a1c54da46735098475e48c14d5121aba11ca484563a7e243dd765f4.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+try:
+    train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+    test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+except FileNotFoundError:
+    print("文件未找到，请检查文件路径。")
+except pd.errors.EmptyDataError:
+    print("文件为空，请检查文件内容。")
+except pd.errors.ParserError:
+    print("文件格式错误，请确保文件是 CSV 格式。")
+
+# 查看数据的前几行
+if 'train_data' in locals() and 'test_data' in locals():
+    print(train_data.head())
+    print(test_data.head())
+
+# 检查数据的基本信息
+if 'train_data' in locals() and 'test_data' in locals():
+    print(train_data.info())
+    print(test_data.info())
+
+    # 检查缺失值
+    print(train_data.isnull().sum())
+    print(test_data.isnull().sum())
+
+    # 处理缺失值（假设用均值填充）
+    train_data.fillna(train_data.mean(), inplace=True)
+    test_data.fillna(test_data.mean(), inplace=True)
+
+    # 检查异常值（假设用四分位数范围进行处理）
+    Q1 = train_data.quantile(0.25)
+    Q3 = train_data.quantile(0.75)
+    IQR = Q3 - Q1
+
+    # 移除异常值
+    train_data = train_data[~((train_data < (Q1 - 1.5 * IQR)) | (train_data > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    # 特征选择和编码
+    # 假设最后一列是目标变量，其余是特征
+    X_train = train_data.iloc[:, :-1]
+    y_train = train_data.iloc[:, -1]
+    X_test = test_data.iloc[:, :-1]
+    y_test = test_data.iloc[:, -1]
+
+    # 对类别变量进行编码
+    from sklearn.preprocessing import LabelEncoder
+
+    label_encoder = LabelEncoder()
+    y_train = label_encoder.fit_transform(y_train)
+    y_test = label_encoder.transform(y_test)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+if 'X_train' in locals() and 'y_train' in locals():
+    model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 在测试集上进行预测
+if 'X_test' in locals() and 'y_test' in locals():
+    y_pred = model.predict(X_test)
+
+    # 计算准确性
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+# 保存预测结果到文件
+import numpy as np
+
+if 'y_pred' in locals():
+    np.savetxt(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', y_pred, delimiter=',', fmt='%d')
+
+if 'accuracy' in locals():
+    print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+
+执行结果：
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin
+
+生成的代码：
+# 检查数据的基本信息
+print(train_data.info())
+print(test_data.info())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 处理缺失值（假设用均值填充）
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 检查异常值（假设用四分位数范围进行处理）
+Q1 = train_data.quantile(0.25)
+Q3 = train_data.quantile(0.75)
+IQR = Q3 - Q1
+
+# 移除异常值
+train_data = train_data[~((train_data < (Q1 - 1.5 * IQR)) | (train_data > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+# 特征选择和编码
+# 假设最后一列是目标变量，其余是特征
+X_train = train_data.iloc[:, :-1]
+y_train = train_data.iloc[:, -1]
+X_test = test_data.iloc[:, :-1]
+y_test = test_data.iloc[:, -1]
+
+# 对类别变量进行编码
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+y_train = label_encoder.fit_transform(y_train)
+y_test = label_encoder.transform(y_test)
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test)
+
+# 计算准确性
+accuracy = accuracy_score(y_test, y_pred)
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+# 保存预测结果到文件
+import numpy as np
+
+np.savetxt(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', y_pred, delimiter=',', fmt='%d')
+
+print(f"模型在测试集上的准确性: {accuracy:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f75fed212a1c54da46735098475e48c14d5121aba11ca484563a7e243dd765f4.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined

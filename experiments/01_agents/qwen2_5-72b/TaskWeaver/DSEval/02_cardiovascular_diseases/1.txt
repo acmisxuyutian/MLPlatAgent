@@ -1,0 +1,865 @@
+import pandas as pd
+
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+# Load the datasets
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Drop rows with missing values
+train_df.dropna(inplace=True)
+test_df.dropna(inplace=True)
+
+# Drop duplicates
+train_df.drop_duplicates(inplace=True)
+test_df.drop_duplicates(inplace=True)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      General_Health                  Checkup Exercise Heart_Disease Skin_Cancer Other_Cancer Depression Diabetes Arthritis     Sex Age_Category  Height_(cm)  Weight_(kg)    BMI Smoking_History  Alcohol_Consumption  Fruit_Consumption  Green_Vegetables_Consumption  FriedPotato_Consumption
+ 0               Good     Within the past year      Yes            No          No           No        Yes       No        No  Female        40-44        160.0       111.13  43.40             Yes                  1.0               16.0                          60.0                     24.0
+ 1               Good  Within the past 2 years      Yes            No          No           No         No       No        No    Male        55-59        180.0        63.50  19.53             Yes                  2.0                4.0                           4.0                      8.0
+ ...              ...                      ...      ...           ...         ...          ...        ...      ...       ...     ...          ...          ...          ...    ...             ...                  ...                ...                           ...                      ...
+ 49414      Very Good     Within the past year      Yes            No          No          Yes         No       No        No    Male        60-64        178.0        79.38  25.11             Yes                 28.0                5.0                          20.0                      1.0
+ 49415      Very Good     Within the past year      Yes            No          No           No         No       No        No  Female          80+        168.0        63.50  22.60              No                  0.0               30.0                          16.0                      8.0
+ 
+ [49415 rows x 19 columns],
+       General_Health                  Checkup Exercise Heart_Disease Skin_Cancer Other_Cancer Depression Diabetes Arthritis     Sex Age_Category  Height_(cm)  Weight_(kg)    BMI Smoking_History  Alcohol_Consumption  Fruit_Consumption  Green_Vegetables_Consumption  FriedPotato_Consumption
+ 0          Very Good     Within the past year      Yes           Yes          No           No        Yes       No        No  Female        50-54        163.0        68.04  25.75             Yes                  2.0               16.0                          16.0                      4.0
+ 1               Good     Within the past year      Yes            No         Yes           No         No       No        No  Female        35-39        163.0        95.25  36.05              No                  4.0               12.0                           2.0                      2.0
+ ...              ...                      ...      ...           ...         ...          ...        ...      ...       ...     ...          ...          ...          ...    ...             ...                  ...                ...                           ...                      ...
+ 12353      Very Good     Within the past year      Yes            No          No           No         No       No        No  Female        30-34        160.0        58.97  23.03              No                  0.0               60.0                          20.0                      3.0
+ 12354      Very Good  Within the past 2 years      Yes            No          No           No         No       No        No    Male        60-64        183.0        72.57  21.70             Yes                  0.0               30.0                           8.0                      2.0
+ 
+ [12355 rows x 19 columns])import pandas as pd
+
+# Define the BMI categories
+bmi_categories = [
+    ('Underweight', (0, 18.5)),
+    ('Normal weight', (18.5, 24.9)),
+    ('Overweight', (25, 29.9)),
+    ('Obesity', (30, float('inf')))
+]
+
+# Function to categorize BMI
+def categorize_bmi(bmi):
+    for category, (lower, upper) in bmi_categories:
+        if lower <= bmi < upper:
+            return category
+    return 'Unknown'
+
+# Apply the function to create the 'BMI_Category' column
+def add_bmi_category(df):
+    df['BMI_Category'] = df['BMI'].apply(categorize_bmi)
+    df['BMI_Category'] = df['BMI_Category'].astype('category')
+    return df
+
+# Apply the function to both datasets
+train_df = add_bmi_category(train_df)
+test_df = add_bmi_category(test_df)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      General_Health                  Checkup Exercise Heart_Disease Skin_Cancer Other_Cancer Depression Diabetes Arthritis     Sex Age_Category  Height_(cm)  Weight_(kg)    BMI Smoking_History  Alcohol_Consumption  Fruit_Consumption  Green_Vegetables_Consumption  FriedPotato_Consumption   BMI_Category
+ 0               Good     Within the past year      Yes            No          No           No        Yes       No        No  Female        40-44        160.0       111.13  43.40             Yes                  1.0               16.0                          60.0                     24.0        Obesity
+ 1               Good  Within the past 2 years      Yes            No          No           No         No       No        No    Male        55-59        180.0        63.50  19.53             Yes                  2.0                4.0                           4.0                      8.0  Normal weight
+ ...              ...                      ...      ...           ...         ...          ...        ...      ...       ...     ...          ...          ...          ...    ...             ...                  ...                ...                           ...                      ...            ...
+ 49414      Very Good     Within the past year      Yes            No          No          Yes         No       No        No    Male        60-64        178.0        79.38  25.11             Yes                 28.0                5.0                          20.0                      1.0     Overweight
+ 49415      Very Good     Within the past year      Yes            No          No           No         No       No        No  Female          80+        168.0        63.50  22.60              No                  0.0               30.0                          16.0                      8.0  Normal weight
+ 
+ [49415 rows x 20 columns],
+       General_Health                  Checkup Exercise Heart_Disease Skin_Cancer Other_Cancer Depression Diabetes Arthritis     Sex Age_Category  Height_(cm)  Weight_(kg)    BMI Smoking_History  Alcohol_Consumption  Fruit_Consumption  Green_Vegetables_Consumption  FriedPotato_Consumption   BMI_Category
+ 0          Very Good     Within the past year      Yes           Yes          No           No        Yes       No        No  Female        50-54        163.0        68.04  25.75             Yes                  2.0               16.0                          16.0                      4.0     Overweight
+ 1               Good     Within the past year      Yes            No         Yes           No         No       No        No  Female        35-39        163.0        95.25  36.05              No                  4.0               12.0                           2.0                      2.0        Obesity
+ ...              ...                      ...      ...           ...         ...          ...        ...      ...       ...     ...          ...          ...          ...    ...             ...                  ...                ...                           ...                      ...            ...
+ 12353      Very Good     Within the past year      Yes            No          No           No         No       No        No  Female        30-34        160.0        58.97  23.03              No                  0.0               60.0                          20.0                      3.0  Normal weight
+ 12354      Very Good  Within the past 2 years      Yes            No          No           No         No       No        No    Male        60-64        183.0        72.57  21.70             Yes                  0.0               30.0                           8.0                      2.0  Normal weight
+ 
+ [12355 rows x 20 columns])from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    test_df[col] = le.transform(test_df[col])
+    label_encoders[col] = le
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Store the model and label encoders
+model, label_encoders
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 21
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'No'
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    test_df[col] = le.transform(test_df[col])
+    label_encoders[col] = le
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Store the model and label encoders
+model, label_encoders
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 21
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'No'
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    test_df[col] = le.transform(test_df[col])
+    label_encoders[col] = le
+
+# Encode the 'Heart_Disease' column
+heart_disease_le = LabelEncoder()
+train_df['Heart_Disease'] = heart_disease_le.fit_transform(train_df['Heart_Disease'])
+test_df['Heart_Disease'] = heart_disease_le.transform(test_df['Heart_Disease'])
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Store the model and label encoders
+model, label_encoders, heart_disease_le
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 25
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'No'
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+
+# Encode categorical variables
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    test_df[col] = le.transform(test_df[col])
+    label_encoders[col] = le
+
+# Encode the 'Heart_Disease' column
+heart_disease_le = LabelEncoder()
+train_df['Heart_Disease'] = heart_disease_le.fit_transform(train_df['Heart_Disease'])
+test_df['Heart_Disease'] = heart_disease_le.transform(test_df['Heart_Disease'])
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Store the model and label encoders
+model, label_encoders, heart_disease_le
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 25
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'No'
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df.drop(columns=['Heart_Disease'])
+y_test = test_df['Heart_Disease']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 21
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'No'
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Ensure all columns are numeric
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df.drop(columns=['Heart_Disease'])
+y_test = test_df['Heart_Disease']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 25
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1107 in check_array
+    _assert_all_finite(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:120 in _assert_all_finite
+    _assert_all_finite_element_wise(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:169 in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+
+ValueError: Input X contains NaN.
+LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which acce
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+train_df = numeric_imputer.fit_transform(train_df)
+test_df = numeric_imputer.transform(test_df)
+
+# Prepare the features and target
+X_train = train_df[:, :-1]
+y_train = train_df[:, -1]
+
+# Initialize and fit the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df[:, :-1]
+y_test = test_df[:, -1]
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 43
+    roc_auc = roc_auc_score(y_test, predictions)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_param_validation.py:216 in wrapper
+    return func(*args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\metrics\_ranking.py:634 in roc_auc_score
+    raise ValueError("multi_class must be in ('ovo', 'ovr')")
+
+ValueError: multi_class must be in ('ovo', 'ovr')
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['Skin_Cancer' 'Other_Cancer' 'Depression' 'Diabetes' 'Arthritis' 'Sex'
+ 'Age_Category']. At least one non-missing value is needed for imputation with strategy='median'.
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['Skin_Cancer' 'Other_Cancer' 'Depression' 'Diabetes' 'Arthritis' 'Sex'
+ 'Age_Category']. At least one non-missing value is needed for imputation with strategy='median'.
+
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:465: ConvergenceWarning:
+
+lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+train_df = numeric_imputer.fit_transform(train_df)
+test_df = numeric_imputer.transform(test_df)
+
+# Prepare the features and target
+X_train = train_df[:, :-1]
+y_train = train_df[:, -1]
+
+# Initialize and fit the model with increased max_iter
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df[:, :-1]
+y_test = test_df[:, -1]
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[10], line 12
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+
+IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Load the datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Drop rows with missing values and duplicates
+train_df.dropna(inplace=True)
+test_df.dropna(inplace=True)
+
+train_df.drop_duplicates(inplace=True)
+test_df.drop_duplicates(inplace=True)
+
+# Perform feature construction to build a new feature named 'BMI_Category'
+def categorize_bmi(bmi):
+    if bmi < 18.5:
+        return 'Underweight'
+    elif 18.5 <= bmi < 24.9:
+        return 'Normal weight'
+    elif 25 <= bmi < 29.9:
+        return 'Overweight'
+    else:
+        return 'Obesity'
+
+train_df['BMI_Category'] = train_df['BMI'].apply(categorize_bmi)
+test_df['BMI_Category'] = test_df['BMI'].apply(categorize_bmi)
+
+train_df['BMI_Category'] = train_df['BMI_Category'].astype('category')
+test_df['BMI_Category'] = test_df['BMI_Category'].astype('category')
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+train_df = numeric_imputer.fit_transform(train_df)
+test_df = numeric_imputer.transform(test_df)
+
+# Prepare the features and target
+X_train = train_df[:, :-1]
+y_train = train_df[:, -1]
+
+# Initialize and fit the model with increased max_iter
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df[:, :-1]
+y_test = test_df[:, -1]
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[11], line 75
+    roc_auc = roc_auc_score(y_test, predictions)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_param_validation.py:216 in wrapper
+    return func(*args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\metrics\_ranking.py:634 in roc_auc_score
+    raise ValueError("multi_class must be in ('ovo', 'ovr')")
+
+ValueError: multi_class must be in ('ovo', 'ovr')
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['Skin_Cancer' 'Other_Cancer' 'Depression' 'Diabetes' 'Arthritis' 'Sex'
+ 'Age_Category']. At least one non-missing value is needed for imputation with strategy='median'.
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['Skin_Cancer' 'Other_Cancer' 'Depression' 'Diabetes' 'Arthritis' 'Sex'
+ 'Age_Category']. At least one non-missing value is needed for imputation with strategy='median'.
+
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:465: ConvergenceWarning:
+
+lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+# Convert all columns to numeric
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+# Impute missing values in numeric columns
+train_df = pd.DataFrame(numeric_imputer.fit_transform(train_df), columns=train_df.columns)
+test_df = pd.DataFrame(numeric_imputer.transform(test_df), columns=test_df.columns)
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model with increased max_iter
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df.drop(columns=['Heart_Disease'])
+y_test = test_df['Heart_Disease']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[12], line 13
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+
+IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+# Convert all columns to numeric
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+# Impute missing values in numeric columns
+train_df = pd.DataFrame(numeric_imputer.fit_transform(train_df), columns=train_df.columns)
+test_df = pd.DataFrame(numeric_imputer.transform(test_df), columns=test_df.columns)
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model with increased max_iter
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df.drop(columns=['Heart_Disease'])
+y_test = test_df['Heart_Disease']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[13], line 13
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+
+IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
+
+# Ensure all categorical columns are properly encoded
+label_encoders = {}
+categorical_columns = ['General_Health', 'Checkup', 'Exercise', 'Smoking_History', 'BMI_Category', 'Heart_Disease']
+
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+    test_df[col] = le.transform(test_df[col].astype(str))
+    label_encoders[col] = le
+
+# Impute missing values
+numeric_imputer = SimpleImputer(strategy='median')
+categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+train_df[categorical_columns] = categorical_imputer.fit_transform(train_df[categorical_columns])
+test_df[categorical_columns] = categorical_imputer.transform(test_df[categorical_columns])
+
+# Convert all columns to numeric
+train_df = train_df.apply(pd.to_numeric, errors='coerce')
+test_df = test_df.apply(pd.to_numeric, errors='coerce')
+
+# Impute missing values in numeric columns
+train_df = pd.DataFrame(numeric_imputer.fit_transform(train_df), columns=train_df.columns)
+test_df = pd.DataFrame(numeric_imputer.transform(test_df), columns=test_df.columns)
+
+# Prepare the features and target
+X_train = train_df.drop(columns=['Heart_Disease'])
+y_train = train_df['Heart_Disease']
+
+# Initialize and fit the model with increased max_iter
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+X_test = test_df.drop(columns=['Heart_Disease'])
+y_test = test_df['Heart_Disease']
+predictions = model.predict_proba(X_test)[:, 1]
+
+# Compute area under ROC curve
+roc_auc = roc_auc_score(y_test, predictions)
+
+model, label_encoders, predictions, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[14], line 13
+    train_df[col] = le.fit_transform(train_df[col].astype(str))
+
+IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+

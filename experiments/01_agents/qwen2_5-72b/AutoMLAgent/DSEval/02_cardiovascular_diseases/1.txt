@@ -1,0 +1,195 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the MLP model
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size, dropout_rate, l2_reg):
+        super(MLP, self).__init__()
+        layers = []
+        in_size = input_size
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Linear(in_size, hidden_size))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+            in_size = hidden_size
+        layers.append(nn.Linear(in_size, output_size))
+        layers.append(nn.Sigmoid())
+        self.model = nn.Sequential(*layers)
+        self.l2_reg = l2_reg
+
+    def forward(self, x):
+        return self.model(x)
+
+# Data retrieval
+def load_data():
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv')
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Drop missing values
+    train_df.dropna(inplace=True)
+    test_df.dropna(inplace=True)
+
+    # Remove duplicates
+    train_df.drop_duplicates(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+
+    # Function to create BMI_Category
+    def create_bmi_category(bmi):
+        if bmi < 18.5:
+            return 'Underweight'
+        elif 18.5 <= bmi < 25:
+            return 'Normal'
+        elif 25 <= bmi < 30:
+            return 'Overweight'
+        else:
+            return 'Obese'
+
+    # Apply the function to create BMI_Category
+    train_df['BMI_Category'] = train_df['BMI'].apply(create_bmi_category)
+    test_df['BMI_Category'] = test_df['BMI'].apply(create_bmi_category)
+
+    # Standardize numerical features
+    numerical_features = ['Age', 'Systolic_BP', 'Diastolic_BP', 'Cholesterol', 'BMI']
+
+    # Ensure the columns exist in the DataFrame
+    for feature in numerical_features:
+        if feature not in train_df.columns:
+            raise KeyError(f"Column '{feature}' not found in the training dataset.")
+        if feature not in test_df.columns:
+            raise KeyError(f"Column '{feature}' not found in the test dataset.")
+
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    return train_df, test_df
+
+# Data splitting
+def split_data(train_df):
+    X = train_df.drop(columns=['Heart_Disease', 'BMI_Category']).values
+    y = train_df['Heart_Disease'].values
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15, random_state=42)
+    return X_train, X_val, y_train, y_val
+
+# Model training
+def train_model(model, X_train, y_train, X_val, y_val):
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
+    X_val = torch.tensor(X_val, dtype=torch.float32)
+    y_val = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=model.l2_reg)
+
+    num_epochs = 100
+    batch_size = 64
+    for epoch in range(num_epochs):
+        model.train()
+        for i in range(0, len(X_train), batch_size):
+            X_batch = X_train[i:i+batch_size]
+            y_batch = y_train[i:i+batch_size]
+            
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+        
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val)
+            val_loss = criterion(val_outputs, y_val)
+            val_auc = roc_auc_score(y_val.cpu().numpy(), val_outputs.cpu().numpy())
+        
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}, Val AUC: {val_auc:.4f}')
+
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    X_test = torch.tensor(X_test, dtype=torch.float32)
+    y_test = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test)
+        test_auc = roc_auc_score(y_test.cpu().numpy(), test_outputs.cpu().numpy())
+    
+    performance_scores = {
+        'AUC-ROC': test_auc
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    train_df, test_df = load_data()
+
+    # Step 2: Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3: Split the data
+    X_train, X_val, y_train, y_val = split_data(train_df)
+    X_test = test_df.drop(columns=['Heart_Disease', 'BMI_Category']).values
+    y_test = test_df['Heart_Disease'].values
+
+    # Step 4: Define the model
+    input_size = X_train.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = 1
+    dropout_rate = 0.2
+    l2_reg = 0.001
+    model = MLP(input_size, hidden_sizes, output_size, dropout_rate, l2_reg)
+
+    # Step 5: Train the model
+    model = train_model(model, X_train, y_train, X_val, y_val)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7: Save the model
+    model_path = './agent_workspace/trained_models/heart_disease_mlp.pth'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in main
+    train_df, test_df = preprocess_data(train_df, test_df)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 77, in preprocess_data
+    raise KeyError(f"Column '{feature}' not found in the training dataset.")
+KeyError: "Column 'Age' not found in the training dataset."

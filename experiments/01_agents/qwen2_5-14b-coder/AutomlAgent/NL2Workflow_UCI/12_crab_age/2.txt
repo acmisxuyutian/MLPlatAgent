@@ -1,0 +1,215 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+from sklearn.decomposition import PCA
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+def load_dataset():
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+    return dataset
+
+# Step 2: Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+def preprocess_data(dataset):
+    # Display basic information
+    print(dataset.info())
+    print(dataset.describe())
+
+    # Check for missing values
+    print(dataset.isnull().sum())
+
+    # Convert all columns to numeric, coercing errors to NaN
+    dataset = dataset.apply(pd.to_numeric, errors='coerce')
+
+    # Check for outliers
+    Q1 = dataset.quantile(0.25)
+    Q3 = dataset.quantile(0.75)
+    IQR = Q3 - Q1
+    outliers = ((dataset < (Q1 - 1.5 * IQR)) | (dataset > (Q3 + 1.5 * IQR))).any(axis=1)
+    print("Number of outliers:", outliers.sum())
+
+    # Handle missing values by filling them with the mean of the column
+    dataset.fillna(dataset.mean(), inplace=True)
+
+    # Feature Engineering
+    if 'feature1' in dataset.columns and 'feature2' in dataset.columns:
+        dataset['interaction_feature'] = dataset['feature1'] * dataset['feature2']
+
+    # Separate features and target variable
+    X = dataset.drop('age', axis=1)
+    y = dataset['age']
+
+    # Standardize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Data Augmentation
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
+
+    # Feature Perturbation
+    perturbation = np.random.normal(0, 0.1, X_scaled.shape)
+    X_perturbed = X_scaled + perturbation
+
+    # Dimensionality Reduction
+    pca = PCA(n_components=0.95)  # Retain 95% variance
+    X_pca = pca.fit_transform(X_scaled)
+
+    # Split the dataset
+    X_train, X_temp, y_train, y_temp = train_test_split(X_pca, y_resampled, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4: Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+# If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+class CrabAgePredictor(nn.Module):
+    def __init__(self, input_size):
+        super(CrabAgePredictor, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.dropout = nn.Dropout(0.2)
+        self.fc2 = nn.Linear(64, 1)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+# Step 5: train the retrieved/loaded model using the defined "train_model" function
+def train_model(X_train, y_train, X_val, y_val):
+    input_size = X_train.shape[1]
+    model = CrabAgePredictor(input_size)
+
+    # Define loss function and optimizer
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+
+    # Training loop
+    num_epochs = 100
+    best_val_mae = float('inf')
+    patience = 10
+    counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        loss = criterion(outputs, y_train_tensor)
+        loss.backward()
+        optimizer.step()
+        
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val_tensor)
+            val_loss = criterion(val_outputs, y_val_tensor)
+            val_mae = mean_absolute_error(y_val, val_outputs.numpy())
+        
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}, Val MAE: {val_mae:.4f}')
+        
+        if val_mae < best_val_mae:
+            best_val_mae = val_mae
+            torch.save(model.state_dict(), './agent_workspace/trained_models/crab_age_predictor.pth')
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print("Early stopping")
+                break
+
+    return model
+
+# Step 6: evaluate the trained model using the defined "evaluate_model" function
+def evaluate_model(model, X_test, y_test):
+    # Load the best model
+    model.load_state_dict(torch.load('./agent_workspace/trained_models/crab_age_predictor.pth'))
+
+    # Convert test data to PyTorch tensors
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    # Evaluate the model
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test_tensor)
+        test_mae = mean_absolute_error(y_test, test_outputs.numpy())
+        test_mse = mean_squared_error(y_test, test_outputs.numpy())
+        test_rmse = np.sqrt(test_mse)
+
+    performance_scores = {
+        "MAE": test_mae,
+        "MSE": test_mse,
+        "RMSE": test_rmse
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Load the dataset
+    dataset = load_dataset()
+
+    # Step 2: Preprocess the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+
+    # Step 4: Define the model
+    model = CrabAgePredictor(X_train.shape[1])
+
+    # Step 5: Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 187, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 173, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 53, in preprocess_data
+    X = dataset.drop('age', axis=1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['age'] not found in axis"

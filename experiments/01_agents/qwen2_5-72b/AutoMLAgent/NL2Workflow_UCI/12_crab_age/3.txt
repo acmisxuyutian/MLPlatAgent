@@ -1,0 +1,219 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import shap
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1. Retrieve or load a dataset from the provided path
+def load_data(path):
+    try:
+        df = pd.read_csv(path)
+        if 'age' not in df.columns:
+            raise ValueError("The dataset does not contain the 'age' column.")
+        return df
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found at path: {path}")
+
+# Step 2. Preprocess the data
+def preprocess_data(df):
+    # Data Inspection
+    print("Data Structure:")
+    print(df.info())
+    print("Data Descriptions:")
+    print(df.describe())
+    print("Missing Values:")
+    print(df.isnull().sum())
+
+    # Handling Missing Values
+    numerical_features = df.select_dtypes(include=[np.number]).columns
+    imputer = SimpleImputer(strategy='mean')
+    df[numerical_features] = imputer.fit_transform(df[numerical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Categorical Encoding
+    categorical_features = df.select_dtypes(include=[object]).columns
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    return df
+
+# Step 3. Split the dataset into training, validation, and test sets
+def split_data(df):
+    X = df.drop(columns=['age'])
+    y = df['age']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4. Augment the training data
+def augment_data(X_train, y_train):
+    # Synthetic Data Generation using SMOTE
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    # Feature Perturbation
+    def add_noise(data, noise_level=0.01):
+        noise = np.random.normal(0, noise_level, data.shape)
+        return data + noise
+
+    X_train_augmented = add_noise(X_train)
+    y_train_augmented = y_train.copy()
+
+    return np.vstack((X_train, X_train_augmented)), np.hstack((y_train, y_train_augmented))
+
+# Step 5. Define and train the model
+class FeedforwardNeuralNetwork(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, dropout_rate):
+        super(FeedforwardNeuralNetwork, self).__init__()
+        layers = []
+        for i in range(num_layers):
+            if i == 0:
+                layers.append(nn.Linear(input_size, hidden_size))
+            else:
+                layers.append(nn.Linear(hidden_size, hidden_size))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+        layers.append(nn.Linear(hidden_size, 1))
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+def train_model(model, train_loader, valid_loader, num_epochs=100, batch_size=64, learning_rate=0.001, l2_reg=0.001):
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=l2_reg)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for batch in train_loader:
+            inputs, targets = batch
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        scheduler.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            valid_loss = 0
+            for batch in valid_loader:
+                inputs, targets = batch
+                outputs = model(inputs)
+                valid_loss += criterion(outputs, targets).item()
+            valid_loss /= len(valid_loader)
+            print(f"Epoch {epoch+1}/{num_epochs}, Validation Loss: {valid_loss:.4f}")
+
+    return model
+
+# Step 6. Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true, y_pred = [], []
+
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, targets = batch
+            outputs = model(inputs)
+            y_true.extend(targets.numpy().flatten())
+            y_pred.extend(outputs.numpy().flatten())
+
+    performance_scores = {
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "MSE": mean_squared_error(y_true, y_pred),
+        "R2": r2_score(y_true, y_pred)
+    }
+
+    return performance_scores
+
+# Step 7. Interpret the model
+def interpret_model(model, X_test):
+    explainer = shap.Explainer(model)
+    shap_values = explainer(X_test)
+    shap.summary_plot(shap_values, X_test, plot_type="bar")
+
+# Step 8. Main function to orchestrate the pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from the provided path
+    path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    df = load_data(path)
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Split the dataset into training, validation, and test sets
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 4. Augment the training data
+    X_train, y_train = augment_data(X_train, y_train)
+
+    # Step 5. Convert data to PyTorch tensors and create DataLoaders
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=64, shuffle=True)
+    val_loader = DataLoader(TensorDataset(X_val_tensor, y_val_tensor), batch_size=64, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=64, shuffle=False)
+
+    # Step 6. Define and train the model
+    input_size = X_train.shape[1]
+    model = FeedforwardNeuralNetwork(input_size, hidden_size=128, num_layers=3, dropout_rate=0.2)
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 7. Evaluate the model
+    model_performance = evaluate_model(model, test_loader)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 8. Interpret the model
+    interpret_model(model, X_test_tensor)
+
+    # Step 9. Save the trained model
+    model_path = "./agent_workspace/trained_models/crab_age_fnn.pth"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 203, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in main
+    df = load_data(path)
+         ^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 28, in load_data
+    raise ValueError("The dataset does not contain the 'age' column.")
+ValueError: The dataset does not contain the 'age' column.

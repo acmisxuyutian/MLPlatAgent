@@ -1,0 +1,99 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "add_node",
+      "description": "Adding a node, i.e. selecting a widget from the WIDGETS LIBRARY to add to the workflow.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "widget_name": {
+            "type": "string",
+            "description": "The name of the widget, which must be selected from the WIDGETS LIBRARY"
+          }
+        },
+        "required": ["widget_name"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_node_params",
+      "description": "Modifying the parameters of a node in a workflow",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "integer",
+            "description": "The unique identifier of the node in the workflow, which must be one of the nodes in the list of nodes in the CURRENT WORKFLOW message."
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node in the workflow."
+          },
+          "node_params": {
+            "type": "string",
+            "description": "Modified node parameter configuration that requires the output to follow a strict JSON format: {\"param1\": \"value1\", \"param2\": \"value2\",...}. Please refer to the WIDGETS LIBRARY for more information about the parameters."
+          }
+        },
+        "required": ["node_id", "node_name","node_params"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "add_edge",
+      "description": "Add edge for connecting two workflow nodes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source_node_id": {
+            "type": "integer",
+            "description": "The starting node ID of the edge. it must be one of the nodes in the node list in CURRENT WORKFLOW."
+          },
+          "target_node_id": {
+            "type": "integer",
+            "description": "The target node ID of the edge. it must also be one of the nodes in the list of nodes in the CURRENT WORKFLOW but not the same as the starting node ID."
+          }
+        },
+        "required": ["source_node_id", "target_node_id"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "delete_node",
+      "description": "Deleting nodes in a workflow",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "integer",
+            "description": "The unique identifier of the node in the workflow, which must be one of the nodes in the list of nodes in the CURRENT WORKFLOW message."
+          }
+        },
+        "required": ["node_id"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "delete_edge",
+      "description": "Remove edges to unlink two nodes in a workflow",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "edge_id": {
+            "type": "integer",
+            "description": "The unique identifier of the edge in the workflow. Must be one of the edges in the edges list in the CURRENT WORKFLOW message."
+          }
+        },
+        "required": ["edge_id"]
+      }
+    }
+  }
+]

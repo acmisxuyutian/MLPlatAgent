@@ -1,0 +1,320 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 假设缺失值较少，可以选择填充或删除
+# 这里我们选择填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Gender' 和 'Geography' 是分类变量
+label_encoders = {}
+for column in ['Gender', 'Geography']:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 创建新的特征
+train_data['Age_Balance_Ratio'] = train_data['Age'] / train_data['Balance']
+
+# 查看新的特征
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 定义特征和目标变量
+X = train_data.drop('Exited', axis=1)
+y = train_data['Exited']
+
+# 分割数据
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看分割后的数据
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+from sklearn.linear_model import LogisticRegression
+
+# 初始化模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_888f7e12da29b5ed51f09555a3e7929013224f3c732028ac30d0850e76213ac5.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 假设缺失值较少，可以选择填充或删除
+# 这里我们选择填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Gender' 和 'Geography' 是分类变量
+label_encoders = {}
+for column in ['Gender', 'Geography']:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 创建新的特征
+train_data['Age_Balance_Ratio'] = train_data['Age'] / train_data['Balance']
+
+# 查看新的特征
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 定义特征和目标变量
+X = train_data.drop('Exited', axis=1)
+y = train_data['Exited']
+
+# 分割数据
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看分割后的数据
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+from sklearn.linear_model import LogisticRegression
+
+# 初始化模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_888f7e12da29b5ed51f09555a3e7929013224f3c732028ac30d0850e76213ac5.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 假设缺失值较少，可以选择填充或删除
+# 这里我们选择填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Gender' 和 'Geography' 是分类变量
+label_encoders = {}
+for column in ['Gender', 'Geography']:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 创建新的特征
+train_data['Age_Balance_Ratio'] = train_data['Age'] / train_data['Balance']
+
+# 查看新的特征
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 定义特征和目标变量
+X = train_data.drop('Exited', axis=1)
+y = train_data['Exited']
+
+# 分割数据
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看分割后的数据
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+from sklearn.linear_model import LogisticRegression
+
+# 初始化模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_888f7e12da29b5ed51f09555a3e7929013224f3c732028ac30d0850e76213ac5.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集数据
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+
+# 假设缺失值较少，可以选择填充或删除
+# 这里我们选择填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Gender' 和 'Geography' 是分类变量
+label_encoders = {}
+for column in ['Gender', 'Geography']:
+    le = LabelEncoder()
+    train_data[column] = le.fit_transform(train_data[column])
+    label_encoders[column] = le
+
+# 查看处理后的数据
+print(train_data.head())
+
+# 创建新的特征
+train_data['Age_Balance_Ratio'] = train_data['Age'] / train_data['Balance']
+
+# 查看新的特征
+print(train_data.head())
+
+from sklearn.model_selection import train_test_split
+
+# 定义特征和目标变量
+X = train_data.drop('Exited', axis=1)
+y = train_data['Exited']
+
+# 分割数据
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看分割后的数据
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+from sklearn.linear_model import LogisticRegression
+
+# 初始化模型
+model = LogisticRegression()
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import roc_auc_score
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# 计算AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+print(f'AUC-ROC: {auc_roc}')
+
+
+执行结果：
+       id  CustomerId     Surname  ...  IsActiveMember EstimatedSalary Exited
+0  149380    15780088  Yobachukwu  ...             1.0       103560.98      0
+1  164766    15679760    Slattery  ...             0.0       102950.79      0
+2  155569    15637678          Ma  ...             0.0       155394.52      0
+3  124304    15728693      Galkin  ...             1.0       107428.42      0
+4  108008    15613673        Lung  ...             0.0       134110.93      0
+
+[5 rows x 14 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_888f7e12da29b5ed51f09555a3e7929013224f3c732028ac30d0850e76213ac5.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined

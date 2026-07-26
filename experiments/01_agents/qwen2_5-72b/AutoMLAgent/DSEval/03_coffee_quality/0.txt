@@ -1,0 +1,114 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error
+import joblib
+
+# Data retrieval and collection
+def load_datasets(train_data_path, test_data_path):
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    return train_df, test_df
+
+# Data preprocessing
+def preprocess_data(train_df, test_df):
+    # Remove duplicated rows
+    train_df.drop_duplicates(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+
+    # Drop specified columns
+    columns_to_remove = [
+        'ID', 'ICO Number', 'Owner', 'Region', 'Certification Contact', 'Certification Address', 'Farm Name', 'Lot Number', 'Mill', 'Producer', 'Company', 'Expiration', 'Harvest Year', 'Unnamed: 0', 'Number of Bags', 'Bag Weight', 'In-Country Partner', 'Country of Origin', 'Processing Method', 'Grading Date', 'Variety', 'Status', 'Defects', 'Uniformity', 'Clean Cup', 'Sweetness', 'Certification Body'
+    ]
+    # Filter out columns that are not in the DataFrame
+    columns_to_remove = [col for col in columns_to_remove if col in train_df.columns and col in test_df.columns]
+    train_df.drop(columns=columns_to_remove, inplace=True)
+    test_df.drop(columns=columns_to_remove, inplace=True)
+
+    # One-hot encoding for the 'Color' column
+    train_df = pd.get_dummies(train_df, columns=['Color'])
+    test_df = pd.get_dummies(test_df, columns=['Color'])
+
+    return train_df, test_df
+
+# Data splitting
+def split_data(train_df, test_df):
+    X_train = train_df.drop(columns=['Total Cup Points'])
+    y_train = train_df['Total Cup Points']
+
+    X_test = test_df.drop(columns=['Total Cup Points'])
+    y_test = test_df['Total Cup Points']
+
+    return X_train, y_train, X_test, y_test
+
+# Model training and hyperparameter tuning
+def train_model(X_train, y_train):
+    param_grid = {
+        'n_estimators': [10, 50, 100, 200],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    model = RandomForestRegressor(random_state=42)
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+    print("Best Hyperparameters:", best_params)
+
+    return best_model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    print("Mean Squared Error:", mse)
+    return mse
+
+# Model saving
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/03_coffee_quality/test.csv'
+    model_path = './agent_workspace/trained_models/coffee_quality_random_forest.pkl'
+
+    # Load datasets
+    train_df, test_df = load_datasets(train_data_path, test_data_path)
+
+    # Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Split data
+    X_train, y_train, X_test, y_test = split_data(train_df, test_df)
+
+    # Train model
+    best_model = train_model(X_train, y_train)
+
+    # Evaluate model
+    mse = evaluate_model(best_model, X_test, y_test)
+
+    # Save model
+    save_model(best_model, model_path)
+
+    return mse
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Best Hyperparameters: {'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 50}
+Mean Squared Error: 0.12740119619047602
+Model Performance on Test Set: 0.12740119619047602

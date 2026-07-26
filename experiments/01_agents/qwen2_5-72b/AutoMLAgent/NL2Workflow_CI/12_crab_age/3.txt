@@ -1,0 +1,166 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+np.random.seed(SEED)
+
+# 1. Data Retrieval and Collection
+def load_datasets():
+    # Load training dataset
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+    
+    # Load test dataset
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/test.csv')
+    
+    return train_df, test_df
+
+# 2. Data Inspection and Handling Missing Values
+def handle_missing_values(df):
+    # Check for missing values
+    missing = df.isnull().sum()
+    
+    # Impute missing values
+    for column in df.columns:
+        if df[column].dtype == 'float64' or df[column].dtype == 'int64':
+            df[column] = df[column].fillna(df[column].mean())
+        else:
+            df[column] = df[column].fillna(df[column].mode()[0])
+    
+    return df
+
+# 2.2. Check Data Types
+def ensure_data_types(df):
+    # Convert categorical variables to string type
+    df = df.astype({column: 'str' for column in df.select_dtypes(include=['object']).columns})
+    
+    return df
+
+# 3. Data Preprocessing
+def one_hot_encode(train_df, test_df):
+    # One-hot encode categorical features
+    train_df = pd.get_dummies(train_df)
+    test_df = pd.get_dummies(test_df)
+    
+    # Ensure the same columns in both datasets
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for c in missing_cols:
+        test_df[c] = 0
+    
+    missing_cols = set(test_df.columns) - set(train_df.columns)
+    for c in missing_cols:
+        train_df[c] = 0
+    
+    # Reorder columns
+    train_df = train_df[train_df.columns]
+    test_df = test_df[train_df.columns]
+    
+    return train_df, test_df
+
+# 4. Model Training and Evaluation
+def split_data(train_df, test_df):
+    # Separate features and target
+    if 'age' not in train_df.columns:
+        raise ValueError("The 'age' column is missing in the training dataset.")
+    if 'age' not in test_df.columns:
+        raise ValueError("The 'age' column is missing in the test dataset.")
+    
+    X_train = train_df.drop(columns=['age'])
+    y_train = train_df['age']
+    
+    X_test = test_df.drop(columns=['age'])
+    y_test = test_df['age']
+    
+    return X_train, y_train, X_test, y_test
+
+def train_model(X_train, y_train):
+    # Initialize the Random Forest Regressor
+    rf = RandomForestRegressor(n_estimators=300, max_depth=30, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    
+    # Train the model
+    rf.fit(X_train, y_train)
+    
+    return rf
+
+def evaluate_model(model, X_test, y_test):
+    # Generate predictions
+    y_pred = model.predict(X_test)
+    
+    # Calculate MAE
+    mae = mean_absolute_error(y_test, y_pred)
+    print(f'Mean Absolute Error: {mae}')
+    
+    return mae
+
+# 5. Save Predictions
+def save_predictions(y_pred):
+    # Create a DataFrame with predictions
+    predictions_df = pd.DataFrame({'age': y_pred})
+    
+    # Save predictions to a CSV file
+    predictions_df.to_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/predictions.csv', index=False)
+
+# 6. Save the Trained Model
+def save_model(model):
+    # Save the trained model to a file
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/random_forest_regressor.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the entire process
+def main():
+    # Step 1. Load datasets
+    train_df, test_df = load_datasets()
+    
+    # Step 2. Handle missing values
+    train_df = handle_missing_values(train_df)
+    test_df = handle_missing_values(test_df)
+    
+    # Step 3. Ensure appropriate data types
+    train_df = ensure_data_types(train_df)
+    test_df = ensure_data_types(test_df)
+    
+    # Step 4. One-hot encode categorical features
+    train_df, test_df = one_hot_encode(train_df, test_df)
+    
+    # Step 5. Split data
+    X_train, y_train, X_test, y_test = split_data(train_df, test_df)
+    
+    # Step 6. Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 7. Evaluate the model
+    mae = evaluate_model(model, X_test, y_test)
+    
+    # Step 8. Save predictions
+    y_pred = model.predict(X_test)
+    save_predictions(y_pred)
+    
+    # Step 9. Save the trained model
+    save_model(model)
+    
+    return mae
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 132, in main
+    X_train, y_train, X_test, y_test = split_data(train_df, test_df)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 69, in split_data
+    raise ValueError("The 'age' column is missing in the training dataset.")
+ValueError: The 'age' column is missing in the training dataset.

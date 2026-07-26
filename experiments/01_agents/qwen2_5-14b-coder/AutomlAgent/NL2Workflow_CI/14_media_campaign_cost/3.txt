@@ -1,0 +1,170 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.metrics import mean_squared_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import boto3
+import sagemaker
+from sagemaker.pytorch import PyTorchModel
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def load_data():
+    train_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv')
+    test_data = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv')
+    return train_data, test_data
+
+# Data preprocessing
+def preprocess_data(train_data, test_data):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    train_data_imputed = pd.DataFrame(imputer.fit_transform(train_data), columns=train_data.columns)
+    test_data_imputed = pd.DataFrame(imputer.transform(test_data), columns=test_data.columns)
+
+    # Normalize numerical features
+    scaler = StandardScaler()
+    train_data_normalized = pd.DataFrame(scaler.fit_transform(train_data_imputed), columns=train_data_imputed.columns)
+    test_data_normalized = pd.DataFrame(scaler.transform(test_data_imputed), columns=test_data_imputed.columns)
+
+    # Encode categorical variables
+    train_data_encoded = pd.get_dummies(train_data_normalized)
+    test_data_encoded = pd.get_dummies(test_data_normalized)
+
+    return train_data_encoded, test_data_encoded
+
+# Data augmentation
+def augment_data(train_data_encoded):
+    noise = np.random.normal(0, 0.1, train_data_encoded.shape)
+    train_data_augmented = train_data_encoded + noise
+    return train_data_augmented
+
+# Feature selection
+def select_features(train_data_augmented, test_data_encoded):
+    X_train = train_data_augmented.drop('media_cost', axis=1)
+    y_train = train_data_augmented['media_cost']
+    X_test = test_data_encoded.drop('media_cost', axis=1)
+    y_test = test_data_encoded['media_cost']
+
+    selector = SelectKBest(score_func=f_regression, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+
+    X_train_selected_df = pd.DataFrame(X_train_selected, columns=selector.get_support(indices=True))
+    X_test_selected_df = pd.DataFrame(X_test_selected, columns=selector.get_support(indices=True))
+
+    return X_train_selected_df, y_train, X_test_selected_df, y_test
+
+# Define the neural network
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 16)
+        self.fc4 = nn.Linear(16, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Train the model
+def train_model(X_train_selected, y_train):
+    model = NeuralNetwork(X_train_selected.shape[1])
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    num_epochs = 100
+    batch_size = 32
+    train_dataset = TensorDataset(torch.tensor(X_train_selected.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test_selected, y_test):
+    model.eval()
+    with torch.no_grad():
+        predictions = model(torch.tensor(X_test_selected.values, dtype=torch.float32))
+        rmse = np.sqrt(mean_squared_error(y_test.values, predictions.numpy()))
+    return {'RMSE': rmse}
+
+# Deploy the model on AWS SageMaker
+def deploy_model(model, model_path):
+    sagemaker_session = sagemaker.Session()
+    role = 'arn:aws:iam::123456789012:role/your-sagemaker-role'
+    model_data = sagemaker_session.upload_data(path=model_path, bucket='your-s3-bucket', key_prefix='model')
+
+    model = PyTorchModel(model_data=model_data,
+                        role=role,
+                        framework_version='1.7.1',
+                        entry_point='inference.py',
+                        source_dir='/path/to/source/code')
+
+    predictor = model.deploy(initial_instance_count=1, instance_type='ml.m5.large')
+    return predictor
+
+# Main function
+def main():
+    # Step 1: Retrieve or load the dataset
+    train_data, test_data = load_data()
+
+    # Step 2: Preprocess the data
+    train_data_encoded, test_data_encoded = preprocess_data(train_data, test_data)
+
+    # Step 3: Augment the training data
+    train_data_augmented = augment_data(train_data_encoded)
+
+    # Step 4: Feature selection
+    X_train_selected, y_train, X_test_selected, y_test = select_features(train_data_augmented, test_data_encoded)
+
+    # Step 5: Train the model
+    model = train_model(X_train_selected, y_train)
+
+    # Step 6: Evaluate the model
+    model_performance = evaluate_model(model, X_test_selected, y_test)
+    print("Model Performance on Test Set:", model_performance)
+
+    # Step 7: Deploy the model on AWS SageMaker
+    model_path = './agent_workspace/trained_models/model.pth'
+    torch.save(model.state_dict(), model_path)
+    predictor = deploy_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 16, in <module>
+    import boto3
+ModuleNotFoundError: No module named 'boto3'

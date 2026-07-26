@@ -1,0 +1,161 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，可以使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Category' 是目标变量，其他列是特征
+label_encoder = LabelEncoder()
+train_data['Category'] = label_encoder.fit_transform(train_data['Category'])
+
+# 选择特征和目标变量
+X_train = train_data.drop('Category', axis=1)
+y_train = train_data['Category']
+
+X_test = test_data
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 进行预测
+y_pred_proba = model.predict_proba(X_test)
+
+# 保存预测结果
+import numpy as np
+
+# 假设预测结果保存为 'predictions.csv'
+predictions_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/predictions.csv'
+np.savetxt(predictions_path, y_pred_proba, delimiter=',')
+
+from sklearn.metrics import log_loss
+
+# 假设测试集有真实标签
+# test_data['Category'] = label_encoder.transform(test_data['Category'])
+# y_test = test_data['Category']
+
+# 计算logloss
+# logloss_value = log_loss(y_test, y_pred_proba)
+# print(f'Logloss: {logloss_value}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_215267af364a3d485238270c89adc6ad81bd5aa7911997bb83827d5e9d18d914.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+try:
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+except FileNotFoundError:
+    print(f"File not found: {train_path} or {test_path}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+
+执行结果：
+
+生成的代码：
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设缺失值较少，可以使用均值填充
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 编码分类变量
+from sklearn.preprocessing import LabelEncoder
+
+# 假设 'Category' 是目标变量，其他列是特征
+label_encoder = LabelEncoder()
+train_data['Category'] = label_encoder.fit_transform(train_data['Category'])
+
+# 选择特征和目标变量
+X_train = train_data.drop('Category', axis=1)
+y_train = train_data['Category']
+
+X_test = test_data.drop('Category', axis=1)  # 假设测试集也有 'Category' 列
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 进行预测
+y_pred_proba = model.predict_proba(X_test)
+
+# 保存预测结果
+import numpy as np
+
+# 假设预测结果保存为 'predictions.csv'
+predictions_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/predictions.csv'
+np.savetxt(predictions_path, y_pred_proba, delimiter=',')
+
+from sklearn.metrics import log_loss
+
+# 假设测试集有真实标签
+test_data['Category'] = label_encoder.transform(test_data['Category'])
+y_test = test_data['Category']
+
+# 计算logloss
+logloss_value = log_loss(y_test, y_pred_proba)
+print(f'Logloss: {logloss_value}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_215267af364a3d485238270c89adc6ad81bd5aa7911997bb83827d5e9d18d914.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crime_category/test.csv'
+
+try:
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+    print("Files loaded successfully.")
+except FileNotFoundError:
+    print(f"File not found: {train_path} or {test_path}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+
+执行结果：
+Files loaded successfully.

@@ -1,0 +1,193 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
+from sklearn.metrics import mean_squared_log_error
+import xgboost as xgb
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_data(data_path):
+    df = pd.read_csv(data_path)
+    print("Data Overview:")
+    print(df.info())
+    print(df.head())
+    print("Descriptive Statistics:")
+    print(df.describe())
+    print("Missing Values:")
+    print(df.isnull().sum())
+    if 'media_campaign_cost' in df.columns:
+        print("Target Variable Analysis:")
+        print(df['media_campaign_cost'].describe())
+    else:
+        raise KeyError("The target variable 'media_campaign_cost' is not present in the dataset.")
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Impute missing values
+    numerical_columns = df.select_dtypes(include=['number']).columns
+    categorical_columns = df.select_dtypes(include=['object']).columns
+
+    numerical_imputer = SimpleImputer(strategy='median')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    df[numerical_columns] = numerical_imputer.fit_transform(df[numerical_columns])
+    df[categorical_columns] = categorical_imputer.fit_transform(df[categorical_columns])
+
+    # Handle outliers
+    Q1 = df[numerical_columns].quantile(0.25)
+    Q3 = df[numerical_columns].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    outliers = ((df[numerical_columns] < lower_bound) | (df[numerical_columns] > upper_bound)).any(axis=1)
+    df = df[~outliers]
+
+    # Feature scaling
+    scaler = StandardScaler()
+    df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+    # Categorical encoding
+    df = pd.get_dummies(df, columns=categorical_columns)
+
+    return df
+
+# Data Augmentation
+def augment_data(df):
+    X = df.drop(columns=['media_campaign_cost'])
+    y = df['media_campaign_cost']
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    df_resampled = pd.concat([X_resampled, y_resampled], axis=1)
+    return df_resampled
+
+# Feature Engineering
+def feature_engineering(df):
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+        df['month'] = df['date'].dt.month
+        df['quarter'] = df['date'].dt.quarter
+        holidays = ['2020-01-01', '2020-12-25']  # Example holidays
+        df['is_holiday'] = df['date'].isin(holidays).astype(int)
+
+    if 'promotion' in df.columns:
+        df['num_promotions'] = df['promotion'].str.split(',').apply(len)
+
+    if 'discount' in df.columns:
+        df['discount_percentage'] = df['discount'].str.rstrip('%').astype('float') / 100.0
+
+    if 'feature1' in df.columns and 'feature2' in df.columns:
+        df['interaction_term1'] = df['feature1'] * df['feature2']
+
+    # Feature selection
+    correlation_matrix = df.corr()
+    highly_correlated_features = set()
+    for i in range(len(correlation_matrix.columns)):
+        for j in range(i):
+            if abs(correlation_matrix.iloc[i, j]) > 0.8:
+                colname = correlation_matrix.columns[i]
+                highly_correlated_features.add(colname)
+    df = df.drop(columns=highly_correlated_features)
+
+    X_resampled = df.drop(columns=['media_campaign_cost'])
+    y_resampled = df['media_campaign_cost']
+
+    model = RandomForestRegressor()
+    model.fit(X_resampled, y_resampled)
+    feature_importances = model.feature_importances_
+    important_features = X_resampled.columns[feature_importances > 0.05]
+    df = df[important_features.tolist() + ['media_campaign_cost']]
+
+    return df
+
+# Model Training and Evaluation
+def train_model(X_train, y_train):
+    model = xgb.XGBRegressor()
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_root_mean_squared_log_error')
+    print(f'Cross-validation RMLSE: {-cv_scores.mean()}')
+
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 0.9, 1.0],
+        'colsample_bytree': [0.8, 0.9, 1.0]
+    }
+
+    random_search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=5, scoring='neg_root_mean_squared_log_error', random_state=42)
+    random_search.fit(X_train, y_train)
+    best_params = random_search.best_params_
+    print(f'Best hyperparameters: {best_params}')
+
+    best_model = xgb.XGBRegressor(**best_params)
+    best_model.fit(X_train, y_train)
+    return best_model
+
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    val_predictions = model.predict(X_val)
+    val_rmlse = np.sqrt(mean_squared_log_error(y_val, val_predictions))
+    print(f'Validation RMLSE: {val_rmlse}')
+
+    test_predictions = model.predict(X_test)
+    test_rmlse = np.sqrt(mean_squared_log_error(y_test, test_predictions))
+    print(f'Test RMLSE: {test_rmlse}')
+
+    performance_scores = {
+        'Validation RMLSE': val_rmlse,
+        'Test RMLSE': test_rmlse
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    df = load_data(data_path)
+    df = preprocess_data(df)
+    df_resampled = augment_data(df)
+    df_resampled = feature_engineering(df_resampled)
+
+    X = df_resampled.drop(columns=['media_campaign_cost'])
+    y = df_resampled['media_campaign_cost']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    model = train_model(X_train, y_train)
+    model_performance = evaluate_model(model, X_val, y_val, X_test, y_test)
+
+    model_path = r'./agent_workspace/trained_models/media_campaign_cost_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 177, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 156, in main
+    df = load_data(data_path)
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in load_data
+    raise KeyError("The target variable 'media_campaign_cost' is not present in the dataset.")
+KeyError: "The target variable 'media_campaign_cost' is not present in the dataset."

@@ -1,0 +1,126 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import roc_auc_score
+from xgboost import XGBClassifier
+from sklearn.model_selection import RandomizedSearchCV
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    if 'cancellation_status' not in df.columns:
+        raise ValueError("The dataset does not contain the 'cancellation_status' column.")
+    
+    numerical_features = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
+    
+    numerical_transformer = SimpleImputer(strategy='mean')
+    categorical_transformer = SimpleImputer(strategy='most_frequent')
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+    
+    scaler = StandardScaler()
+    
+    preprocessing_pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('scaler', scaler)
+    ])
+    
+    X = df.drop(columns=['cancellation_status'])
+    y = df['cancellation_status']
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    
+    X_train_processed = preprocessing_pipeline.fit_transform(X_train)
+    X_val_processed = preprocessing_pipeline.transform(X_val)
+    X_test_processed = preprocessing_pipeline.transform(X_test)
+    
+    return X_train_processed, X_val_processed, X_test_processed, y_train, y_val, y_test, preprocessing_pipeline
+
+# Model Training
+def train_model(X_train, y_train):
+    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+    
+    param_grid = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 5, 7, 9],
+        'subsample': [0.5, 0.7, 0.9]
+    }
+    
+    random_search = RandomizedSearchCV(xgb_model, param_distributions=param_grid, n_iter=100, cv=5, scoring='roc_auc', random_state=42, n_jobs=-1)
+    random_search.fit(X_train, y_train)
+    
+    best_model = random_search.best_estimator_
+    return best_model, random_search.best_params_
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    return auc_roc
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+    df = load_dataset(dataset_path)
+    
+    try:
+        X_train_processed, X_val_processed, X_test_processed, y_train, y_val, y_test, preprocessing_pipeline = preprocess_data(df)
+    except ValueError as e:
+        print(e)
+        return None, None
+    
+    model, best_params = train_model(X_train_processed, y_train)
+    
+    auc_roc = evaluate_model(model, X_test_processed, y_test)
+    print(f'Test AUC-ROC: {auc_roc}')
+    
+    model_path = './agent_workspace/trained_models/xgboost_reservation_cancellation_model.pkl'
+    preprocessing_pipeline_path = './agent_workspace/trained_models/preprocessing_pipeline.pkl'
+    
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(preprocessing_pipeline_path), exist_ok=True)
+    
+    joblib.dump(model, model_path)
+    joblib.dump(preprocessing_pipeline, preprocessing_pipeline_path)
+    
+    return auc_roc, best_params
+
+if __name__ == "__main__":
+    auc_roc, best_params = main()
+    if auc_roc is not None and best_params is not None:
+        print("Model Performance on Test Set:", auc_roc)
+        print("Best Hyperparameters:", best_params)
+    else:
+        print("An error occurred during the pipeline execution.")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+The dataset does not contain the 'cancellation_status' column.
+An error occurred during the pipeline execution.

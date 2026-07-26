@@ -1,0 +1,214 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+print(test_data.head())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设没有缺失值，如果有，可以使用fillna或其他方法处理
+
+# 检查数据类型
+print(train_data.dtypes)
+print(test_data.dtypes)
+
+# 假设所有特征都是数值型，如果有分类特征，需要进行编码
+# 例如，使用One-Hot编码
+train_data = pd.get_dummies(train_data)
+test_data = pd.get_dummies(test_data)
+
+# 分离特征和标签
+X_train = train_data.drop('monster_type', axis=1)
+y_train = train_data['monster_type']
+X_test = test_data.drop('monster_type', axis=1)
+y_test = test_data['monster_type']
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 进行预测
+y_pred = model.predict(X_test)
+
+# 计算准确率
+accuracy = accuracy_score(y_test, y_pred)
+print(f"模型在测试集上的准确率: {accuracy:.4f}")
+
+# 保存预测结果
+test_data['predicted_monster_type'] = y_pred
+test_data.to_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', index=False)
+
+print(f"模型在测试集上的准确率: {accuracy:.4f}")
+
+
+执行结果：
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_e5e7df8bdd5ceef447c655ad111f475cb90c25f1e5ead7b7e08e07478d648903.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import os
+import pandas as pd
+
+# 检查文件是否存在
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+
+if not os.path.exists(train_path):
+    print(f"训练集文件 {train_path} 不存在")
+else:
+    print(f"训练集文件 {train_path} 存在")
+
+if not os.path.exists(test_path):
+    print(f"测试集文件 {test_path} 不存在")
+else:
+    print(f"测试集文件 {test_path} 存在")
+
+# 如果文件存在，加载数据
+if os.path.exists(train_path) and os.path.exists(test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+
+    # 查看数据的前几行
+    print(train_data.head())
+    print(test_data.head())
+
+
+执行结果：
+训练集文件 D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv 存在
+测试集文件 D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv 存在
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin
+
+生成的代码：
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 假设没有缺失值，如果有，可以使用fillna或其他方法处理
+
+# 检查数据类型
+print(train_data.dtypes)
+print(test_data.dtypes)
+
+# 假设所有特征都是数值型，如果有分类特征，需要进行编码
+# 例如，使用One-Hot编码
+train_data = pd.get_dummies(train_data)
+test_data = pd.get_dummies(test_data)
+
+# 分离特征和标签
+X_train = train_data.drop('type_Ghoul', axis=1)
+y_train = train_data['type_Ghoul']
+X_test = test_data.drop('type_Ghoul', axis=1)
+y_test = test_data['type_Ghoul']
+
+from sklearn.ensemble import RandomForestClassifier
+
+# 初始化模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import accuracy_score
+
+# 进行预测
+y_pred = model.predict(X_test)
+
+# 计算准确率
+accuracy = accuracy_score(y_test, y_pred)
+print(f"模型在测试集上的准确率: {accuracy:.4f}")
+
+# 保存预测结果
+test_data['predicted_type'] = y_pred
+test_data.to_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/predictions.csv', index=False)
+
+print(f"模型在测试集上的准确率: {accuracy:.4f}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_3492a81cd4073baddb2d0efe582ea56ca1e0df1dda33cc0b1bb95c3266033aae.py", line 2, in <module>
+    print(train_data.isnull().sum())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import os
+import pandas as pd
+
+# 检查文件是否存在
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv'
+
+if not os.path.exists(train_path):
+    print(f"训练集文件 {train_path} 不存在")
+else:
+    print(f"训练集文件 {train_path} 存在")
+
+if not os.path.exists(test_path):
+    print(f"测试集文件 {test_path} 不存在")
+else:
+    print(f"测试集文件 {test_path} 存在")
+
+# 如果文件存在，加载数据
+if os.path.exists(train_path) and os.path.exists(test_path):
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+
+    # 查看数据的前几行
+    print(train_data.head())
+    print(test_data.head())
+
+
+执行结果：
+训练集文件 D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/train.csv 存在
+测试集文件 D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/monster/test.csv 存在
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  472     0.681615       0.529227     0.625242  white   Ghoul
+1  170     0.480836       0.407930     0.539005  clear  Goblin
+2  189     0.375197       0.742953     0.320764   blue   Ghost
+3  861     0.626017       0.172182     0.408422   blue   Ghoul
+4   30     0.250770       0.246258     0.554654  black   Ghost
+    id  bone_length  rotting_flesh  hair_length  color    type
+0  779     0.516004       0.527508     0.354857  white   Ghoul
+1   72     0.523729       0.318483     0.330146  green  Goblin
+2   29     0.500197       0.438418     0.532530  clear   Ghoul
+3  745     0.417300       0.377595     0.541834  clear  Goblin
+4  119     0.515275       0.582627     0.568721  clear  Goblin

@@ -1,0 +1,521 @@
+import pandas as pd
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Perform feature construction to build a new feature named 'GDP_bins'
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif 1000 < gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+train_df['GDP_bins'] = train_df['GDP'].apply(categorize_gdp)
+test_df['GDP_bins'] = test_df['GDP'].apply(categorize_gdp)
+
+# Put all the result variables in the last line
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        Country      Status  Life expectancy   Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP  Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0         Ghana  Developing              61.2              263             40     1.64              225.221947           91       120   26.1                  58     91               4.81           91        1.3  1574.978653  25121796.0                    6.9                  6.8                            0.554       10.9  Medium GDP
+ 1     Argentina  Developing              74.1              138             12     7.81              470.186915           66         0   55.1                  13     94               8.31           93        0.1  2579.193168   3788937.0                    1.2                  1.0                            0.776       16.3  Medium GDP
+ ...         ...         ...               ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...         ...                    ...                  ...                              ...        ...         ...
+ 1317   Thailand  Developing              73.5              162             11     5.92              609.951163           98      7790   25.7                  13     99               3.92           99        0.3  4378.687460   6654576.0                    8.5                  8.6                            0.700       12.9  Medium GDP
+ 1318   Pakistan  Developing              65.1              172            372     0.04                0.667515           82      4321   21.9                 461     82               3.20           82        0.1    14.142268   1756182.0                    2.2                  2.7                            0.521        7.5     Low GDP
+ 
+ [1319 rows x 22 columns],
+        Country      Status  Life expectancy  Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP   Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0    Indonesia  Developing             67.5               19            154     0.06              102.633435           76     19456    2.5                 188     77               3.10           73        0.2  1855.939150  232989141.0                    1.8                  1.7                            0.638       11.0  Medium GDP
+ 1       Serbia  Developing             73.8              132              1     9.30              772.870035           99       201   55.1                   1     93               1.20           94        0.1  5458.121718    7381579.0                    2.4                  2.4                            0.743       13.5  Medium GDP
+ ..         ...         ...              ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...          ...                    ...                  ...                              ...        ...         ...
+ 328     Bhutan  Developing             69.1              219              0     0.01               19.790574           97         0   22.7                   1     97               3.83           97        0.6   235.882889     764961.0                   15.9                 16.5                            0.589       12.6     Low GDP
+ 329   Cameroon  Developing             54.8              373             54     5.89                9.042541            8       251   25.4                  85     79               5.70            8        6.3   123.195380   19432541.0                    6.3                  6.3                            0.473        9.2     Low GDP
+ 
+ [330 rows x 22 columns])from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+target = 'Life expectancy'
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[2], line 14
+    y_train = train_df[target]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy'
+
+import pandas as pd
+
+# Check the column names in the dataset
+print(train_df.columns)
+
+# Adjust the target variable based on the actual column name
+if 'Life expectancy' in train_df.columns:
+    target = 'Life expectancy'
+elif 'Life Expectancy' in train_df.columns:
+    target = 'Life Expectancy'
+else:
+    raise ValueError('Target variable not found in the dataset')
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 12
+    raise ValueError('Target variable not found in the dataset')
+
+ValueError: Target variable not found in the dataset
+
+Index(['Country', 'Status', 'Life expectancy ', 'Adult Mortality',
+       'infant deaths', 'Alcohol', 'percentage expenditure', 'Hepatitis B',
+       'Measles ', ' BMI ', 'under-five deaths ', 'Polio', 'Total expenditure',
+       'Diphtheria ', ' HIV/AIDS', 'GDP', 'Population',
+       ' thinness  1-19 years', ' thinness 5-9 years',
+       'Income composition of resources', 'Schooling', 'GDP_bins'],
+      dtype='object')
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Adjust the target variable based on the actual column name
+if 'Life expectancy' in train_df.columns:
+    target = 'Life expectancy'
+elif 'Life expectancy ' in train_df.columns:
+    target = 'Life expectancy '
+else:
+    raise ValueError('Target variable not found in the dataset')
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 26
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_base.py:601 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1107 in check_array
+    _assert_all_finite(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:120 in _assert_all_finite
+    _assert_all_finite_element_wise(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:169 in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+
+ValueError: Input X contains NaN.
+LinearRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept miss
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Adjust the target variable based on the actual column name
+if 'Life expectancy' in train_df.columns:
+    target = 'Life expectancy'
+elif 'Life expectancy ' in train_df.columns:
+    target = 'Life expectancy '
+else:
+    raise ValueError('Target variable not found in the dataset')
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Impute missing values
+imputer = SimpleImputer(strategy='mean')
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train_imputed, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test_imputed)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy '
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[5], line 38
+    r2 = r2_score(test_df[target], y_pred)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy '
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['GDP_bins']. At least one non-missing value is needed for imputation with strategy='mean'.
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['GDP_bins']. At least one non-missing value is needed for imputation with strategy='mean'.
+
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Check the column names in the dataset
+print(train_df.columns)
+
+# Adjust the target variable based on the actual column name
+if 'Life expectancy' in train_df.columns:
+    target = 'Life expectancy'
+elif 'Life expectancy ' in train_df.columns:
+    target = 'Life expectancy '
+else:
+    raise ValueError('Target variable not found in the dataset')
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Impute missing values
+imputer = SimpleImputer(strategy='mean')
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train_imputed, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test_imputed)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy '
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[6], line 42
+    r2 = r2_score(test_df[target], y_pred)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy '
+
+Index(['Country', 'Status', 'Life expectancy ', 'Adult Mortality',
+       'infant deaths', 'Alcohol', 'percentage expenditure', 'Hepatitis B',
+       'Measles ', ' BMI ', 'under-five deaths ', 'Polio', 'Total expenditure',
+       'Diphtheria ', ' HIV/AIDS', 'GDP', 'Population',
+       ' thinness  1-19 years', ' thinness 5-9 years',
+       'Income composition of resources', 'Schooling', 'GDP_bins'],
+      dtype='object')
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['GDP_bins']. At least one non-missing value is needed for imputation with strategy='mean'.
+
+D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:635: UserWarning:
+
+Skipping features without any observed values: ['GDP_bins']. At least one non-missing value is needed for imputation with strategy='mean'.
+
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+# Strip spaces from column names to ensure consistency
+train_df.columns = train_df.columns.str.strip()
+test_df.columns = test_df.columns.str.strip()
+
+# Adjust the target variable based on the actual column name
+if 'Life expectancy' in train_df.columns:
+    target = 'Life expectancy'
+elif 'Life expectancy ' in train_df.columns:
+    target = 'Life expectancy '
+else:
+    raise ValueError('Target variable not found in the dataset')
+
+# Define the features and target variable
+features = ['GDP', 'GDP_bins']
+
+# Convert categorical GDP_bins to numerical values
+train_df['GDP_bins'] = train_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+test_df['GDP_bins'] = test_df['GDP_bins'].map({'Low GDP': 0, 'Medium GDP': 1, 'High GDP': 2})
+
+# Prepare the data
+X_train = train_df[features]
+y_train = train_df[target]
+X_test = test_df[features]
+
+# Impute missing values
+imputer = SimpleImputer(strategy='mean')
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+
+# Initialize and fit the model
+model = LinearRegression()
+model.fit(X_train_imputed, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test_imputed)
+
+# Evaluate the model
+r2 = r2_score(test_df[target], y_pred)
+
+# Put all the result variables in the last line
+model, y_pred, r2
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+ array([67.89933829, 69.07866507, 78.47738138, 67.56670406, 67.43903217,
+        67.41378395, 68.54613417, 69.05068523, 67.92351145, 68.0271255 ,
+        68.46042912, 69.34819265, 68.14659809, 67.3729043 , 67.39854009,
+        68.05741412, 71.50928014, 82.15979903, 75.58275965, 68.69733869,
+        68.86079571, 69.00393942, 67.80407624, 72.65188004, 67.88576891,
+        71.10101369, 68.03960606, 77.56745946, 69.10983429, 67.30522961,
+        67.36740937, 69.7022294 , 67.34186887, 79.20672463, 68.187098  ,
+        67.99631321, 68.4699243 , 67.74479414, 67.76762956, 72.9955112 ,
+        67.31677524, 72.49524709, 69.44420923, 67.72615898, 67.77484845,
+        67.45146065, 69.38302975, 67.70215591, 67.84270557, 68.69111614,
+        67.46847041, 67.82530935, 67.45938406, 70.07901475, 71.98712457,
+        67.44957031, 69.97614321, 67.32192918, 68.55008024, 67.37266351,
+        67.430085  , 67.48274941, 69.89853526, 67.43496524, 67.43212952,
+        67.47108056, 67.30885665, 67.42730823, 68.10403006, 69.20847374,
+        71.27111566, 67.35477302, 67.4021231 , 67.3079099 , 69.3975762 ,
+        67.32368798, 67.32290033, 67.56538207, 69.21637921, 68.05371029,
+        68.2718758 , 67.38585483, 67.79335817, 68.70492457, 67.39410974,
+        67.61156619, 67.80096849, 67.80674512, 67.89403136, 67.56534912,
+        68.52866648, 68.64632146, 68.66073625, 67.49559931, 84.11522132,
+        68.31065646, 67.34885292, 67.57965162, 71.41481058, 67.37304647,
+        67.32955333, 67.5608946 , 68.75842201, 67.74786123, 67.78920698,
+        68.22019413, 73.00629918, 69.4481592 , 67.53188716, 70.08272466,
+        68.68601266, 68.228569  , 67.69877421, 67.44960229, 69.37191186,
+        67.67554771, 67.40058168, 68.48155233, 68.004904  , 67.90023886,
+        68.58262025, 67.3756751 , 68.55826101, 68.64258673, 67.33341718,
+        75.77651265, 74.57380056, 67.30945276, 68.23622777, 68.3464707 ,
+        72.47608844, 67.34199748, 67.34714102, 67.44314293, 67.51900824,
+        74.3292687 , 68.68874546, 67.49921772, 69.5022705 , 67.44368861,
+        71.81721449, 67.82987195, 69.87018019, 67.36793327, 67.38418164,
+        67.56337473, 67.37949975, 88.71819596, 69.53214973, 67.46831854,
+        69.54152441, 71.30072061, 67.58166926, 67.54815197, 67.70371577,
+        69.68781794, 69.13617953, 68.56572534, 68.71689649, 71.70086332,
+        67.57207818, 67.44848118, 67.40345367, 67.39731627, 69.24588233,
+        69.68612058, 67.31291009, 67.86866393, 68.26226514, 67.42684581,
+        68.15716046, 67.48361781, 68.44642356, 69.67158867, 67.5466079 ,
+        68.55159435, 67.83930442, 67.66994076, 67.60104388, 67.88818718,
+        67.67726487, 68.7950684 , 70.09203028, 68.21484963, 70.16226833,
+        67.49513298, 67.76452462, 67.85468076, 68.12242662, 67.31861385,
+        68.19378137, 67.48722564, 67.48672504, 67.33296908, 69.22929081,
+        67.41260425, 67.30911174, 67.31523102, 67.5183118 , 67.48007237,
+        67.61632255, 69.98097904, 68.5483919 , 70.0951442 , 72.1130011 ,
+        67.39560934, 67.82780882, 69.86283948, 70.42986045, 67.4698056 ,
+        68.23907726, 69.3946543 , 67.33982225, 69.36669212, 68.6446174 ,
+        67.59394604, 68.40244473, 67.68893184, 67.45481593, 68.46144208,
+        67.38581579, 72.1900201 , 67.30410881, 67.29542971, 68.32448151,
+        68.70764931, 71.98707186, 67.77076297, 67.60842032, 67.45037796,
+        76.77010306, 77.84482842, 68.80536648, 67.38736823, 67.597287  ,
+        67.40156525, 67.41000149, 67.40785249, 67.74280623, 84.47873093,
+        68.78028525, 67.53340982, 83.4893715 , 68.55264917, 69.00895201,
+        67.82295729, 68.20775106, 69.79470243, 67.33938272, 67.7467463 ,
+        68.58737734, 67.4374649 , 68.45610903, 68.74195382, 67.35343679,
+        72.09550667, 67.3423622 , 67.83786174, 67.30153332, 67.86175477,
+        67.3292242 , 67.54870677, 67.38217307, 67.41257648, 68.7220369 ,
+        69.08948154, 67.41542275, 67.72893644, 67.34045137, 76.39187368,
+        67.33937938, 67.29536767, 67.47903338, 67.43026847, 67.85547909,
+        77.76168143, 69.96368758, 67.33569549, 67.44864127, 82.54382867,
+        67.30038748, 67.36700318, 67.43707822, 67.45173729, 75.31848231,
+        68.37199854, 75.44989049, 68.03050084, 68.72611802, 67.67633183,
+        67.38267897, 67.73447833, 72.75391324, 67.46905065, 67.4411768 ,
+        67.58063903, 68.97286341, 67.4965529 , 69.69010716, 67.34034325,
+        67.98738536, 67.38466191, 69.1999638 , 68.14280589, 67.72867287,
+        68.26471916, 68.40016909, 67.41605772, 69.54317975, 67.43706758,
+        67.61565799, 72.14281328, 67.8034075 , 69.04367731, 68.38838021,
+        67.31389958, 70.39689283, 68.34775199, 68.88029872, 72.05173485,
+        67.65766978, 67.48011486, 82.82301059, 69.65802433, 67.30767193,
+        69.37125253, 68.63971937, 67.70280766, 67.36894437, 67.33205135]),
+ 0.18565444914292795)

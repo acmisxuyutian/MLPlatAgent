@@ -1,0 +1,184 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import accuracy_score, f1_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Data Retrieval and Loading
+train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Ensure the target column 'obesity_risk' is present in both datasets
+if 'obesity_risk' not in train_df.columns:
+    raise ValueError("The target column 'obesity_risk' is not present in the training dataset.")
+if 'obesity_risk' not in test_df.columns:
+    raise ValueError("The target column 'obesity_risk' is not present in the test dataset.")
+
+# Step 2: Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Identify numerical and categorical features
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns
+
+    # Handle missing values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+
+    # Categorical Encoding
+    encoder = OneHotEncoder(handle_unknown='ignore')
+
+    # Create preprocessing pipeline
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', Pipeline(steps=[('imputer', numerical_imputer), ('scaler', scaler)]), numerical_features),
+            ('cat', Pipeline(steps=[('imputer', categorical_imputer), ('encoder', encoder)]), categorical_features)
+        ]
+    )
+
+    # Apply preprocessing
+    X_train = train_df.drop(columns=['obesity_risk'])
+    y_train = train_df['obesity_risk']
+    X_test = test_df.drop(columns=['obesity_risk'])
+    y_test = test_df['obesity_risk']
+
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+
+    return X_train_processed, y_train, X_test_processed, y_test, preprocessor
+
+X_train_processed, y_train, X_test_processed, y_test, preprocessor = preprocess_data(train_df, test_df)
+
+# Step 3: Data Augmentation
+def augment_data(X_train_processed, y_train):
+    smote = SMOTE()
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_processed, y_train)
+
+    def perturb_data(data, perturbation_factor=0.05):
+        return data + np.random.normal(0, perturbation_factor, data.shape)
+
+    X_train_perturbed = perturb_data(X_train_resampled)
+    return X_train_perturbed, y_train_resampled
+
+X_train_resampled, y_train_resampled = augment_data(X_train_processed, y_train)
+
+# Step 4: Feature Engineering
+def feature_engineering(X_train_resampled, y_train_resampled, X_test_processed, preprocessor):
+    feature_names = preprocessor.get_feature_names_out()
+    correlation_matrix = pd.DataFrame(X_train_resampled, columns=feature_names).corr()
+    target_correlation = correlation_matrix['obesity_risk'].abs().sort_values(ascending=False)
+
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf.fit(X_train_resampled, y_train_resampled)
+    feature_importances = pd.Series(rf.feature_importances_, index=feature_names).sort_values(ascending=False)
+
+    top_features = feature_importances.index[:10]  # Select top 10 features
+    X_train_selected = X_train_resampled[:, [feature_names.index(f) for f in top_features]]
+    X_test_selected = X_test_processed[:, [feature_names.index(f) for f in top_features]]
+
+    return X_train_selected, X_test_selected, top_features
+
+X_train_selected, X_test_selected, top_features = feature_engineering(X_train_resampled, y_train_resampled, X_test_processed, preprocessor)
+
+# Step 5: Model Training and Evaluation
+def train_and_evaluate_model(X_train_selected, y_train_resampled, X_test_selected, y_test):
+    xgb_model = xgb.XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.1, random_state=42)
+
+    cv_scores = cross_val_score(xgb_model, X_train_selected, y_train_resampled, cv=5, scoring='accuracy')
+    print(f'Cross-Validation Accuracy: {cv_scores.mean()}')
+
+    xgb_model.fit(X_train_selected, y_train_resampled)
+
+    y_pred = xgb_model.predict(X_test_selected)
+    test_accuracy = accuracy_score(y_test, y_pred)
+    test_f1 = f1_score(y_test, y_pred, average='weighted')
+
+    print(f'Test Accuracy: {test_accuracy}')
+    print(f'Test F1 Score: {test_f1}')
+
+    return xgb_model, test_accuracy, test_f1
+
+xgb_model, test_accuracy, test_f1 = train_and_evaluate_model(X_train_selected, y_train_resampled, X_test_selected, y_test)
+
+# Step 6: Model Saving and Deployment
+def save_model_and_preprocessor(xgb_model, preprocessor, top_features):
+    model_path = './agent_workspace/trained_models/obesity_risk_xgboost_model.pkl'
+    preprocessor_path = './agent_workspace/trained_models/obesity_risk_preprocessor.pkl'
+    features_path = './agent_workspace/trained_models/obesity_risk_top_features.json'
+
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(preprocessor_path), exist_ok=True)
+    os.makedirs(os.path.dirname(features_path), exist_ok=True)
+
+    joblib.dump(xgb_model, model_path)
+    joblib.dump(preprocessor, preprocessor_path)
+    with open(features_path, 'w') as f:
+        json.dump(list(top_features), f)
+
+save_model_and_preprocessor(xgb_model, preprocessor, top_features)
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Data Retrieval and Loading
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    # Ensure the target column 'obesity_risk' is present in both datasets
+    if 'obesity_risk' not in train_df.columns:
+        raise ValueError("The target column 'obesity_risk' is not present in the training dataset.")
+    if 'obesity_risk' not in test_df.columns:
+        raise ValueError("The target column 'obesity_risk' is not present in the test dataset.")
+
+    # Step 2: Data Preprocessing
+    X_train_processed, y_train, X_test_processed, y_test, preprocessor = preprocess_data(train_df, test_df)
+
+    # Step 3: Data Augmentation
+    X_train_resampled, y_train_resampled = augment_data(X_train_processed, y_train)
+
+    # Step 4: Feature Engineering
+    X_train_selected, X_test_selected, top_features = feature_engineering(X_train_resampled, y_train_resampled, X_test_processed, preprocessor)
+
+    # Step 5: Model Training and Evaluation
+    xgb_model, test_accuracy, test_f1 = train_and_evaluate_model(X_train_selected, y_train_resampled, X_test_selected, y_test)
+
+    # Step 6: Model Saving and Deployment
+    save_model_and_preprocessor(xgb_model, preprocessor, top_features)
+
+    return {
+        'Test Accuracy': test_accuracy,
+        'Test F1 Score': test_f1
+    }
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 32, in <module>
+    raise ValueError("The target column 'obesity_risk' is not present in the training dataset.")
+ValueError: The target column 'obesity_risk' is not present in the training dataset.

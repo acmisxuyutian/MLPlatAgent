@@ -1,0 +1,138 @@
+import pandas as pd
+
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/test.csv'
+
+# Load the datasets
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Display the first few rows of each dataset
+print('Training set head:\n', train_df.head())
+print('\nTest set head:\n', test_df.head())
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(         id  clonesize  honeybee  bumbles  andrena  osmia  MaxOfUpperTRange  MinOfUpperTRange  AverageOfUpperTRange  MaxOfLowerTRange  MinOfLowerTRange  AverageOfLowerTRange  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 0       245       25.0      0.50     0.38     0.50   0.63              69.7              42.1                  58.2              50.2              24.3                  41.2         24.0                0.39  0.384981   0.399724  29.742583  4177.01520
+ 1      3017       12.5      0.25     0.25     0.38   0.25              94.6              57.2                  79.0              68.2              33.0                  55.9         34.0                0.56  0.335530   0.376874  27.735098  3238.02815
+ ...     ...        ...       ...      ...      ...    ...               ...               ...                   ...               ...               ...                   ...          ...                 ...       ...        ...        ...         ...
+ 12229   860       12.5      0.25     0.25     0.25   0.75              94.6              57.2                  79.0              68.2              33.0                  55.9          1.0                0.10  0.592489   0.491269  40.764696  7231.02778
+ 12230  7270       25.0      0.50     0.38     0.38   0.63              86.0              52.0                  71.9              62.0              30.0                  50.8         24.0                0.39  0.509989   0.455614  35.807062  6696.23571
+ 
+ [12231 rows x 18 columns],
+         id  clonesize  honeybee  bumbles  andrena  osmia  MaxOfUpperTRange  MinOfUpperTRange  AverageOfUpperTRange  MaxOfLowerTRange  MinOfLowerTRange  AverageOfLowerTRange  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 0     3519       25.0      0.50     0.38     0.38   0.75              77.4              46.8                  64.7              55.8              27.0                  45.8          1.0                0.10  0.508104   0.454680  42.532221  8711.20896
+ 1     6096       12.5      0.25     0.25     0.50   0.63              69.7              42.1                  58.2              50.2              24.3                  41.2         34.0                0.56  0.544643   0.442249  35.343967  5914.16491
+ ...    ...        ...       ...      ...      ...    ...               ...               ...                   ...               ...               ...                   ...          ...                 ...       ...        ...        ...         ...
+ 3056  9239       12.5      0.25     0.25     0.63   0.50              69.7              42.1                  58.2              50.2              24.3                  41.2         16.0                0.26  0.538371   0.446570  36.130192  6594.04460
+ 3057  9906       25.0      0.50     0.38     0.38   0.50              77.4              46.8                  64.7              55.8              27.0                  45.8         34.0                0.56  0.551954   0.471250  38.494534  7963.93931
+ 
+ [3058 rows x 18 columns])import pandas as pd
+from sklearn.feature_selection import SelectKBest, f_regression
+
+# Feature Construction
+# For simplicity, let's assume we do not need to construct new features and use the existing ones.
+
+# Feature Selection
+# We will select the top 10 features based on their correlation with the target variable 'yield'
+X_train = train_df.drop(columns=['id', 'yield'])
+y_train = train_df['yield']
+
+selector = SelectKBest(score_func=f_regression, k=10)
+selector.fit(X_train, y_train)
+selected_features = X_train.columns[selector.get_support()]
+
+# Apply the selected features to both training and test sets
+X_train_selected = selector.transform(X_train)
+X_test_selected = test_df[selected_features]
+
+# Combine the selected features with the target variable for the training set
+train_df_selected = pd.concat([pd.DataFrame(X_train_selected, columns=selected_features), y_train], axis=1)
+
+# Display the first few rows of the selected features
+print('Selected features in the training set:\n', train_df_selected.head())
+
+# Display the first few rows of the selected features in the test set
+print('\nSelected features in the test set:\n', X_test_selected.head())
+
+train_df_selected, X_test_selected
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       clonesize  honeybee  bumbles  andrena  osmia  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 0           25.0      0.50     0.38     0.50   0.63         24.0                0.39  0.384981   0.399724  29.742583  4177.01520
+ 1           12.5      0.25     0.25     0.38   0.25         34.0                0.56  0.335530   0.376874  27.735098  3238.02815
+ ...          ...       ...      ...      ...    ...          ...                 ...       ...        ...        ...         ...
+ 12229       12.5      0.25     0.25     0.25   0.75          1.0                0.10  0.592489   0.491269  40.764696  7231.02778
+ 12230       25.0      0.50     0.38     0.38   0.63         24.0                0.39  0.509989   0.455614  35.807062  6696.23571
+ 
+ [12231 rows x 11 columns],
+       clonesize  honeybee  bumbles  andrena  osmia  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds
+ 0          25.0      0.50     0.38     0.38   0.75          1.0                0.10  0.508104   0.454680  42.532221
+ 1          12.5      0.25     0.25     0.50   0.63         34.0                0.56  0.544643   0.442249  35.343967
+ ...         ...       ...      ...      ...    ...          ...                 ...       ...        ...        ...
+ 3056       12.5      0.25     0.25     0.63   0.50         16.0                0.26  0.538371   0.446570  36.130192
+ 3057       25.0      0.50     0.38     0.38   0.50         34.0                0.56  0.551954   0.471250  38.494534
+ 
+ [3058 rows x 10 columns])import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# Perform sampling on the training set
+sample_size = 0.2  # 20% of the data
+train_df_sampled, _ = train_test_split(train_df_selected, test_size=1 - sample_size, random_state=42)
+
+# Display the first few rows of the sampled training set
+print('Sampled training set:\n', train_df_sampled.head())
+
+train_df_sampled, _
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       clonesize  honeybee  bumbles  andrena  osmia  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 12208       25.0       0.5     0.25     0.63   0.75         16.0                0.26  0.626397   0.516064  44.955361  8489.69192
+ 147         25.0       0.5     0.38     0.38   0.75          1.0                0.10  0.545095   0.463020  37.879036  6135.69998
+ ...          ...       ...      ...      ...    ...          ...                 ...       ...        ...        ...         ...
+ 860         25.0       0.5     0.25     0.50   0.75         16.0                0.26  0.421449   0.413632  32.027647  4247.50893
+ 7270        25.0       0.5     0.25     0.63   0.63         34.0                0.56  0.394611   0.394611  29.908518  2946.92602
+ 
+ [2446 rows x 11 columns],
+        clonesize  honeybee  bumbles  andrena  osmia  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 3540        12.5      0.25     0.25     0.38   0.25         24.0                0.39  0.596753   0.490020  41.357386  6731.71221
+ 12162       12.5      0.25     0.25     0.63   0.75         16.0                0.26  0.583379   0.481174  40.641638  7800.50128
+ ...          ...       ...      ...      ...    ...          ...                 ...       ...        ...        ...         ...
+ 4531        25.0      0.50     0.38     0.38   0.63         24.0                0.39  0.387861   0.399172  30.795613  3049.26032
+ 365         25.0      0.50     0.25     0.75   0.50         16.0                0.26  0.500184   0.448973  35.988555  5830.48855
+ 
+ [9785 rows x 11 columns])import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Load the sampled training data and test data
+X_train_sampled = train_df_sampled.drop(columns=['yield'])
+y_train_sampled = train_df_sampled['yield']
+X_test = X_test_selected
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+mae = mean_absolute_error(test_df['yield'], y_pred)
+
+# Report the MAE
+print(f'Mean Absolute Error (MAE) on the test set: {mae:.2f}')
+
+model, mae, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+ 374.04637362628574,
+ array([7170.48008688, 6289.93230356, 4325.90265256, ..., 6581.1290795 ,
+        6476.89624213, 6577.00009874]))

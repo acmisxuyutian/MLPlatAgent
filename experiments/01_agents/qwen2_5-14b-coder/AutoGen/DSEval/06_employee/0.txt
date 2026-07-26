@@ -1,0 +1,288 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/train.csv')
+
+# 加载测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/test.csv')
+
+# 计算 "YearsInCompany" 特征
+train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+# 选择分类列
+categorical_cols = ['Department', 'Education', 'Gender', 'EverBenched', 'ExperienceInCurrentDomain']
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_cols, drop_first=True)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X_train = train_encoded.drop('LeaveOrNot', axis=1)
+y_train = train_encoded['LeaveOrNot']
+
+# 初始化随机森林分类器
+rf_classifier = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_classifier.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_encoded.drop('LeaveOrNot', axis=1)
+y_test = test_encoded['LeaveOrNot']
+
+# 进行预测
+y_pred = rf_classifier.predict(X_test)
+y_pred_proba = rf_classifier.predict_proba(X_test)[:, 1]
+
+from sklearn.metrics import roc_auc_score
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+from sklearn.metrics import confusion_matrix
+
+# 计算混淆矩阵
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f'Confusion Matrix:\n{conf_matrix}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_92b204b198116baa348735152e2a1762a2ff0ca5137037cc9d648679cef8c1b7.py", line 2, in <module>
+    train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, confusion_matrix
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/train.csv')
+
+# 加载测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/test.csv')
+
+# 计算 "YearsInCompany" 特征
+train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+# 选择分类列
+categorical_cols = ['Department', 'Education', 'Gender', 'EverBenched', 'ExperienceInCurrentDomain']
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_cols, drop_first=True)
+
+# 分离特征和目标变量
+X_train = train_encoded.drop('LeaveOrNot', axis=1)
+y_train = train_encoded['LeaveOrNot']
+
+# 初始化随机森林分类器
+rf_classifier = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_classifier.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_encoded.drop('LeaveOrNot', axis=1)
+y_test = test_encoded['LeaveOrNot']
+
+# 进行预测
+y_pred = rf_classifier.predict(X_test)
+y_pred_proba = rf_classifier.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+# 计算混淆矩阵
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f'Confusion Matrix:\n{conf_matrix}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_47091646bbd63e7c9815b89bf9b931d7aa37be1608e58fc0a172bcfe34ef48c3.py", line 20, in <module>
+    train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\reshape\encoding.py", line 169, in get_dummies
+    data_to_encode = data[columns]
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['Department'] not in index"
+
+生成的代码：
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, confusion_matrix
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/train.csv')
+
+# 加载测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/test.csv')
+
+# 检查训练数据的列名
+print(f'Train Data Columns: {train_data.columns}')
+
+# 检查测试数据的列名
+print(f'Test Data Columns: {test_data.columns}')
+
+# 计算 "YearsInCompany" 特征
+train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+# 选择分类列
+categorical_cols = ['Department', 'Education', 'Gender', 'EverBenched', 'ExperienceInCurrentDomain']
+
+# 确保所有分类列都存在于训练数据中
+missing_cols = [col for col in categorical_cols if col not in train_data.columns]
+if missing_cols:
+    raise ValueError(f'Missing columns in train data: {missing_cols}')
+
+# 确保所有分类列都存在于测试数据中
+missing_cols = [col for col in categorical_cols if col not in test_data.columns]
+if missing_cols:
+    raise ValueError(f'Missing columns in test data: {missing_cols}')
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_cols, drop_first=True)
+
+# 分离特征和目标变量
+X_train = train_encoded.drop('LeaveOrNot', axis=1)
+y_train = train_encoded['LeaveOrNot']
+
+# 初始化随机森林分类器
+rf_classifier = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_classifier.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_encoded.drop('LeaveOrNot', axis=1)
+y_test = test_encoded['LeaveOrNot']
+
+# 进行预测
+y_pred = rf_classifier.predict(X_test)
+y_pred_proba = rf_classifier.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+# 计算混淆矩阵
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f'Confusion Matrix:\n{conf_matrix}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_df661c45e5f7ead2254fad0834d9a83a7ae019b009cf24226fd22f8d8891e62c.py", line 28, in <module>
+    raise ValueError(f'Missing columns in train data: {missing_cols}')
+ValueError: Missing columns in train data: ['Department']
+Train Data Columns: Index(['Education', 'JoiningYear', 'City', 'PaymentTier', 'Age', 'Gender',
+       'EverBenched', 'ExperienceInCurrentDomain', 'LeaveOrNot'],
+      dtype='object')
+Test Data Columns: Index(['Education', 'JoiningYear', 'City', 'PaymentTier', 'Age', 'Gender',
+       'EverBenched', 'ExperienceInCurrentDomain', 'LeaveOrNot'],
+      dtype='object')
+
+生成的代码：
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, confusion_matrix
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/train.csv')
+
+# 加载测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/06_employee/test.csv')
+
+# 检查训练数据的列名
+print(f'Train Data Columns: {train_data.columns}')
+
+# 检查测试数据的列名
+print(f'Test Data Columns: {test_data.columns}')
+
+# 计算 "YearsInCompany" 特征
+train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+
+# 选择分类列
+categorical_cols = ['Department', 'Education', 'Gender', 'EverBenched', 'ExperienceInCurrentDomain']
+
+# 确保所有分类列都存在于训练数据中
+missing_cols = [col for col in categorical_cols if col not in train_data.columns]
+if missing_cols:
+    raise ValueError(f'Missing columns in train data: {missing_cols}')
+
+# 确保所有分类列都存在于测试数据中
+missing_cols = [col for col in categorical_cols if col not in test_data.columns]
+if missing_cols:
+    raise ValueError(f'Missing columns in test data: {missing_cols}')
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_cols, drop_first=True)
+
+# 分离特征和目标变量
+X_train = train_encoded.drop('LeaveOrNot', axis=1)
+y_train = train_encoded['LeaveOrNot']
+
+# 初始化随机森林分类器
+rf_classifier = RandomForestClassifier(random_state=42)
+
+# 训练模型
+rf_classifier.fit(X_train, y_train)
+
+# 分离测试集的特征和目标变量
+X_test = test_encoded.drop('LeaveOrNot', axis=1)
+y_test = test_encoded['LeaveOrNot']
+
+# 进行预测
+y_pred = rf_classifier.predict(X_test)
+y_pred_proba = rf_classifier.predict_proba(X_test)[:, 1]
+
+# 计算 AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+print(f'AUC-ROC: {auc_roc}')
+
+# 计算混淆矩阵
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f'Confusion Matrix:\n{conf_matrix}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_df661c45e5f7ead2254fad0834d9a83a7ae019b009cf24226fd22f8d8891e62c.py", line 28, in <module>
+    raise ValueError(f'Missing columns in train data: {missing_cols}')
+ValueError: Missing columns in train data: ['Department']
+Train Data Columns: Index(['Education', 'JoiningYear', 'City', 'PaymentTier', 'Age', 'Gender',
+       'EverBenched', 'ExperienceInCurrentDomain', 'LeaveOrNot'],
+      dtype='object')
+Test Data Columns: Index(['Education', 'JoiningYear', 'City', 'PaymentTier', 'Age', 'Gender',
+       'EverBenched', 'ExperienceInCurrentDomain', 'LeaveOrNot'],
+      dtype='object')

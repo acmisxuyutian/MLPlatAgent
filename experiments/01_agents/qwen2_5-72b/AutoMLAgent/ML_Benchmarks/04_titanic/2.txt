@@ -1,0 +1,218 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval and Initial Setup
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/04_titanic/split_train.csv'
+eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/04_titanic/split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Data Preprocessing
+def preprocess_data(train_df, eval_df):
+    # Handling Missing Values
+    numerical_features = ['Age', 'Fare']
+    imputer = SimpleImputer(strategy='median')
+    train_df[numerical_features] = imputer.fit_transform(train_df[numerical_features])
+    eval_df[numerical_features] = imputer.transform(eval_df[numerical_features])
+
+    categorical_features = ['Embarked']
+    imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = imputer.fit_transform(train_df[categorical_features])
+    eval_df[categorical_features] = imputer.transform(eval_df[categorical_features])
+
+    # Encoding Categorical Variables
+    train_df = pd.get_dummies(train_df, columns=['Sex', 'Embarked'])
+    eval_df = pd.get_dummies(eval_df, columns=['Sex', 'Embarked'])
+
+    # Scaling Numerical Features
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    eval_df[numerical_features] = scaler.transform(eval_df[numerical_features])
+
+    # Feature Engineering
+    train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+    eval_df['FamilySize'] = eval_df['SibSp'] + eval_df['Parch'] + 1
+
+    train_df['Title'] = train_df['Name'].str.extract(' ([A-Za-z]+)\.', expand=False)
+    eval_df['Title'] = eval_df['Name'].str.extract(' ([A-Za-z]+)\.', expand=False)
+
+    title_mapping = {
+        "Mr": 1, "Miss": 2, "Mrs": 3, "Master": 4, "Dr": 5, "Rev": 6, "Major": 7, "Col": 7, "Mlle": 8, "Mme": 8, "Don": 9, "Lady": 10, "Countess": 10, "Jonkheer": 10, "Sir": 9, "Capt": 7, "Ms": 2
+    }
+    train_df['Title'] = train_df['Title'].map(title_mapping)
+    eval_df['Title'] = eval_df['Title'].map(title_mapping)
+
+    train_df['Title'] = train_df['Title'].fillna(0)
+    eval_df['Title'] = eval_df['Title'].fillna(0)
+
+    # Select Important Features
+    X_train = train_df.drop(columns=['Survived', 'Name', 'Ticket', 'Cabin'])
+    y_train = train_df['Survived']
+
+    X_eval = eval_df.drop(columns=['Survived', 'Name', 'Ticket', 'Cabin'])
+    y_eval = eval_df['Survived']
+
+    selector = SelectKBest(f_classif, k=10)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_eval_selected = selector.transform(X_eval)
+
+    return X_train_selected, y_train, X_eval_selected, y_eval, X_train.columns[selector.get_support()]
+
+# Exploratory Data Analysis
+def exploratory_data_analysis(train_df, selected_features):
+    # Distribution of Survival
+    survival_distribution = train_df['Survived'].value_counts(normalize=True)
+    print("Survival Distribution:")
+    print(survival_distribution)
+
+    # Feature Correlation
+    numerical_features = ['Age', 'Fare', 'FamilySize', 'Title']
+    correlation_matrix = train_df[numerical_features + ['Survived']].corr()
+    print("Feature Correlation with Survival:")
+    print(correlation_matrix['Survived'].sort_values(ascending=False))
+
+    # Summary Statistics
+    summary_statistics = train_df[numerical_features].describe()
+    print("Summary Statistics for Numerical Features:")
+    print(summary_statistics)
+
+    # Categorical Feature Distribution
+    categorical_distribution = train_df[['Sex_female', 'Sex_male', 'Embarked_C', 'Embarked_Q', 'Embarked_S']].mean()
+    print("Categorical Feature Distribution:")
+    print(categorical_distribution)
+
+# Define the Neural Network
+class FeedforwardNeuralNetwork(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(FeedforwardNeuralNetwork, self).__init__()
+        self.layer1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.layer2 = nn.Linear(hidden_size, output_size)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.relu(out)
+        out = self.layer2(out)
+        out = self.sigmoid(out)
+        return out
+
+# Train the Model
+def train_model(model, train_loader, criterion, optimizer, num_epochs=30):
+    for epoch in range(num_epochs):
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        # Evaluate on evaluation set
+        with torch.no_grad():
+            eval_outputs = model(X_eval_tensor)
+            eval_loss = criterion(eval_outputs, y_eval_tensor)
+            eval_predictions = (eval_outputs > 0.5).float()
+            accuracy = (eval_predictions == y_eval_tensor).float().mean()
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Eval Loss: {eval_loss.item():.4f}, Eval Accuracy: {accuracy.item():.4f}')
+
+# Evaluate the Model
+def evaluate_model(model, X_eval_tensor, y_eval_tensor):
+    with torch.no_grad():
+        eval_outputs = model(X_eval_tensor)
+        eval_predictions = (eval_outputs > 0.5).float()
+        accuracy = accuracy_score(y_eval_tensor, eval_predictions)
+        f1 = f1_score(y_eval_tensor, eval_predictions)
+        performance_scores = {
+            'ACC': accuracy,
+            'F1': f1
+        }
+    return performance_scores
+
+# Main Function to Orchestrate the Pipeline
+def main():
+    # Data Retrieval and Initial Setup
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+
+    # Data Preprocessing
+    X_train_selected, y_train, X_eval_selected, y_eval, selected_features = preprocess_data(train_df, eval_df)
+
+    # Exploratory Data Analysis
+    exploratory_data_analysis(train_df, selected_features)
+
+    # Prepare Data for Training
+    X_train_tensor = torch.tensor(X_train_selected, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+
+    X_eval_tensor = torch.tensor(X_eval_selected, dtype=torch.float32)
+    y_eval_tensor = torch.tensor(y_eval.values, dtype=torch.float32).view(-1, 1)
+
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    # Define the Model
+    input_size = X_train_selected.shape[1]
+    hidden_size = 64
+    output_size = 1
+
+    model = FeedforwardNeuralNetwork(input_size, hidden_size, output_size)
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Train the Model
+    train_model(model, train_loader, criterion, optimizer)
+
+    # Evaluate the Model
+    model_performance = evaluate_model(model, X_eval_tensor, y_eval_tensor)
+
+    # Save the Model
+    model_path = './agent_workspace/trained_models/titanic_survival_model.pth'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Evaluation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 195, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in main
+    exploratory_data_analysis(train_df, selected_features)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 89, in exploratory_data_analysis
+    correlation_matrix = train_df[numerical_features + ['Survived']].corr()
+                         ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['FamilySize', 'Title'] not in index"

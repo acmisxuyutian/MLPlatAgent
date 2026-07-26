@@ -1,0 +1,166 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Drop rows with missing values and duplicates
+    train_df.dropna(inplace=True)
+    train_df.drop_duplicates(inplace=True)
+
+    test_df.dropna(inplace=True)
+    test_df.drop_duplicates(inplace=True)
+
+    # Ensure 'Weight' and 'Height' columns exist
+    if 'Weight' not in train_df.columns or 'Height' not in train_df.columns:
+        raise ValueError("Missing 'Weight' or 'Height' column in the training data.")
+    if 'Weight' not in test_df.columns or 'Height' not in test_df.columns:
+        raise ValueError("Missing 'Weight' or 'Height' column in the test data.")
+
+    # Calculate BMI and categorize
+    def calculate_bmi(weight, height):
+        return weight / (height / 100) ** 2
+
+    def categorize_bmi(bmi):
+        if bmi < 18.5:
+            return 'Underweight'
+        elif 18.5 <= bmi < 24.9:
+            return 'Normal'
+        elif 25 <= bmi < 29.9:
+            return 'Overweight'
+        else:
+            return 'Obesity'
+
+    train_df['BMI'] = train_df.apply(lambda row: calculate_bmi(row['Weight'], row['Height']), axis=1)
+    train_df['BMI_Category'] = train_df['BMI'].apply(categorize_bmi)
+
+    test_df['BMI'] = test_df.apply(lambda row: calculate_bmi(row['Weight'], row['Height']), axis=1)
+    test_df['BMI_Category'] = test_df['BMI'].apply(categorize_bmi)
+
+    # Split the dataset into training, validation, and test sets
+    train_df, val_df = train_test_split(train_df, test_size=0.3, random_state=SEED)
+    val_df, test_df = train_test_split(val_df, test_size=0.67, random_state=SEED)
+
+    return train_df, val_df, test_df
+
+# Define the model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 16)
+        self.fc4 = nn.Linear(16, 8)
+        self.fc5 = nn.Linear(8, 1)
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc4(x))
+        x = self.dropout(x)
+        x = torch.sigmoid(self.fc5(x))
+        return x
+
+# Train the model
+def train_model(model, train_df, criterion, optimizer, num_epochs=50, batch_size=64):
+    for epoch in range(num_epochs):
+        for i in range(0, len(train_df), batch_size):
+            inputs = torch.tensor(train_df.iloc[i:i+batch_size].drop('Heart_Disease', axis=1).values, dtype=torch.float32)
+            targets = torch.tensor(train_df.iloc[i:i+batch_size]['Heart_Disease'].values, dtype=torch.float32).view(-1, 1)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_df):
+    model.eval()
+    with torch.no_grad():
+        inputs = torch.tensor(test_df.drop('Heart_Disease', axis=1).values, dtype=torch.float32)
+        targets = torch.tensor(test_df['Heart_Disease'].values, dtype=torch.float32).view(-1, 1)
+        outputs = model(inputs)
+        auc = roc_auc_score(targets.numpy(), outputs.numpy())
+
+    print(f'Test AUC: {auc:.4f}')
+    return {'AUC': auc}
+
+# Save the model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# Load the model
+def load_model(model, model_path):
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_df, val_df, test_df = preprocess_data(train_df, test_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in preprocess_data function
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = train_df.shape[1] - 1  # Exclude the target column
+    model = FNN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    model = train_model(model, train_df, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_df)
+
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/heart_disease_model.pth'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 150, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 124, in main
+    train_df, val_df, test_df = preprocess_data(train_df, test_df)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 26, in preprocess_data
+    raise ValueError("Missing 'Weight' or 'Height' column in the training data.")
+ValueError: Missing 'Weight' or 'Height' column in the training data.

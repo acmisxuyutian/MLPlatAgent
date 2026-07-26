@@ -1,0 +1,174 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetClassifier
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the dataset path
+dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv'
+
+# Load the dataset into a DataFrame
+df = pd.read_csv(dataset_path)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Identify numerical features
+    numerical_features = ['bone_length', 'rotting_degree']
+
+    # Ensure the numerical features are present in the DataFrame
+    if not all(feature in df.columns for feature in numerical_features):
+        raise KeyError(f"Missing numerical features: {set(numerical_features) - set(df.columns)}")
+
+    # Initialize the StandardScaler
+    scaler = StandardScaler()
+
+    # Fit and transform the numerical features
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Identify categorical features
+    categorical_features = ['soul_presence']
+
+    # Ensure the categorical features are present in the DataFrame
+    if not all(feature in df.columns for feature in categorical_features):
+        raise KeyError(f"Missing categorical features: {set(categorical_features) - set(df.columns)}")
+
+    # Perform one-hot encoding
+    df = pd.get_dummies(df, columns=categorical_features)
+
+    # Impute missing values in numerical features
+    imputer_numerical = SimpleImputer(strategy='mean')
+    df[numerical_features] = imputer_numerical.fit_transform(df[numerical_features])
+
+    # Impute missing values in categorical features
+    imputer_categorical = SimpleImputer(strategy='most_frequent')
+    df[categorical_features] = imputer_categorical.fit_transform(df[categorical_features])
+
+    return df
+
+# Data augmentation
+def augment_data(df):
+    # Define the target variable
+    X = df.drop(columns=['monster_type'])
+    y = df['monster_type']
+
+    # Apply SMOTE
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    return X_resampled, y_resampled
+
+# Data splitting
+def split_data(X, y):
+    # Split the data into training and temporary sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    # Split the temporary set into validation and test sets
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model training
+def train_model(X_train, y_train, X_val, y_val):
+    # Define the model
+    model = TabNetClassifier(
+        n_d=64,  # Number of units in the decision step
+        n_a=64,  # Number of units in the attention step
+        n_steps=3,  # Number of steps in the decision process
+        gamma=1.3,  # Coefficient for feature reusage
+        lambda_sparse=0.001,  # Sparsity loss coefficient
+        optimizer_fn=torch.optim.Adam,  # Optimizer
+        optimizer_params=dict(lr=2e-2),  # Learning rate
+        mask_type='entmax',  # Type of masking
+        verbose=1  # Verbosity level
+    )
+
+    # Train the model
+    model.fit(
+        X_train=X_train, y_train=y_train,
+        eval_set=[(X_train, y_train), (X_val, y_val)],
+        eval_name=['train', 'valid'],
+        eval_metric=['accuracy'],
+        max_epochs=100,  # Maximum number of epochs
+        patience=20,  # Early stopping patience
+        batch_size=64,  # Batch size
+        virtual_batch_size=128,  # Virtual batch size
+        num_workers=0,  # Number of workers
+        drop_last=False  # Drop last incomplete batch
+    )
+
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+    # Compute accuracy and F1 score
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Load the dataset
+    df = pd.read_csv(dataset_path)
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Augment the data
+    X_resampled, y_resampled = augment_data(df)
+
+    # Step 4. Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X_resampled, y_resampled)
+
+    # Step 5. Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the model
+    model.save_model('./agent_workspace/trained_models/tabnet_monster_classification')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in main
+    df = preprocess_data(df)
+         ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in preprocess_data
+    raise KeyError(f"Missing numerical features: {set(numerical_features) - set(df.columns)}")
+KeyError: "Missing numerical features: {'rotting_degree'}"

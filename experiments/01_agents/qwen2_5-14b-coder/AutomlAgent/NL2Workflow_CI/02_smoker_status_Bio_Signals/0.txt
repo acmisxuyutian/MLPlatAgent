@@ -1,0 +1,157 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import xgboost as xgb
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Inspect the dataset
+    print(train_df.head())
+    print(train_df.dtypes)
+    print(train_df.describe())
+    print(train_df.isnull().sum())
+
+    # Handle missing values by imputation
+    train_df.fillna(train_df.median(), inplace=True)
+    test_df.fillna(test_df.median(), inplace=True)
+
+    # Encode categorical variables using one-hot encoding
+    categorical_cols = train_df.select_dtypes(include=['object']).columns
+    train_df = pd.get_dummies(train_df, columns=categorical_cols)
+    test_df = pd.get_dummies(test_df, columns=categorical_cols)
+
+    # Align columns between train and test sets
+    test_df = test_df.reindex(columns=train_df.columns, fill_value=0)
+
+    # Normalize numerical features to the range [0, 999]
+    scaler = MinMaxScaler(feature_range=(0, 999))
+    numerical_cols = train_df.select_dtypes(exclude=['object']).columns
+    train_df[numerical_cols] = scaler.fit_transform(train_df[numerical_cols])
+    test_df[numerical_cols] = scaler.transform(test_df[numerical_cols])
+
+    # Feature engineering: Create polynomial features
+    poly = PolynomialFeatures(degree=2)
+    train_df_poly = poly.fit_transform(train_df.drop('smoker_status', axis=1))
+    test_df_poly = poly.transform(test_df.drop('smoker_status', axis=1))
+
+    # Split the training dataset into training and validation sets
+    X = train_df_poly
+    y = train_df['smoker_status']
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=SEED)
+
+    return X_train, X_val, y_train, y_val, test_df_poly, test_df['smoker_status']
+
+def train_model(X_train, y_train, X_val, y_val):
+    # Convert to DMatrix
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+    dval = xgb.DMatrix(X_val, label=y_val)
+
+    # Define parameters
+    params = {
+        'objective': 'binary:logistic',
+        'eval_metric': 'auc',
+        'eta': 0.1,
+        'tree_method': 'dart',
+        'max_depth': 6,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'gamma': 0.1,
+        'reg_alpha': 0.1,
+        'reg_lambda': 1
+    }
+
+    # Train the model
+    model = xgb.train(params, dtrain, num_boost_round=100, evals=[(dval, 'eval')], early_stopping_rounds=10)
+
+    return model
+
+def evaluate_model(model, test_df_poly, test_df_smoker_status):
+    dtest = xgb.DMatrix(test_df_poly, label=test_df_smoker_status)
+    y_pred_proba = model.predict(dtest)
+    auc_roc = roc_auc_score(test_df_smoker_status, y_pred_proba)
+    y_pred = (y_pred_proba > 0.5).astype(int)
+    accuracy = accuracy_score(test_df_smoker_status, y_pred)
+    f1 = f1_score(test_df_smoker_status, y_pred)
+
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Accuracy': accuracy,
+        'F1': f1
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+    test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv')
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_val, y_train, y_val, test_df_poly, test_df_smoker_status = preprocess_data(train_df, test_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_df_poly, test_df_smoker_status)
+
+    # Save the trained model
+    joblib.dump(model, './agent_workspace/trained_models/smoker_status_xgboost_model.pkl')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 129, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 108, in main
+    X_train, X_val, y_train, y_val, test_df_poly, test_df_smoker_status = preprocess_data(train_df, test_df)
+                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 46, in preprocess_data
+    train_df_poly = poly.fit_transform(train_df.drop('smoker_status', axis=1))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['smoker_status'] not found in axis"

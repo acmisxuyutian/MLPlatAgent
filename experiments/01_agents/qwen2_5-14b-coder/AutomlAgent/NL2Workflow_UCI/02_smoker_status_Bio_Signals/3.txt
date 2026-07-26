@@ -1,0 +1,116 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(dataset):
+    # Handle missing values
+    dataset.fillna(dataset.mean(), inplace=True)
+    dataset.fillna(dataset.mode().iloc[0], inplace=True)
+    
+    # Encode categorical variables
+    dataset = pd.get_dummies(dataset, drop_first=True)
+    
+    # Normalize numerical features
+    scaler = StandardScaler()
+    numerical_features = dataset.select_dtypes(include=['float64', 'int64']).columns
+    dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
+    
+    return dataset, scaler, numerical_features
+
+def train_model(X_train_resampled, y_train_resampled):
+    # Define the model
+    model = RandomForestClassifier(random_state=SEED)
+    
+    # Hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
+    cv = GridSearchCV(model, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    cv.fit(X_train_resampled, y_train_resampled)
+    best_model = cv.best_estimator_
+    
+    return best_model
+
+def evaluate_model(best_model, X_test, y_test):
+    # Calculate AUC-ROC Score
+    y_pred_proba = best_model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+    
+    # Check if 'smoker_status' column exists in the dataset
+    if 'smoker_status' not in dataset.columns:
+        raise KeyError("The 'smoker_status' column is not found in the dataset.")
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X = dataset.drop('smoker_status', axis=1)
+    y = dataset['smoker_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_X_train, scaler, numerical_features = preprocess_data(X_train)
+    processed_X_val, _, _ = preprocess_data(X_val)
+    processed_X_test, _, _ = preprocess_data(X_test)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    X_train_resampled, y_train_resampled = SMOTE(random_state=SEED).fit_resample(processed_X_train, y_train)
+    model = train_model(X_train_resampled, y_train_resampled)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, processed_X_test, y_test)
+    
+    # Save the model
+    model_save_path = '/remote-home/cs_acmis_xyt/AutomlAgent/agent_workspace/trained_models/smoker_status_rf_model.joblib'
+    joblib.dump(model, model_save_path)
+    print(f'Model saved to {model_save_path}')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 103, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 71, in main
+    raise KeyError("The 'smoker_status' column is not found in the dataset.")
+KeyError: "The 'smoker_status' column is not found in the dataset."

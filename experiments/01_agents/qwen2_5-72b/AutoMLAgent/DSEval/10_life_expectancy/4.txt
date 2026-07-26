@@ -1,0 +1,152 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import joblib
+import random
+
+# Constants
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Ensure column names are consistent
+    train_df.columns = train_df.columns.str.strip()
+    test_df.columns = test_df.columns.str.strip()
+
+    # Handle missing values
+    numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+    train_df[numerical_features] = train_df[numerical_features].fillna(train_df[numerical_features].mean())
+    test_df[numerical_features] = test_df[numerical_features].fillna(test_df[numerical_features].mean())
+
+    # Create new feature GDP_bins
+    bins = [0, 1000, 10000, np.inf]
+    labels = ['Low GDP', 'Medium GDP', 'High GDP']
+    train_df['GDP_bins'] = pd.cut(train_df['GDP'], bins=bins, labels=labels, right=False)
+    test_df['GDP_bins'] = pd.cut(test_df['GDP'], bins=bins, labels=labels, right=False)
+
+    # Standardize numerical features
+    scaler = StandardScaler()
+    train_df[numerical_features] = scaler.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = scaler.transform(test_df[numerical_features])
+
+    # One-hot encode the GDP_bins feature
+    train_df = pd.get_dummies(train_df, columns=['GDP_bins'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['GDP_bins'], drop_first=True)
+
+    return train_df, test_df
+
+# Model Training
+def train_model(train_df):
+    X_train = train_df.drop(columns=['Life expectancy'])
+    y_train = train_df['Life expectancy']
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, test_df):
+    X_test = test_df.drop(columns=['Life expectancy'])
+    y_test = test_df['Life expectancy']
+    y_pred = model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    return {'R-squared': r2}
+
+# Save and Load Model
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+# Main Function to Orchestrate the Entire Pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+    model_path = './agent_workspace/trained_models/life_expectancy_model.pkl'
+
+    # Ensure the directory exists for saving the model
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+
+    # Load the data
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Preprocess the data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Train the model
+    model = train_model(train_df)
+
+    # Save the model
+    save_model(model, model_path)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, test_df)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 100, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 89, in main
+    model = train_model(train_df)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 55, in train_model
+    model.fit(X_train, y_train)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/linear_model/_base.py", line 618, in fit
+    X, y = validate_data(
+           ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2971, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 1368, in check_X_y
+    X = check_array(
+        ^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 971, in check_array
+    array = array.astype(new_dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 6643, in astype
+    new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 430, in astype
+    return self.apply(
+           ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 363, in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/blocks.py", line 758, in astype
+    new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/dtypes/astype.py", line 237, in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/dtypes/astype.py", line 182, in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/dtypes/astype.py", line 133, in _astype_nansafe
+    return arr.astype(dtype, copy=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'Ghana'

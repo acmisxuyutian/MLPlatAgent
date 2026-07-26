@@ -1,0 +1,159 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import wget
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from scipy import stats
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Check if the target variable exists
+    if 'has_kidney_stone' not in train_df.columns:
+        raise ValueError("The target variable 'has_kidney_stone' is not found in the training dataset.")
+    if 'has_kidney_stone' not in test_df.columns:
+        raise ValueError("The target variable 'has_kidney_stone' is not found in the test dataset.")
+    
+    # Split the training dataset into training and validation sets
+    X_train = train_df.drop('has_kidney_stone', axis=1)
+    y_train = train_df['has_kidney_stone']
+    X_val, X_train, y_val, y_train = train_test_split(X_train, y_train, test_size=0.3, stratify=y_train, random_state=SEED)
+    
+    # Handle missing values using mean imputation
+    imputer = SimpleImputer(strategy='mean')
+    X_train_imputed = imputer.fit_transform(X_train)
+    X_val_imputed = imputer.transform(X_val)
+    X_test_imputed = imputer.transform(test_df.drop('has_kidney_stone', axis=1))
+    
+    # Identify and handle outliers using the IQR method
+    z_scores = stats.zscore(X_train_imputed)
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    X_train_filtered = X_train_imputed[filtered_entries]
+    y_train_filtered = y_train.iloc[filtered_entries]
+    
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_filtered)
+    X_val_scaled = scaler.transform(X_val_imputed)
+    X_test_scaled = scaler.transform(X_test_imputed)
+    
+    return X_train_scaled, y_train_filtered, X_val_scaled, y_val, X_test_scaled, test_df['has_kidney_stone']
+
+# Define the model architecture
+class DNNModel(nn.Module):
+    def __init__(self, input_size):
+        super(DNNModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, X_val, y_val, num_epochs=100, lr=0.001):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(torch.tensor(X_train, dtype=torch.float32))
+        loss = criterion(outputs, torch.tensor(y_train.values.reshape(-1, 1), dtype=torch.float32))
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(torch.tensor(X_val, dtype=torch.float32))
+                val_loss = criterion(val_outputs, torch.tensor(y_val.values.reshape(-1, 1), dtype=torch.float32))
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+    
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.tensor(X_test, dtype=torch.float32))
+        test_preds = test_outputs.numpy().flatten()
+    
+    auc_roc = roc_auc_score(y_test, test_preds)
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    wget.download('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv', 'train.csv')
+    wget.download('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/test.csv', 'test.csv')
+    
+    train_df = pd.read_csv('train.csv')
+    test_df = pd.read_csv('test.csv')
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train_scaled, y_train_filtered, X_val_scaled, y_val, X_test_scaled, y_test = preprocess_data(train_df, test_df)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_scaled.shape[1]
+    model = DNNModel(input_size)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, X_train_scaled, y_train_filtered, X_val_scaled, y_val)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test_scaled, y_test)
+    
+    # Save the trained model
+    model_save_path = './agent_workspace/trained_models/kidney_stone_model.pth'
+    torch.save(model.state_dict(), model_save_path)
+    print(f'Model saved to {model_save_path}')
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 7, in <module>
+    import wget
+ModuleNotFoundError: No module named 'wget'

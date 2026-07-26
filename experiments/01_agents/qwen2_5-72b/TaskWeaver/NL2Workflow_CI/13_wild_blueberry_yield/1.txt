@@ -1,0 +1,424 @@
+import pandas as pd
+
+# Load the training dataset
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+train_df = pd.read_csv(train_path)
+
+# Load the testing dataset
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/test.csv'
+test_df = pd.read_csv(test_path)
+
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(         id  clonesize  honeybee  bumbles  andrena  osmia  MaxOfUpperTRange  MinOfUpperTRange  AverageOfUpperTRange  MaxOfLowerTRange  MinOfLowerTRange  AverageOfLowerTRange  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 0       245       25.0      0.50     0.38     0.50   0.63              69.7              42.1                  58.2              50.2              24.3                  41.2         24.0                0.39  0.384981   0.399724  29.742583  4177.01520
+ 1      3017       12.5      0.25     0.25     0.38   0.25              94.6              57.2                  79.0              68.2              33.0                  55.9         34.0                0.56  0.335530   0.376874  27.735098  3238.02815
+ ...     ...        ...       ...      ...      ...    ...               ...               ...                   ...               ...               ...                   ...          ...                 ...       ...        ...        ...         ...
+ 12229   860       12.5      0.25     0.25     0.25   0.75              94.6              57.2                  79.0              68.2              33.0                  55.9          1.0                0.10  0.592489   0.491269  40.764696  7231.02778
+ 12230  7270       25.0      0.50     0.38     0.38   0.63              86.0              52.0                  71.9              62.0              30.0                  50.8         24.0                0.39  0.509989   0.455614  35.807062  6696.23571
+ 
+ [12231 rows x 18 columns],
+         id  clonesize  honeybee  bumbles  andrena  osmia  MaxOfUpperTRange  MinOfUpperTRange  AverageOfUpperTRange  MaxOfLowerTRange  MinOfLowerTRange  AverageOfLowerTRange  RainingDays  AverageRainingDays  fruitset  fruitmass      seeds       yield
+ 0     3519       25.0      0.50     0.38     0.38   0.75              77.4              46.8                  64.7              55.8              27.0                  45.8          1.0                0.10  0.508104   0.454680  42.532221  8711.20896
+ 1     6096       12.5      0.25     0.25     0.50   0.63              69.7              42.1                  58.2              50.2              24.3                  41.2         34.0                0.56  0.544643   0.442249  35.343967  5914.16491
+ ...    ...        ...       ...      ...      ...    ...               ...               ...                   ...               ...               ...                   ...          ...                 ...       ...        ...        ...         ...
+ 3056  9239       12.5      0.25     0.25     0.63   0.50              69.7              42.1                  58.2              50.2              24.3                  41.2         16.0                0.26  0.538371   0.446570  36.130192  6594.04460
+ 3057  9906       25.0      0.50     0.38     0.38   0.50              77.4              46.8                  64.7              55.8              27.0                  45.8         34.0                0.56  0.551954   0.471250  38.494534  7963.93931
+ 
+ [3058 rows x 18 columns])import pandas as pd
+from sklearn.feature_selection import SelectKBest, f_regression
+
+# Feature construction
+train_df['total_bees'] = train_df[['honeybee', 'bumbles', 'andrena', 'osmia']].sum(axis=1)
+test_df['total_bees'] = test_df[['honeybee', 'bumbles', 'andrena', 'osmia']].sum(axis=1)
+
+# Feature selection
+X_train = train_df.drop(columns=['id', 'yield'])
+y_train = train_df['yield']
+X_test = test_df.drop(columns=['id', 'yield'])
+
+selector = SelectKBest(score_func=f_regression, k=10)
+X_train_selected = selector.fit_transform(X_train, y_train)
+X_test_selected = selector.transform(X_test)
+
+X_train_selected, X_test_selected, y_train
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[25.        ,  0.5       ,  0.38      , ...,  0.38498134,
+          0.39972384, 29.74258268],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.33552977,
+          0.37687435, 27.735098  ],
+        [12.5       ,  0.25      ,  0.38      , ...,  0.58248258,
+          0.4885685 , 40.65549833],
+        ...,
+        [25.        ,  0.5       ,  0.25      , ...,  0.46963168,
+          0.4341325 , 34.2751629 ],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.59248945,
+          0.49126928, 40.7646957 ],
+        [25.        ,  0.5       ,  0.38      , ...,  0.5099892 ,
+          0.45561437, 35.80706195]]),
+ array([[25.        ,  0.5       ,  0.38      , ...,  0.50810425,
+          0.45468028, 42.53222072],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.54464345,
+          0.44224892, 35.34396663],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.41159144,
+          0.40990714, 31.00460557],
+        ...,
+        [25.        ,  0.5       ,  0.38      , ...,  0.55932472,
+          0.47165037, 37.25124178],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.53837139,
+          0.44657003, 36.13019216],
+        [25.        ,  0.5       ,  0.38      , ...,  0.55195445,
+          0.47124992, 38.49453443]]),
+ 0        4177.01520
+ 1        3238.02815
+             ...    
+ 12229    7231.02778
+ 12230    6696.23571
+ Name: yield, Length: 12231, dtype: float64)from sklearn.model_selection import train_test_split
+
+# Sampling the training set
+X_train_sampled, X_train_unsampled, y_train_sampled, y_train_unsampled = train_test_split(
+    X_train_selected, y_train, test_size=0.2, random_state=42)
+
+# Sampling the test set
+X_test_sampled, X_test_unsampled = train_test_split(
+    X_test_selected, test_size=0.2, random_state=42)
+
+X_train_sampled, X_test_sampled, y_train_sampled
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[25.        ,  0.5       ,  0.25      , ...,  0.50284234,
+          0.45942068, 36.62496616],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.59420608,
+          0.49325752, 41.19101338],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.58307718,
+          0.48688932, 40.39944387],
+        ...,
+        [12.5       ,  0.25      ,  0.38      , ...,  0.56635024,
+          0.46079537, 37.25124178],
+        [25.        ,  0.5       ,  0.25      , ...,  0.421449  ,
+          0.41363163, 32.02764698],
+        [25.        ,  0.5       ,  0.25      , ...,  0.39461083,
+          0.39461083, 29.90851804]]),
+ array([[37.5       ,  0.25      ,  0.25      , ...,  0.54217024,
+          0.46350209, 37.87903588],
+        [37.5       ,  0.75      ,  0.25      , ...,  0.36099568,
+          0.38886028, 29.55801912],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.46751899,
+          0.42890386, 33.53267475],
+        ...,
+        [12.5       ,  0.25      ,  0.25      , ...,  0.42617351,
+          0.38816789, 30.22351864],
+        [25.        ,  0.5       ,  0.25      , ...,  0.39339477,
+          0.4022264 , 31.70230081],
+        [12.5       ,  0.25      ,  0.25      , ...,  0.53513718,
+          0.44785301, 38.69800786]]),
+ 5453    6449.04157
+ 4665    7570.48492
+            ...    
+ 860     4247.50893
+ 7270    2946.92602
+ Name: yield, Length: 9784, dtype: float64)from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the sampled test set
+y_pred = model.predict(X_test_sampled)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled, y_pred)
+
+model, mae, y_pred
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 12
+    mae = mean_absolute_error(y_test_sampled, y_pred)
+
+NameError: name 'y_test_sampled' is not defined
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the sampled test set
+y_test_sampled = y_train_unsampled.sample(frac=0.2, random_state=42)
+X_test_sampled = X_train_unsampled.sample(frac=0.2, random_state=42)
+y_pred = model.predict(X_test_sampled)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled, y_pred)
+
+model, mae, y_pred, y_test_sampled
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 10
+    X_test_sampled = X_train_unsampled.sample(frac=0.2, random_state=42)
+
+AttributeError: 'numpy.ndarray' object has no attribute 'sample'
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Convert numpy arrays back to pandas DataFrames
+X_train_unsampled_df = pd.DataFrame(X_train_unsampled, columns=X_train.columns)
+y_train_unsampled_df = pd.Series(y_train_unsampled, name='yield')
+
+# Sample the unsampled test set
+X_test_sampled_df = X_train_unsampled_df.sample(frac=0.2, random_state=42)
+y_test_sampled_df = y_train_unsampled_df.loc[X_test_sampled_df.index]
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the sampled test set
+y_pred = model.predict(X_test_sampled_df)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled_df, y_pred)
+
+model, mae, y_pred, y_test_sampled_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 5
+    X_train_unsampled_df = pd.DataFrame(X_train_unsampled, columns=X_train.columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:827 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (2447, 10), indices imply (2447, 17)
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Convert numpy arrays back to pandas DataFrames
+X_train_unsampled_df = pd.DataFrame(X_train_unsampled, columns=X_train.columns[:10])
+y_train_unsampled_df = pd.Series(y_train_unsampled, name='yield')
+
+# Sample the unsampled test set
+X_test_sampled_df = X_train_unsampled_df.sample(frac=0.2, random_state=42)
+y_test_sampled_df = y_train_unsampled_df.loc[X_test_sampled_df.index]
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the sampled test set
+y_pred = model.predict(X_test_sampled_df)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled_df, y_pred)
+
+model, mae, y_pred, y_test_sampled_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 10
+    y_test_sampled_df = y_train_unsampled_df.loc[X_test_sampled_df.index]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1191 in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1420 in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1360 in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1558 in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6252 in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+
+KeyError: '[2222, 1228, 1159, 1957, 1477, 1050, 2081, 237, 1598, 422, 1666, 2016, 2273, 416, 507, 1258, 2230, 1915, 800, 2110, 610, 2275, 93, 2260, 56, 1200, 1811, 2418, 1871, 781, 1561, 1894, 1286, 817, 1723, 1551, 
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled, y_train_sampled)
+
+# Predict on the sampled test set
+y_test_sampled = y_train_unsampled.loc[X_test_sampled.index]
+y_pred = model.predict(X_test_sampled)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled, y_pred)
+
+model, mae, y_pred, y_test_sampled
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 9
+    y_test_sampled = y_train_unsampled.loc[X_test_sampled.index]
+
+AttributeError: 'numpy.ndarray' object has no attribute 'index'
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Convert numpy arrays back to pandas DataFrames
+X_train_sampled_df = pd.DataFrame(X_train_sampled, columns=X_train.columns[:10])
+y_train_sampled_df = pd.Series(y_train_sampled, name='yield')
+X_test_sampled_df = pd.DataFrame(X_test_sampled, columns=X_train.columns[:10])
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled_df, y_train_sampled_df)
+
+# Predict on the sampled test set
+y_test_sampled_df = y_train_unsampled.loc[X_test_sampled_df.index]
+y_pred = model.predict(X_test_sampled_df)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled_df, y_pred)
+
+model, mae, y_pred, y_test_sampled_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 14
+    y_test_sampled_df = y_train_unsampled.loc[X_test_sampled_df.index]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1191 in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1420 in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1360 in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1558 in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6252 in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+
+KeyError: '[1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 34, 36, 37, 38, 40, 42, 43, 44, 48, 49, 51, 52, 53, 54, 55, 56, 57, 58, 60, 61, 62, 64, 65, 66, 67, 69, 71, 72
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Convert numpy arrays back to pandas DataFrames
+X_train_sampled_df = pd.DataFrame(X_train_sampled, columns=X_train.columns[:10])
+y_train_sampled_df = pd.Series(y_train_sampled, name='yield')
+X_test_sampled_df = pd.DataFrame(X_test_sampled, columns=X_train.columns[:10])
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled_df, y_train_sampled_df)
+
+# Predict on the sampled test set
+y_test_sampled_df = y_train_unsampled[X_test_sampled_df.index]
+y_pred = model.predict(X_test_sampled_df)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled_df, y_pred)
+
+model, mae, y_pred, y_test_sampled_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[10], line 14
+    y_test_sampled_df = y_train_unsampled[X_test_sampled_df.index]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\series.py:1153 in __getitem__
+    return self._get_with(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\series.py:1180 in _get_with
+    return self.loc[key]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1191 in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1420 in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1360 in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1558 in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\ind
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Convert numpy arrays back to pandas DataFrames
+X_train_sampled_df = pd.DataFrame(X_train_sampled, columns=X_train.columns[:10])
+y_train_sampled_df = pd.Series(y_train_sampled, name='yield')
+X_test_sampled_df = pd.DataFrame(X_test_sampled, columns=X_train.columns[:10])
+
+# Reset indices to ensure alignment
+X_test_sampled_df.reset_index(drop=True, inplace=True)
+y_train_unsampled_df = pd.Series(y_train_unsampled, name='yield').reset_index(drop=True)
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train_sampled_df, y_train_sampled_df)
+
+# Predict on the sampled test set
+y_test_sampled_df = y_train_unsampled_df.iloc[X_test_sampled_df.index]
+y_pred = model.predict(X_test_sampled_df)
+
+# Calculate MAE
+mae = mean_absolute_error(y_test_sampled_df, y_pred)
+
+model, mae, y_pred, y_test_sampled_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+ 1469.270843339489,
+ array([6469.79067493, 3763.46723786, 5582.35663316, ..., 4785.25052128,
+        4301.18202999, 6899.13000366]),
+ 0       6731.71221
+ 1       7800.50128
+            ...    
+ 2444    3494.94296
+ 2445    7502.24389
+ Name: yield, Length: 2446, dtype: float64)

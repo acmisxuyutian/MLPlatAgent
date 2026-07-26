@@ -1,0 +1,129 @@
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataset
+train_df.head()
+
+train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+          id  Gender        Age    Height      Weight family_history_with_overweight FAVC      FCVC       NCP       CAEC SMOKE      CH2O SCC       FAF       TUE       CALC                 MTRANS           NObeyesdad
+0       9958    Male  17.000000  1.770000   97.000000                            yes  yes  3.000000  3.000000     Always    no  2.000000  no  3.000000  1.000000         no             Automobile       Obesity_Type_I
+1       7841    Male  22.667596  1.753389   54.877111                            yes  yes  2.000000  4.000000  Sometimes    no  2.000000  no  2.000000  1.000000         no  Public_Transportation  Insufficient_Weight
+...      ...     ...        ...       ...         ...                            ...  ...       ...       ...        ...   ...       ...  ..       ...       ...        ...                    ...                  ...
+16604    860  Female  26.000000  1.650125  111.939671                            yes  yes  3.000000  3.000000  Sometimes    no  2.770732  no  0.000000  0.237307  Sometimes  Public_Transportation     Obesity_Type_III
+16605  15795    Male  37.997912  1.774330  107.998815                            yes  yes  2.964419  2.902766  Sometimes    no  2.745242  no  2.545707  0.000000  Sometimes             Automobile       Obesity_Type_I
+
+[16606 rows x 18 columns]from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# Preprocess the data
+features = train_df.drop(['id', 'NObeyesdad'], axis=1)
+target = train_df['NObeyesdad']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test_scaled)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_test, y_pred)
+
+accuracy, y_pred, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 15
+    X_train_scaled = scaler.fit_transform(X_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:894 in fit
+    return self.partial_fit(X, y, sample_weight)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:930 in partial_fit
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_ord
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# Identify categorical and numerical columns
+numerical_features = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
+categorical_features = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC', 'SMOKE', 'SCC', 'CALC', 'MTRANS']
+
+# Define preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(), categorical_features)
+    ]
+)
+
+# Define the pipeline
+pipeline = Pipeline(steps=[('preprocessor', preprocessor),
+                          ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))])
+
+# Split the data into training and testing sets
+X = train_df.drop(['id', 'NObeyesdad'], axis=1)
+y = train_df['NObeyesdad']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Fit the pipeline
+pipeline.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = pipeline.predict(X_test)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_test, y_pred)
+
+accuracy, y_pred, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8862131246237207,
+ array(['Overweight_Level_II', 'Normal_Weight', 'Obesity_Type_III', ...,
+        'Overweight_Level_I', 'Normal_Weight', 'Normal_Weight'],
+       dtype=object),
+ 9796    Overweight_Level_II
+ 7717          Normal_Weight
+                ...         
+ 5284          Normal_Weight
+ 6829          Normal_Weight
+ Name: NObeyesdad, Length: 3322, dtype: object)

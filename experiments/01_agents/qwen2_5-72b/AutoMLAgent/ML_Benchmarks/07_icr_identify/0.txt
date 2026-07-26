@@ -1,0 +1,253 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetClassifier
+import optuna
+import torch
+import pickle
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+def load_data():
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_train.csv'
+    eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_eval.csv'
+    
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+    
+    return train_df, eval_df
+
+# Step 2. Preprocess the data
+def preprocess_data(train_df, eval_df):
+    # Exploratory Data Analysis (EDA)
+    summary_stats = train_df.describe()
+    missing_values = train_df.isnull().sum()
+    target_distribution = train_df['Class'].value_counts()
+    
+    # Handle outliers (using IQR)
+    def remove_outliers(df, columns):
+        for col in columns:
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+        return df
+
+    # Identify numerical and categorical columns
+    numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object']).columns
+
+    # Preprocessing pipeline
+    numerical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_cols),
+            ('cat', categorical_transformer, categorical_cols)
+        ])
+
+    # Split data into features and target
+    X_train = train_df.drop(columns=['Class'])
+    y_train = train_df['Class']
+    X_eval = eval_df.drop(columns=['Class'])
+    y_eval = eval_df['Class']
+
+    # Apply preprocessing
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+    X_eval_preprocessed = preprocessor.transform(X_eval)
+    
+    return X_train_preprocessed, y_train, X_eval_preprocessed, y_eval, preprocessor
+
+# Step 3. Data Augmentation (if necessary)
+def augment_data(X_train_preprocessed, y_train):
+    smote = SMOTE()
+    X_train_augmented, y_train_augmented = smote.fit_resample(X_train_preprocessed, y_train)
+    return X_train_augmented, y_train_augmented
+
+# Step 4. Train the model
+def train_model(X_train, y_train, X_eval, y_eval):
+    def objective(trial):
+        # Define hyperparameters to optimize
+        n_d = trial.suggest_int('n_d', 32, 128)
+        n_a = trial.suggest_int('n_a', 32, 128)
+        n_steps = trial.suggest_int('n_steps', 3, 7)
+        gamma = trial.suggest_float('gamma', 1.0, 2.0)
+        lambda_sparse = trial.suggest_float('lambda_sparse', 0.001, 0.1)
+        lr = trial.suggest_float('lr', 0.001, 0.1)
+        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
+
+        # Create the model with the suggested hyperparameters
+        model = TabNetClassifier(
+            n_d=n_d,
+            n_a=n_a,
+            n_steps=n_steps,
+            gamma=gamma,
+            lambda_sparse=lambda_sparse,
+            optimizer_params=dict(lr=lr, weight_decay=1e-5),
+            scheduler_params={"step_size": 50, "gamma": 0.9},
+            scheduler_fn=torch.optim.lr_scheduler.StepLR,
+            mask_type='entmax'
+        )
+
+        # Train the model
+        model.fit(
+            X_train=X_train,
+            y_train=y_train,
+            eval_set=[(X_eval, y_eval)],
+            eval_metric=['f1'],
+            max_epochs=100,
+            patience=20,
+            batch_size=batch_size,
+            virtual_batch_size=128,
+            num_workers=0,
+            drop_last=False
+        )
+
+        # Evaluate the model
+        preds = model.predict(X_eval)
+        f1 = f1_score(y_eval, preds, average='weighted')
+
+        return f1
+
+    # Perform Bayesian optimization
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+
+    # Get the best hyperparameters
+    best_params = study.best_params
+    best_model = TabNetClassifier(**best_params)
+
+    # Train the best model
+    best_model.fit(
+        X_train=X_train,
+        y_train=y_train,
+        eval_set=[(X_eval, y_eval)],
+        eval_metric=['f1'],
+        max_epochs=100,
+        patience=20,
+        batch_size=best_params['batch_size'],
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False
+    )
+
+    return best_model
+
+# Step 5. Evaluate the model
+def evaluate_model(model, X_eval, y_eval):
+    preds = model.predict(X_eval)
+    performance_scores = {
+        'ACC': accuracy_score(y_eval, preds),
+        'F1': f1_score(y_eval, preds, average='weighted'),
+        'Precision': precision_score(y_eval, preds, average='weighted'),
+        'Recall': recall_score(y_eval, preds, average='weighted'),
+        'ROC-AUC': roc_auc_score(y_eval, preds, average='weighted'),
+        'Confusion Matrix': confusion_matrix(y_eval, preds).tolist()
+    }
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, eval_df = load_data()
+
+    # Step 2. Preprocess the data
+    X_train_preprocessed, y_train, X_eval_preprocessed, y_eval, preprocessor = preprocess_data(train_df, eval_df)
+
+    # Step 3. Data Augmentation (if necessary)
+    X_train_augmented, y_train_augmented = augment_data(X_train_preprocessed, y_train)
+
+    # Step 4. Train the model
+    model = train_model(X_train_augmented, y_train_augmented, X_eval_preprocessed, y_eval)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_eval_preprocessed, y_eval)
+
+    # Save the trained model and the preprocessing pipeline
+    model_save_path = "./agent_workspace/trained_models/tabnet_model.pkl"
+    preprocessor_save_path = "./agent_workspace/trained_models/preprocessor.pkl"
+    os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+    model.save_model(model_save_path)
+    with open(preprocessor_save_path, 'wb') as f:
+        pickle.dump(preprocessor, f)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'Class'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_indexing.py", line 443, in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'Class'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 201, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in main
+    X_train_preprocessed, y_train, X_eval_preprocessed, y_eval, preprocessor = preprocess_data(train_df, eval_df)
+                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 80, in preprocess_data
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/compose/_column_transformer.py", line 988, in fit_transform
+    self._validate_column_callables(X)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/compose/_column_transformer.py", line 541, in _validate_column_callables
+    transformer_to_input_indices[name] = _get_column_indices(X, columns)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_indexing.py", line 451, in _get_column_indices
+    raise ValueError("A given column is not a column of the dataframe") from e
+ValueError: A given column is not a column of the dataframe

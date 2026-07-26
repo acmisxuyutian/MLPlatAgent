@@ -1,0 +1,153 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import log_loss
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preprocessing
+def preprocess_data(train_df, test_df):
+    # Split the dataset into training (70%), validation (20%), and testing (10%) sets.
+    X = train_df.drop('survival_status', axis=1)
+    y = train_df['survival_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+
+    # Handle missing values using K-Nearest Neighbors (KNN) imputation.
+    knn_imputer = KNNImputer(n_neighbors=5)
+    X_train = knn_imputer.fit_transform(X_train)
+    X_val = knn_imputer.transform(X_val)
+    X_test = knn_imputer.transform(X_test)
+
+    # Perform feature scaling and normalization using Standardization.
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+    X_test = scaler.transform(X_test)
+
+    # Assess for class imbalance and apply SMOTE if necessary.
+    smote = SMOTE(random_state=SEED)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the model architecture
+class NLN(nn.Module):
+    def __init__(self, input_size):
+        super(NLN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Train the model
+def train_model(model, X_train, y_train, X_val, y_val, criterion, optimizer, num_epochs=100, batch_size=32, dropout_rate=0.3):
+    model.train()
+    for epoch in range(num_epochs):
+        for i in range(0, len(X_train), batch_size):
+            inputs = torch.tensor(X_train[i:i+batch_size], dtype=torch.float32)
+            labels = torch.tensor(y_train[i:i+batch_size], dtype=torch.float32).view(-1, 1)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_inputs = torch.tensor(X_val, dtype=torch.float32)
+                val_labels = torch.tensor(y_val, dtype=torch.float32).view(-1, 1)
+                val_outputs = model(val_inputs)
+                val_loss = criterion(val_outputs, val_labels)
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        test_inputs = torch.tensor(X_test, dtype=torch.float32)
+        test_labels = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+        test_outputs = model(test_inputs)
+        test_loss = log_loss(test_labels.numpy(), test_outputs.numpy())
+    return test_loss
+
+# Save the trained model
+def save_model(model, model_path):
+    torch.save(model.state_dict(), model_path)
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    try:
+        train_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv')
+        test_df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv')
+    except pd.errors.ParserError as e:
+        print(f"Error parsing CSV file: {e}")
+        return
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(train_df, test_df)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # This step is already handled in the preprocess_data function
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    model = NLN(input_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.001)
+
+    model = train_model(model, X_train, y_train, X_val, y_val, criterion, optimizer)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the trained model
+    model_path = "./agent_workspace/trained_models/cirrhosis_patient_model.pth"
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error parsing CSV file: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+
+Model Performance on Test Set: None

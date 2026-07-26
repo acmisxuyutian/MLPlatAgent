@@ -1,0 +1,190 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and initial inspection
+def load_dataset():
+    # Load the dataset
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    dataset = pd.read_csv(dataset_path)
+    
+    # Inspect the dataset
+    print("Missing values:\n", dataset.isnull().sum())
+    print("Data types:\n", dataset.dtypes)
+    
+    # Check if 'age' column exists, if not, identify the correct column name
+    if 'age' not in dataset.columns:
+        print("Column 'age' not found. Please check the dataset for the correct target variable name.")
+        # Assuming the correct column name is 'Age' or 'Age_'
+        if 'Age' in dataset.columns:
+            dataset.rename(columns={'Age': 'age'}, inplace=True)
+        elif 'Age_' in dataset.columns:
+            dataset.rename(columns={'Age_': 'age'}, inplace=True)
+        else:
+            raise ValueError("Target variable 'age' not found in the dataset.")
+    
+    return dataset
+
+# Data cleaning and preprocessing
+def preprocess_data(dataset):
+    # Handle missing values
+    numerical_features = dataset.select_dtypes(include=[np.number]).columns
+    dataset[numerical_features] = dataset[numerical_features].fillna(dataset[numerical_features].mean())
+    
+    categorical_features = dataset.select_dtypes(include=['object']).columns
+    dataset[categorical_features] = dataset[categorical_features].fillna(dataset[categorical_features].mode().iloc[0])
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
+    
+    # Encode categorical variables
+    dataset = pd.get_dummies(dataset, drop_first=True)
+    
+    # Split the dataset
+    X = dataset.drop('age', axis=1)
+    y = dataset['age']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Feature engineering
+def feature_engineering(X_train, X_val, X_test):
+    # Create new features
+    if 'length' in X_train.columns and 'width' in X_train.columns:
+        X_train['body_surface_area'] = X_train['length'] * X_train['width']
+        X_val['body_surface_area'] = X_val['length'] * X_val['width']
+        X_test['body_surface_area'] = X_test['length'] * X_test['width']
+    else:
+        print("Columns 'length' and 'width' not found for feature engineering.")
+    
+    # Apply domain-specific transformations
+    if 'skewed_feature' in X_train.columns:
+        X_train['skewed_feature'] = np.log1p(X_train['skewed_feature'])
+        X_val['skewed_feature'] = np.log1p(X_val['skewed_feature'])
+        X_test['skewed_feature'] = np.log1p(X_test['skewed_feature'])
+    else:
+        print("Column 'skewed_feature' not found for transformation.")
+    
+    # Consider interaction terms
+    if 'length' in X_train.columns and 'width' in X_train.columns:
+        X_train['length_width_interaction'] = X_train['length'] * X_train['width']
+        X_val['length_width_interaction'] = X_val['length'] * X_val['width']
+        X_test['length_width_interaction'] = X_test['length'] * X_test['width']
+    else:
+        print("Columns 'length' and 'width' not found for interaction terms.")
+    
+    return X_train, X_val, X_test
+
+# Define the model architecture
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size):
+        super(FeedforwardNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Train the model
+def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
+    model.train()
+    for epoch in range(num_epochs):
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    predictions = []
+    with torch.no_grad():
+        for inputs, _ in test_loader:
+            outputs = model(inputs)
+            predictions.extend(outputs.numpy().flatten())
+    
+    y_true = test_loader.dataset.tensors[1].numpy()
+    mae = mean_absolute_error(y_true, predictions)
+    performance_scores = {
+        'MAE': mae
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    dataset = load_dataset()
+    
+    # Step 2: Create a train-valid-test split of the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(dataset)
+    
+    # Step 3: Feature engineering
+    X_train, X_val, X_test = feature_engineering(X_train, X_val, X_test)
+    
+    # Step 4: Define the model
+    input_size = X_train.shape[1]
+    model = FeedforwardNN(input_size)
+    
+    # Step 5: Train the model
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+    
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    model = train_model(model, train_loader, criterion, optimizer)
+    
+    # Step 6: Evaluate the model
+    test_dataset = torch.utils.data.TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32))
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
+    
+    model_performance = evaluate_model(model, test_loader)
+    
+    # Step 7: Save the trained model
+    model_path = './agent_workspace/trained_models/crab_age_model.pth'
+    torch.save(model.state_dict(), model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 176, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 155, in main
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32))
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't convert np.ndarray of type numpy.object_. The only supported types are: float64, float32, float16, complex64, complex128, int64, int32, int16, int8, uint64, uint32, uint16, uint8, and bool.

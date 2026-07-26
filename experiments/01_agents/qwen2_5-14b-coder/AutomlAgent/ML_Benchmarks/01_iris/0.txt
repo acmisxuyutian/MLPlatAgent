@@ -1,0 +1,128 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+import xgboost as xgb
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(X, y):
+    # Check for missing values
+    if X.isnull().values.any():
+        raise ValueError("Missing values found in the dataset. Please handle them appropriately.")
+
+    # Normalize the numerical features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Encode the target variable
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+
+    return X_scaled, y_encoded
+
+def train_model(X_train, y_train):
+    # Initialize the XGBoost model
+    model = xgb.XGBClassifier()
+
+    # Define hyperparameter distribution
+    param_dist = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [3, 4, 5, 6],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.8, 0.9, 1.0],
+        'colsample_bytree': [0.8, 0.9, 1.0]
+    }
+
+    # Perform hyperparameter optimization
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
+    random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=50, cv=cv, scoring='accuracy', n_jobs=-1, random_state=SEED)
+    random_search.fit(X_train, y_train)
+    best_model = random_search.best_estimator_
+
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+
+    # Classification report
+    performance_scores = classification_report(y_test, y_pred, output_dict=True)
+
+    # Confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+    # ROC curve
+    y_prob = model.predict_proba(X_test)
+    fpr, tpr, _ = roc_curve(y_test, y_prob[:, 1], pos_label=1)
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % auc(fpr, tpr))
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc='lower right')
+    plt.show()
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    iris = load_iris()
+    X, y = iris.data, iris.target
+    df = pd.DataFrame(data=X, columns=iris.feature_names)
+    df['species'] = y
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, X_temp, y_train, y_temp = train_test_split(df.drop('species', axis=1), df['species'], test_size=0.3, stratify=df['species'], random_state=SEED)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_temp, y_temp, test_size=0.33, stratify=y_temp, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    X_train_scaled, y_train_encoded = preprocess_data(X_train, y_train)
+    X_valid_scaled, y_valid_encoded = preprocess_data(X_valid, y_valid)
+    X_test_scaled, y_test_encoded = preprocess_data(X_test, y_test)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train_scaled, y_train_encoded)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test_scaled, y_test_encoded)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, '1': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, '2': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 5.0}, 'accuracy': 1.0, 'macro avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 15.0}, 'weighted avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 15.0}}

@@ -1,0 +1,233 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preparation
+def retrieve_data():
+    # Path to the dataset
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+    
+    # Load the dataset
+    data = pd.read_csv(dataset_path)
+    
+    # Save the dataset locally
+    data.to_csv('reservation_cancellation.csv', index=False)
+    
+    return data
+
+# Data preprocessing and feature engineering
+def preprocess_data(data):
+    # Handle missing values
+    data.fillna(data.mean(), inplace=True)
+    
+    # Encode categorical variables
+    categorical_columns = data.select_dtypes(include=['object']).columns
+    label_encoder = LabelEncoder()
+    for column in categorical_columns:
+        data[column] = label_encoder.fit_transform(data[column])
+    
+    # Normalize numerical features
+    numerical_columns = data.select_dtypes(include=['int64', 'float64']).columns
+    scaler = MinMaxScaler()
+    data[numerical_columns] = scaler.fit_transform(data[numerical_columns])
+    
+    # Save the preprocessed dataset
+    data.to_csv('preprocessed_reservation_cancellation.csv', index=False)
+    
+    return data
+
+# Feature engineering
+def feature_engineering(data):
+    # Check if 'customer_id' and 'lead_time' columns exist in the dataset
+    if 'customer_id' in data.columns and 'lead_time' in data.columns:
+        # Aggregate reservation data
+        data['average_lead_time'] = data.groupby('customer_id')['lead_time'].transform('mean')
+        data['total_previous_cancellations'] = data.groupby('customer_id')['cancellation'].transform('sum')
+    else:
+        print("Columns 'customer_id' or 'lead_time' are missing in the dataset.")
+    
+    # Save the enhanced dataset
+    data.to_csv('enhanced_reservation_cancellation.csv', index=False)
+    
+    return data
+
+# Data splitting
+def split_data(data):
+    # Split the dataset
+    train_data, temp_data = train_test_split(data, test_size=0.3, random_state=SEED)
+    validation_data, test_data = train_test_split(temp_data, test_size=0.67, random_state=SEED)
+    
+    # Save the split datasets
+    train_data.to_csv('train.csv', index=False)
+    validation_data.to_csv('validation.csv', index=False)
+    test_data.to_csv('test.csv', index=False)
+    
+    return train_data, validation_data, test_data
+
+# Model definition
+class TransformerModel(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_heads, num_classes, seq_len):
+        super(TransformerModel, self).__init__()
+        self.embedding = nn.Linear(input_size, hidden_size)
+        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=hidden_size, nhead=num_heads, batch_first=True), num_layers=num_layers)
+        self.fc = nn.Linear(hidden_size, num_classes)
+        self.sigmoid = nn.Sigmoid()
+        self.seq_len = seq_len
+
+    def forward(self, x):
+        x = self.embedding(x)
+        x = self.transformer(x)
+        x = x.mean(dim=1)  # Average pooling over sequence length
+        x = self.fc(x)
+        x = self.sigmoid(x)
+        return x
+
+# Model training
+def train_model(model, train_loader, validation_loader, num_epochs=100, batch_size=64, learning_rate=0.001):
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    criterion = nn.BCELoss()
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_features, batch_labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_features)
+            loss = criterion(outputs, batch_labels)
+            loss.backward()
+            optimizer.step()
+        
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0
+            for val_features, val_labels in validation_loader:
+                val_outputs = model(val_features)
+                val_loss += criterion(val_outputs, val_labels).item()
+            val_loss /= len(validation_loader)
+        
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Validation Loss: {val_loss:.4f}')
+    
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/transformer_model.pth"
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, test_loader):
+    model.eval()
+    with torch.no_grad():
+        test_preds = []
+        test_labels = []
+        for test_features, test_labels_batch in test_loader:
+            test_outputs = model(test_features)
+            test_preds.extend(test_outputs.numpy())
+            test_labels.extend(test_labels_batch.numpy())
+    
+    # Calculate AUC-ROC
+    test_preds = [pred[0] for pred in test_preds]
+    test_labels = [label[0] for label in test_labels]
+    auc_roc = roc_auc_score(test_labels, test_preds)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = retrieve_data()
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_data, validation_data, test_data = split_data(dataset)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    processed_train_data = preprocess_data(train_data)
+    processed_validation_data = preprocess_data(validation_data)
+    processed_test_data = preprocess_data(test_data)
+    
+    # Feature engineering
+    enhanced_train_data = feature_engineering(processed_train_data)
+    enhanced_validation_data = feature_engineering(processed_validation_data)
+    enhanced_test_data = feature_engineering(processed_test_data)
+    
+    # Convert to PyTorch tensors
+    train_features = torch.tensor(enhanced_train_data.drop('cancellation', axis=1).values, dtype=torch.float32)
+    train_labels = torch.tensor(enhanced_train_data['cancellation'].values, dtype=torch.float32).unsqueeze(1)
+    validation_features = torch.tensor(enhanced_validation_data.drop('cancellation', axis=1).values, dtype=torch.float32)
+    validation_labels = torch.tensor(enhanced_validation_data['cancellation'].values, dtype=torch.float32).unsqueeze(1)
+    test_features = torch.tensor(enhanced_test_data.drop('cancellation', axis=1).values, dtype=torch.float32)
+    test_labels = torch.tensor(enhanced_test_data['cancellation'].values, dtype=torch.float32).unsqueeze(1)
+    
+    # Create DataLoader
+    train_loader = DataLoader(TensorDataset(train_features, train_labels), batch_size=64, shuffle=True)
+    validation_loader = DataLoader(TensorDataset(validation_features, validation_labels), batch_size=64, shuffle=False)
+    test_loader = DataLoader(TensorDataset(test_features, test_labels), batch_size=64, shuffle=False)
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = train_features.shape[1]
+    hidden_size = 64
+    num_layers = 2
+    num_heads = 4
+    num_classes = 1
+    seq_len = 10  # Example sequence length
+    
+    model = TransformerModel(input_size, hidden_size, num_layers, num_heads, num_classes, seq_len)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, train_loader, validation_loader)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 208, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 176, in main
+    train_features = torch.tensor(enhanced_train_data.drop('cancellation', axis=1).values, dtype=torch.float32)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['cancellation'] not found in axis"

@@ -1,0 +1,186 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+import xgboost as xgb
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_dataset():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_data_exploration(df):
+    print("Summary Statistics:")
+    print(df.describe())
+    print("\nData Types and Missing Values:")
+    print(df.info())
+    print("\nCount of Missing Values:")
+    print(df.isnull().sum())
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_features = df.select_dtypes(include=['number']).columns
+    df[numerical_features] = df[numerical_features].fillna(df[numerical_features].median())
+
+    categorical_features = df.select_dtypes(include=['object']).columns
+    df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+
+    # Feature Engineering
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['hour'] = df['timestamp'].dt.hour
+        df['day_of_week'] = df['timestamp'].dt.dayofweek
+        df['month'] = df['timestamp'].dt.month
+
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        high_crime_area_lat = 37.7749  # Example latitude
+        high_crime_area_lon = -122.4194  # Example longitude
+        df['distance_from_high_crime_area'] = df.apply(lambda row: calculate_distance(row['latitude'], row['longitude'], high_crime_area_lat, high_crime_area_lon), axis=1)
+
+    # One-Hot Encoding
+    df = pd.get_dummies(df, columns=categorical_features, drop_first=True)
+
+    # Normalization and Scaling
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Handling Imbalanced Data
+    smote = SMOTE()
+    if 'crime_category' in df.columns:
+        X_resampled, y_resampled = smote.fit_resample(df.drop('crime_category', axis=1), df['crime_category'])
+    else:
+        raise KeyError("Column 'crime_category' not found in the dataset")
+
+    return X_resampled, y_resampled
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    dLat = (lat2 - lat1) * np.pi / 180.0
+    dLon = (lon2 - lon1) * np.pi / 180.0
+    a = np.sin(dLat / 2) * np.sin(dLat / 2) + np.cos(lat1 * np.pi / 180.0) * np.cos(lat2 * np.pi / 180.0) * np.sin(dLon / 2) * np.sin(dLon / 2)
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+    distance = R * c
+    return distance
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train, X_val, y_val):
+    model = xgb.XGBClassifier(objective='multi:softprob', eval_metric='mlogloss', use_label_encoder=False)
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.5, 0.7, 1.0],
+        'colsample_bytree': [0.5, 0.7, 1.0]
+    }
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_log_loss', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_params = grid_search.best_params_
+    best_model = grid_search.best_estimator_
+
+    # Evaluate the best model on the validation set
+    y_val_pred = best_model.predict_proba(X_val)
+    val_logloss = log_loss(y_val, y_val_pred)
+    print(f'Validation Logloss: {val_logloss}')
+
+    return best_model
+
+# Final Evaluation and Model Saving
+def evaluate_model(model, X_test, y_test):
+    y_test_pred = model.predict_proba(X_test)
+    test_logloss = log_loss(y_test, y_test_pred)
+    print(f'Test Logloss: {test_logloss}')
+    performance_scores = {
+        'Logloss': test_logloss
+    }
+    return performance_scores
+
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1. Load the dataset
+    df = load_dataset()
+    initial_data_exploration(df)
+
+    # Step 2. Preprocess the data
+    try:
+        X_resampled, y_resampled = preprocess_data(df)
+    except KeyError as e:
+        print(e)
+        return
+
+    # Step 3. Split the data into training, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42, stratify=y_resampled)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
+
+    # Step 4. Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Save the model
+    model_path = r'./agent_workspace/trained_models/xgboost_crime_category_model.pkl'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Summary Statistics:
+                  X             Y
+count  70244.000000  70244.000000
+mean    -122.422808     37.767867
+std        0.026338      0.198551
+min     -122.513642     37.707944
+25%     -122.432915     37.752590
+50%     -122.416452     37.775421
+75%     -122.406992     37.784400
+max     -120.500000     90.000000
+
+Data Types and Missing Values:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 70244 entries, 0 to 70243
+Data columns (total 5 columns):
+ #   Column      Non-Null Count  Dtype  
+---  ------      --------------  -----  
+ 0   Category    70244 non-null  object 
+ 1   DayOfWeek   70244 non-null  object 
+ 2   PdDistrict  70244 non-null  object 
+ 3   X           70244 non-null  float64
+ 4   Y           70244 non-null  float64
+dtypes: float64(2), object(3)
+memory usage: 2.7+ MB
+None
+
+Count of Missing Values:
+Category      0
+DayOfWeek     0
+PdDistrict    0
+X             0
+Y             0
+dtype: int64
+"Column 'crime_category' not found in the dataset"

@@ -1,0 +1,219 @@
+import pandas as pd
+
+# Load the train and test datasets
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/train.csv')
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/04_diabetes/test.csv')
+
+# Drop duplicate rows from both datasets
+train_data = train_data.drop_duplicates()
+test_data = test_data.drop_duplicates()
+
+train_data, test_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       gender   age  hypertension  heart_disease smoking_history    bmi  HbA1c_level  blood_glucose_level  diabetes
+ 0        Male  73.0             0              0          former  24.77          3.5                   80         0
+ 1        Male  80.0             0              0           never  24.60          5.7                  145         1
+ ...       ...   ...           ...            ...             ...    ...          ...                  ...       ...
+ 79998  Female  37.0             0              0           never  24.96          6.2                  158         0
+ 79999  Female  23.0             0              0           never  27.99          5.0                  159         0
+ 
+ [77430 rows x 9 columns],
+        gender   age  hypertension  heart_disease smoking_history    bmi  HbA1c_level  blood_glucose_level  diabetes
+ 0      Female  13.0             0              0         No Info  20.82          5.8                  126         0
+ 1      Female   3.0             0              0         No Info  21.00          5.0                  145         0
+ ...       ...   ...           ...            ...             ...    ...          ...                  ...       ...
+ 19998    Male  73.0             0              1         No Info  27.32          6.6                  100         0
+ 19999  Female  43.0             0              0           never  23.86          5.8                  145         0
+ 
+ [19807 rows x 9 columns])import pandas as pd
+
+# Perform one-hot encoding on the 'gender' and 'smoking_history' columns
+train_data_encoded = pd.get_dummies(train_data, columns=['gender', 'smoking_history'])
+test_data_encoded = pd.get_dummies(test_data, columns=['gender', 'smoking_history'])
+
+train_data_encoded, test_data_encoded
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  diabetes  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      73.0             0              0  24.77          3.5                   80         0          False         True         False                    False                    False                 False                    True                  False                        False
+ 1      80.0             0              0  24.60          5.7                  145         1          False         True         False                    False                    False                 False                   False                   True                        False
+ ...     ...           ...            ...    ...          ...                  ...       ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 79998  37.0             0              0  24.96          6.2                  158         0           True        False         False                    False                    False                 False                   False                   True                        False
+ 79999  23.0             0              0  27.99          5.0                  159         0           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [77430 rows x 16 columns],
+         age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  diabetes  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      13.0             0              0  20.82          5.8                  126         0           True        False         False                     True                    False                 False                   False                  False                        False
+ 1       3.0             0              0  21.00          5.0                  145         0           True        False         False                     True                    False                 False                   False                  False                        False
+ ...     ...           ...            ...    ...          ...                  ...       ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 19998  73.0             0              1  27.32          6.6                  100         0          False         True         False                     True                    False                 False                   False                  False                        False
+ 19999  43.0             0              0  23.86          5.8                  145         0           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [19807 rows x 16 columns])from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# Separate features and target variable
+X_train = train_data_encoded.drop(columns=['diabetes'])
+y_train = train_data_encoded['diabetes']
+
+# Initialize and fit the Random Forest Classifier
+rf_clf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_clf.fit(X_train, y_train)
+
+# Get feature importances
+feature_importances = rf_clf.feature_importances_
+
+# Create a DataFrame to display the feature importances
+feature_importance_df = pd.DataFrame({'Feature': X_train.columns, 'Importance': feature_importances})
+feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+feature_importance_df, X_train, y_train
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                 Feature  Importance
+ 4            HbA1c_level    0.407970
+ 5    blood_glucose_level    0.312457
+ ..                   ...         ...
+ 11  smoking_history_ever    0.002050
+ 8           gender_Other    0.000002
+ 
+ [15 rows x 2 columns],
+         age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      73.0             0              0  24.77          3.5                   80          False         True         False                    False                    False                 False                    True                  False                        False
+ 1      80.0             0              0  24.60          5.7                  145          False         True         False                    False                    False                 False                   False                   True                        False
+ ...     ...           ...            ...    ...          ...                  ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 79998  37.0             0              0  24.96          6.2                  158           True        False         False                    False                    False                 False                   False                   True                        False
+ 79999  23.0             0              0  27.99          5.0                  159           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [77430 rows x 15 columns],
+ 0        0
+ 1        1
+         ..
+ 79998    0
+ 79999    0
+ Name: diabetes, Length: 77430, dtype: int64)from sklearn.ensemble import RandomForestClassifier
+
+# Initialize and fit the Random Forest Classifier
+rf_clf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_clf.fit(X_train, y_train)
+
+rf_clf, X_train, y_train
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+         age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      73.0             0              0  24.77          3.5                   80          False         True         False                    False                    False                 False                    True                  False                        False
+ 1      80.0             0              0  24.60          5.7                  145          False         True         False                    False                    False                 False                   False                   True                        False
+ ...     ...           ...            ...    ...          ...                  ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 79998  37.0             0              0  24.96          6.2                  158           True        False         False                    False                    False                 False                   False                   True                        False
+ 79999  23.0             0              0  27.99          5.0                  159           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [77430 rows x 15 columns],
+ 0        0
+ 1        1
+         ..
+ 79998    0
+ 79999    0
+ Name: diabetes, Length: 77430, dtype: int64)# Separate features and target variable from the test set
+X_test = test_data_encoded.drop(columns=['diabetes'])
+y_test = test_data_encoded['diabetes']
+
+# Make predictions on the test set
+y_pred = rf_clf.predict(X_test)
+y_pred_proba = rf_clf.predict_proba(X_test)[:, 1]
+
+y_pred, y_pred_proba, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([0, 0, 0, ..., 0, 0, 0], dtype=int64),
+ array([0.  , 0.  , 0.  , ..., 0.  , 0.01, 0.03]),
+         age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      13.0             0              0  20.82          5.8                  126           True        False         False                     True                    False                 False                   False                  False                        False
+ 1       3.0             0              0  21.00          5.0                  145           True        False         False                     True                    False                 False                   False                  False                        False
+ ...     ...           ...            ...    ...          ...                  ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 19998  73.0             0              1  27.32          6.6                  100          False         True         False                     True                    False                 False                   False                  False                        False
+ 19999  43.0             0              0  23.86          5.8                  145           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [19807 rows x 15 columns],
+ 0        0
+ 1        0
+         ..
+ 19998    0
+ 19999    0
+ Name: diabetes, Length: 19807, dtype: int64)from sklearn.metrics import roc_auc_score, confusion_matrix, plot_roc_curve
+import matplotlib.pyplot as plt
+
+# Compute the area under the ROC curve
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Compute the confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+# Plot the ROC curve
+plt.figure()
+plot_roc_curve(rf_clf, X_test, y_test)
+plt.title('ROC Curve')
+plt.show()
+
+roc_auc, conf_matrix, y_test, y_pred, y_pred_proba, X_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 1
+    from sklearn.metrics import roc_auc_score, confusion_matrix, plot_roc_curve
+
+ImportError: cannot import name 'plot_roc_curve' from 'sklearn.metrics' (D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\metrics\__init__.py)
+
+from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve
+import matplotlib.pyplot as plt
+
+# Compute the area under the ROC curve
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Compute the confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+# Plot the ROC curve
+fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+plt.figure()
+plt.plot(fpr, tpr, label=f'ROC curve (area = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc='lower right')
+plt.show()
+
+roc_auc, conf_matrix, y_test, y_pred, y_pred_proba, X_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.9605355070919468,
+ array([[18035,    64],
+        [  533,  1175]], dtype=int64),
+ 0        0
+ 1        0
+         ..
+ 19998    0
+ 19999    0
+ Name: diabetes, Length: 19807, dtype: int64,
+ array([0, 0, 0, ..., 0, 0, 0], dtype=int64),
+ array([0.  , 0.  , 0.  , ..., 0.  , 0.01, 0.03]),
+         age  hypertension  heart_disease    bmi  HbA1c_level  blood_glucose_level  gender_Female  gender_Male  gender_Other  smoking_history_No Info  smoking_history_current  smoking_history_ever  smoking_history_former  smoking_history_never  smoking_history_not current
+ 0      13.0             0              0  20.82          5.8                  126           True        False         False                     True                    False                 False                   False                  False                        False
+ 1       3.0             0              0  21.00          5.0                  145           True        False         False                     True                    False                 False                   False                  False                        False
+ ...     ...           ...            ...    ...          ...                  ...            ...          ...           ...                      ...                      ...                   ...                     ...                    ...                          ...
+ 19998  73.0             0              1  27.32          6.6                  100          False         True         False                     True                    False                 False                   False                  False                        False
+ 19999  43.0             0              0  23.86          5.8                  145           True        False         False                    False                    False                 False                   False                   True                        False
+ 
+ [19807 rows x 15 columns])

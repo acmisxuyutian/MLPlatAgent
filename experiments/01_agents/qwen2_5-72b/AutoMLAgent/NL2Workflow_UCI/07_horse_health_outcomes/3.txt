@@ -1,0 +1,208 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import f1_score
+from xgboost import XGBClassifier
+import optuna
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Initial Exploration
+def load_data(dataset_path):
+    df = pd.read_csv(dataset_path)
+    return df
+
+def initial_exploration(df):
+    print("First few rows of the dataset:")
+    print(df.head())
+    print("\nInfo about the dataset:")
+    print(df.info())
+    print("\nMissing values in the dataset:")
+    print(df.isnull().sum())
+    print("\nSummary statistics for numerical features:")
+    print(df.describe())
+    if 'health_status' in df.columns:
+        print("\nDistribution of the target variable:")
+        print(df['health_status'].value_counts())
+    else:
+        print("\nTarget variable 'health_status' not found in the dataset.")
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='median')
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    
+    numerical_features = df.select_dtypes(include=['number']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+    
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+    
+    # Encoding Categorical Variables
+    df = pd.get_dummies(df, columns=categorical_features, drop_first=True)
+    
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Feature Selection
+    X = df.drop(columns=['health_status'])
+    y = df['health_status']
+    
+    selector = SelectKBest(mutual_info_classif, k=10)
+    X_selected = selector.fit_transform(X, y)
+    selected_features = X.columns[selector.get_support()]
+    df = df[selected_features.tolist() + ['health_status']]
+    
+    return df, X_selected, y
+
+# Model Training and Hyperparameter Optimization
+def train_model(X_train, y_train):
+    model = XGBClassifier()
+    
+    def objective(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 100, 300),
+            'max_depth': trial.suggest_int('max_depth', 3, 7),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 0.01, 0.3),
+            'subsample': trial.suggest_uniform('subsample', 0.5, 1.0),
+            'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.5, 1.0)
+        }
+        model = XGBClassifier(**params)
+        scores = cross_val_score(model, X_train, y_train, cv=5, scoring='f1_macro')
+        return scores.mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+    best_params = study.best_params
+    
+    best_model = XGBClassifier(**best_params)
+    best_model.fit(X_train, y_train)
+    
+    return best_model, best_params
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    val_f1_score = f1_score(y_val, y_val_pred, average='macro')
+    print(f'Validation F1 Score: {val_f1_score}')
+    
+    y_test_pred = model.predict(X_test)
+    test_f1_score = f1_score(y_test, y_test_pred, average='macro')
+    print(f'Test F1 Score: {test_f1_score}')
+    
+    return val_f1_score, test_f1_score
+
+# Main function to orchestrate the pipeline
+def main():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    df = load_data(dataset_path)
+    initial_exploration(df)
+    
+    if 'health_status' in df.columns:
+        df, X_selected, y = preprocess_data(df)
+        
+        X_train, X_temp, y_train, y_temp = train_test_split(X_selected, y, test_size=0.3, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+        
+        best_model, best_params = train_model(X_train, y_train)
+        
+        val_f1_score, test_f1_score = evaluate_model(best_model, X_val, y_val, X_test, y_test)
+        
+        report = {
+            'Model': 'XGBoost',
+            'Best Hyperparameters': best_params,
+            'Validation F1 Score': val_f1_score,
+            'Test F1 Score': test_f1_score
+        }
+        print("Final Report:")
+        print(report)
+        
+        report_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/reports/horse_health_outcomes_report.json'
+        with open(report_path, 'w') as f:
+            json.dump(report, f, indent=4)
+        
+        model_path = './agent_workspace/trained_models/horse_health_outcomes_model.pkl'
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        joblib.dump(best_model, model_path)
+        
+        return report
+    else:
+        print("Target variable 'health_status' not found in the dataset. Please check the dataset and try again.")
+        return None
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+First few rows of the dataset:
+  surgery  hospital_number  ...  capillary_refill_time     outcome
+0     yes           527706  ...             less_3_sec        died
+1     yes           528641  ...             less_3_sec       lived
+2     yes           535043  ...             more_3_sec  euthanized
+3     yes           535043  ...             less_3_sec  euthanized
+4     yes           528890  ...             more_3_sec        died
+
+[5 rows x 9 columns]
+
+Info about the dataset:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 986 entries, 0 to 985
+Data columns (total 9 columns):
+ #   Column                 Non-Null Count  Dtype  
+---  ------                 --------------  -----  
+ 0   surgery                986 non-null    object 
+ 1   hospital_number        986 non-null    int64  
+ 2   rectal_temp            986 non-null    float64
+ 3   pulse                  986 non-null    float64
+ 4   respiratory_rate       986 non-null    float64
+ 5   peripheral_pulse       938 non-null    object 
+ 6   mucous_membrane        971 non-null    object 
+ 7   capillary_refill_time  982 non-null    object 
+ 8   outcome                986 non-null    object 
+dtypes: float64(3), int64(1), object(5)
+memory usage: 69.5+ KB
+None
+
+Missing values in the dataset:
+surgery                   0
+hospital_number           0
+rectal_temp               0
+pulse                     0
+respiratory_rate          0
+peripheral_pulse         48
+mucous_membrane          15
+capillary_refill_time     4
+outcome                   0
+dtype: int64
+
+Summary statistics for numerical features:
+       hospital_number  rectal_temp       pulse  respiratory_rate
+count     9.860000e+02   986.000000  986.000000        986.000000
+mean      9.746363e+05    38.186207   79.477688         30.056795
+std       1.385090e+06     0.774303   29.168581         16.318555
+min       5.213990e+05    35.400000   30.000000          8.000000
+25%       5.288010e+05    37.800000   52.500000         18.000000
+50%       5.297960e+05    38.100000   76.000000         28.000000
+75%       5.341450e+05    38.500000   99.500000         36.000000
+max       5.301219e+06    40.800000  184.000000         96.000000
+
+Target variable 'health_status' not found in the dataset.
+Target variable 'health_status' not found in the dataset. Please check the dataset and try again.

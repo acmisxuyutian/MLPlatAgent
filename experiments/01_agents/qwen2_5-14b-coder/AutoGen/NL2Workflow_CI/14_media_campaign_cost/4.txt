@@ -1,0 +1,82 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练集和测试集
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv')
+test_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv')
+
+# 查看数据的前几行
+print(train_data.head())
+print(test_data.head())
+
+# 检查数据的基本信息
+print(train_data.info())
+print(test_data.info())
+
+# 检查缺失值
+print(train_data.isnull().sum())
+print(test_data.isnull().sum())
+
+# 处理缺失值（如果有的话）
+# 例如，用均值填充缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+test_data.fillna(test_data.mean(), inplace=True)
+
+# 假设我们选择所有特征进行训练
+X_train = train_data.drop('media_campaign_cost', axis=1)
+y_train = train_data['media_campaign_cost']
+
+X_test = test_data.drop('media_campaign_cost', axis=1)
+y_test = test_data['media_campaign_cost']
+
+from sklearn.ensemble import RandomForestRegressor
+
+# 初始化模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import mean_squared_log_error
+
+# 预测训练集
+y_train_pred = model.predict(X_train)
+
+# 计算训练集的RMLSE
+train_rmlse = np.sqrt(mean_squared_log_error(y_train, y_train_pred))
+print(f'Training RMLSE: {train_rmlse}')
+
+# 预测测试集
+y_test_pred = model.predict(X_test)
+
+# 保存预测结果
+test_data['predicted_media_campaign_cost'] = y_test_pred
+test_data[['predicted_media_campaign_cost']].to_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/predictions.csv', index=False)
+
+# 计算测试集的RMLSE
+test_rmlse = np.sqrt(mean_squared_log_error(y_test, y_test_pred))
+print(f'Testing RMLSE: {test_rmlse}')
+
+
+执行结果：
+       id  store_sales  unit_sales  ...  prepared_food  florist    cost
+0  177400         8.49           3  ...              0        0  133.42
+1   35064         4.47           3  ...              0        0  109.06
+2  268168         6.84           3  ...              1        1   91.58
+3  177181         4.54           2  ...              0        0  124.36
+4  271461         8.34           3  ...              1        1   96.55
+
+[5 rows x 17 columns]
+       id  store_sales  unit_sales  ...  prepared_food  florist    cost
+0  173608         2.50           2  ...              0        1   75.44
+1  282214         3.90           3  ...              1        1  131.75
+2    6199         3.60           3  ...              0        0   59.19
+3  245725        14.56           4  ...              0        0   86.42
+4   35669         1.74           3  ...              0        0  123.63
+
+[5 rows x 17 columns]
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_cd94665546047f628d57b2030f25624030036bebd137ecc8c941545e583d5794.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined

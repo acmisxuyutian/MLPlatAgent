@@ -1,0 +1,152 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score, confusion_matrix
+import joblib
+
+SEED = 42
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Feature Construction
+    train_df['YearsInCompany'] = 2023 - train_df['JoiningYear']
+    test_df['YearsInCompany'] = 2023 - test_df['JoiningYear']
+    
+    # One-Hot Encoding
+    categorical_columns = train_df.select_dtypes(include=['object', 'category']).columns
+    train_df = pd.get_dummies(train_df, columns=categorical_columns, drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=categorical_columns, drop_first=True)
+    
+    # Ensure the same columns in both datasets
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+    test_df = test_df[train_df.columns]
+    
+    # Feature Scaling
+    numerical_columns = train_df.select_dtypes(include=['int64', 'float64']).columns
+    scaler = StandardScaler()
+    train_df[numerical_columns] = scaler.fit_transform(train_df[numerical_columns])
+    test_df[numerical_columns] = scaler.transform(test_df[numerical_columns])
+    
+    return train_df, test_df, scaler
+
+# Model Training
+def train_model(X_train, y_train):
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    cm = confusion_matrix(y_test, y_pred)
+    return auc_roc, cm, y_pred, y_pred_proba
+
+# Feature Importance
+def feature_importance(model, X_train):
+    feature_importances = model.feature_importances_
+    feature_importance_df = pd.DataFrame({'Feature': X_train.columns, 'Importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+    return feature_importance_df
+
+# Main function to orchestrate the pipeline
+def main():
+    # Data Retrieval
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/test.csv'
+    train_df, test_df = load_data(train_path, test_path)
+    
+    # Data Preprocessing
+    train_df, test_df, scaler = preprocess_data(train_df, test_df)
+    
+    # Splitting the data into features and target
+    X_train = train_df.drop(columns=['LeaveOrNot'])
+    y_train = train_df['LeaveOrNot']
+    X_test = test_df.drop(columns=['LeaveOrNot'])
+    y_test = test_df['LeaveOrNot']
+    
+    # Ensure the target variable is of integer type
+    y_train = y_train.astype(int)
+    y_test = y_test.astype(int)
+    
+    # Model Training
+    model = train_model(X_train, y_train)
+    
+    # Model Evaluation
+    auc_roc, cm, y_pred, y_pred_proba = evaluate_model(model, X_test, y_test)
+    print(f"AUC-ROC Score: {auc_roc}")
+    print(f"Confusion Matrix:\n{cm}")
+    
+    # Feature Importance
+    feature_importance_df = feature_importance(model, X_train)
+    print("Feature Importance:\n", feature_importance_df)
+    
+    # Model Saving
+    model_path = './agent_workspace/trained_models/employee_turnover_random_forest.pkl'
+    scaler_path = './agent_workspace/trained_models/employee_turnover_scaler.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+    
+    return auc_roc, cm, feature_importance_df
+
+if __name__ == "__main__":
+    auc_roc, cm, feature_importance_df = main()
+    print("Model Performance on Test Set:")
+    print(f"AUC-ROC Score: {auc_roc}")
+    print(f"Confusion Matrix:\n{cm}")
+    print("Feature Importance:\n", feature_importance_df)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+AUC-ROC Score: 0.876216740718043
+Confusion Matrix:
+[[557  53]
+ [ 88 233]]
+Feature Importance:
+                       Feature  Importance
+2                         Age    0.180356
+0                 JoiningYear    0.151618
+4              YearsInCompany    0.139898
+1                 PaymentTier    0.105813
+9                 Gender_Male    0.099948
+3   ExperienceInCurrentDomain    0.093982
+8                   City_Pune    0.086924
+5           Education_Masters    0.079419
+7              City_New Delhi    0.028683
+10            EverBenched_Yes    0.021524
+6               Education_PHD    0.011834
+Model Performance on Test Set:
+AUC-ROC Score: 0.876216740718043
+Confusion Matrix:
+[[557  53]
+ [ 88 233]]
+Feature Importance:
+                       Feature  Importance
+2                         Age    0.180356
+0                 JoiningYear    0.151618
+4              YearsInCompany    0.139898
+1                 PaymentTier    0.105813
+9                 Gender_Male    0.099948
+3   ExperienceInCurrentDomain    0.093982
+8                   City_Pune    0.086924
+5           Education_Masters    0.079419
+7              City_New Delhi    0.028683
+10            EverBenched_Yes    0.021524
+6               Education_PHD    0.011834

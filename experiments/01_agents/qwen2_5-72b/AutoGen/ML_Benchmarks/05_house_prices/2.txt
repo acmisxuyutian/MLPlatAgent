@@ -1,0 +1,365 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Check the shape of the datasets
+print("Training Data Shape:", train_df.shape)
+print("Evaluation Data Shape:", eval_df.shape)
+
+# Check for missing values in the training dataset
+print("Missing values in training data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing values in evaluation data:")
+print(eval_df.isnull().sum())
+
+# Describe the numerical features in the training dataset
+print("Descriptive statistics of numerical features in training data:")
+print(train_df.describe())
+
+# Describe the categorical features in the training dataset
+print("Descriptive statistics of categorical features in training data:")
+print(train_df.describe(include=['O']))
+
+# Plot the distribution of the target variable (SalePrice)
+plt.figure(figsize=(10, 6))
+sns.histplot(train_df['SalePrice'], kde=True)
+plt.title('Distribution of SalePrice')
+plt.xlabel('SalePrice')
+plt.ylabel('Frequency')
+plt.show()
+
+
+执行结果：
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Shape: (1168, 81)
+Evaluation Data Shape: (292, 81)
+Missing values in training data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing values in evaluation data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64
+Descriptive statistics of numerical features in training data:
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+Descriptive statistics of categorical features in training data:
+       MSZoning Street Alley LotShape  ...  Fence MiscFeature SaleType SaleCondition
+count      1168   1168    73     1168  ...    218          43     1168          1168
+unique        5      2     2        4  ...      4           3        9             6
+top          RL   Pave  Grvl      Reg  ...  MnPrv        Shed       WD        Normal
+freq        922   1164    46      742  ...    129          39     1018           963
+
+[4 rows x 43 columns]
+
+生成的代码：
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+# Handle missing values
+def handle_missing_values(df):
+    # Fill LotFrontage with the median of the neighborhood
+    df['LotFrontage'] = df.groupby('Neighborhood')['LotFrontage'].transform(lambda x: x.fillna(x.median()))
+    
+    # Fill other missing values
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = df[col].fillna('None')
+        else:
+            df[col] = df[col].fillna(df[col].median())
+    return df
+
+# Apply missing value handling
+train_df = handle_missing_values(train_df)
+eval_df = handle_missing_values(eval_df)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Id', 'SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['Id', 'SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Define preprocessing for numerical and categorical data
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object']).columns
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# Apply preprocessing
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert target to log scale
+y_train_log = np.log(y_train)
+y_eval_log = np.log(y_eval)
+
+# Check the preprocessed data
+print("Preprocessed Training Data Shape:", X_train_preprocessed.shape)
+print("Preprocessed Evaluation Data Shape:", X_eval_preprocessed.shape)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_8efb3332cdcfe3aec77cd72cdad8c8b5cd5ff15d16448d28d17add2b08d16ada.py", line 21, in <module>
+    train_df = handle_missing_values(train_df)
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Check the shape of the datasets
+print("Training Data Shape:", train_df.shape)
+print("Evaluation Data Shape:", eval_df.shape)
+
+# Check for missing values in the training dataset
+print("Missing values in training data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing values in evaluation data:")
+print(eval_df.isnull().sum())
+
+# Handle missing values
+def handle_missing_values(df):
+    # Fill LotFrontage with the median of the neighborhood
+    df['LotFrontage'] = df.groupby('Neighborhood')['LotFrontage'].transform(lambda x: x.fillna(x.median()))
+    
+    # Fill other missing values
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = df[col].fillna('None')
+        else:
+            df[col] = df[col].fillna(df[col].median())
+    return df
+
+# Apply missing value handling
+train_df = handle_missing_values(train_df)
+eval_df = handle_missing_values(eval_df)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Id', 'SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['Id', 'SalePrice'])
+y_eval = eval_df['SalePrice']
+
+# Define preprocessing for numerical and categorical data
+numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object']).columns
+
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# Apply preprocessing
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert target to log scale
+y_train_log = np.log(y_train)
+y_eval_log = np.log(y_eval)
+
+# Check the preprocessed data
+print("Preprocessed Training Data Shape:", X_train_preprocessed.shape)
+print("Preprocessed Evaluation Data Shape:", X_eval_preprocessed.shape)
+
+
+执行结果：
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Shape: (1168, 81)
+Evaluation Data Shape: (292, 81)
+Missing values in training data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing values in evaluation data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64
+Preprocessed Training Data Shape: (1168, 300)
+Preprocessed Evaluation Data Shape: (292, 300)
+
+生成的代码：
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# Train a linear regression model
+linear_reg = LinearRegression()
+linear_reg.fit(X_train_preprocessed, y_train_log)
+
+# Predict on the evaluation set
+y_eval_pred_log = linear_reg.predict(X_eval_preprocessed)
+
+# Calculate RMSE
+rmse_linear = np.sqrt(mean_squared_error(y_eval_log, y_eval_pred_log))
+print(f"Linear Regression RMSE: {rmse_linear}")
+
+# Train a random forest regressor
+from sklearn.ensemble import RandomForestRegressor
+
+rf_reg = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_reg.fit(X_train_preprocessed, y_train_log)
+
+# Predict on the evaluation set
+y_eval_pred_log_rf = rf_reg.predict(X_eval_preprocessed)
+
+# Calculate RMSE
+rmse_rf = np.sqrt(mean_squared_error(y_eval_log, y_eval_pred_log_rf))
+print(f"Random Forest Regressor RMSE: {rmse_rf}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_81012e99ff4a194de8f3475f3b25e31d170853d525542ce8dee3e7933674468f.py", line 6, in <module>
+    linear_reg.fit(X_train_preprocessed, y_train_log)
+NameError: name 'X_train_preprocessed' is not defined

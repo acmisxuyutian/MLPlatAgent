@@ -1,0 +1,176 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\obesity_CVD_risk\train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\obesity_CVD_risk\test.csv'
+
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Feature construction and selection
+# Assuming the target variable is 'Obesity_Risk'
+y_train = train_df['Obesity_Risk']
+X_train = train_df.drop(columns=['Obesity_Risk'])
+
+y_test = test_df['Obesity_Risk']
+X_test = test_df.drop(columns=['Obesity_Risk'])
+
+# Identify numerical and categorical columns
+numerical_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object']).columns
+
+# Create transformers for numerical and categorical features
+numerical_transformer = StandardScaler()
+categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+# Combine transformers into a preprocessor
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+pipeline = Pipeline(steps=[('preprocessor', preprocessor)])
+
+train_df_processed = pipeline.fit_transform(X_train)
+test_df_processed = pipeline.transform(X_test)
+
+train_df_processed, test_df_processed
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Obesity_Risk'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[1], line 16
+    y_train = train_df['Obesity_Risk']
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Obesity_Risk'
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\obesity_CVD_risk\train.csv'
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\obesity_CVD_risk\test.csv'
+
+train_df = pd.read_csv(train_file_path)
+test_df = pd.read_csv(test_file_path)
+
+# Check the columns of the datasets
+print(train_df.columns)
+print(test_df.columns)
+
+# Assuming the target variable is the last column
+y_train = train_df.iloc[:, -1]
+X_train = train_df.iloc[:, :-1]
+
+y_test = test_df.iloc[:, -1]
+X_test = test_df.iloc[:, :-1]
+
+# Identify numerical and categorical columns
+numerical_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X_train.select_dtypes(include=['object']).columns
+
+# Create transformers for numerical and categorical features
+numerical_transformer = StandardScaler()
+categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+# Combine transformers into a preprocessor
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the datasets
+pipeline = Pipeline(steps=[('preprocessor', preprocessor)])
+
+train_df_processed = pipeline.fit_transform(X_train)
+test_df_processed = pipeline.transform(X_test)
+
+train_df_processed, test_df_processed
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.06754456, -1.19937194,  0.80081642, ...,  0.        ,
+          0.        ,  0.        ],
+        [-0.42042708, -0.2131964 ,  0.61024262, ...,  0.        ,
+          1.        ,  0.        ],
+        [-0.17839335, -0.35749192,  1.37292791, ...,  0.        ,
+          1.        ,  0.        ],
+        ...,
+        [-0.82898403, -0.50336217, -0.92009566, ...,  0.        ,
+          1.        ,  0.        ],
+        [-1.58408929,  0.36665004, -0.57447915, ...,  0.        ,
+          1.        ,  0.        ],
+        [ 0.90542439,  2.45431603,  0.85049342, ...,  0.        ,
+          0.        ,  0.        ]]),
+ array([[-0.00770289,  0.36665004, -0.58534384, ...,  0.        ,
+          1.        ,  0.        ],
+        [-1.04834794, -1.0253695 ,  0.57136148, ...,  0.        ,
+          1.        ,  0.        ],
+        [-0.21723209, -0.09266299,  0.15122947, ...,  0.        ,
+          1.        ,  0.        ],
+        ...,
+        [ 0.19249168, -0.20860395, -0.82936918, ...,  0.        ,
+          1.        ,  0.        ],
+        [-0.40275795,  1.6169726 ,  1.45441883, ...,  0.        ,
+          0.        ,  0.        ],
+        [ 0.15181935, -0.49901733,  0.24844953, ...,  0.        ,
+          1.        ,  0.        ]]))from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# Initialize the model
+model = RandomForestClassifier(random_state=42)
+
+# Train the model
+model.fit(train_df_processed, y_train)
+
+# Predict on the test set
+y_pred = model.predict(test_df_processed)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_test, y_pred)
+
+accuracy, y_pred
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8889691714836223,
+ array(['Obesity_Type_III', 'Normal_Weight', 'Obesity_Type_I', ...,
+        'Obesity_Type_I', 'Overweight_Level_II', 'Overweight_Level_II'],
+       dtype=object))

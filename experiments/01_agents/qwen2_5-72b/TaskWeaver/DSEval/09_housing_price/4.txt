@@ -1,0 +1,157 @@
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Load the datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/09_housing_price/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/09_housing_price/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Separate features and target variable
+X_train = train_df.drop('price', axis=1)
+y_train = train_df['price']
+X_test = test_df.drop('price', axis=1)
+y_test = test_df['price']
+
+# Build and fit the linear regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the performance using RMSE
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+# Output the results
+train_df, test_df, model, y_pred, rmse
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 21
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_base.py:601 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'yes'
+
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Load the datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/09_housing_price/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/09_housing_price/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data to handle non-numeric values
+train_df = pd.get_dummies(train_df)
+test_df = pd.get_dummies(test_df)
+
+# Ensure the same columns in both datasets
+train_columns = train_df.columns.difference(['price'])
+test_columns = test_df.columns.difference(['price'])
+common_columns = train_columns.intersection(test_columns)
+
+X_train = train_df[common_columns]
+y_train = train_df['price']
+X_test = test_df[common_columns]
+y_test = test_df['price']
+
+# Build and fit the linear regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the performance using RMSE
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+# Output the results
+train_df, test_df, model, y_pred, rmse
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       price  area  bedrooms  bathrooms  stories  parking  mainroad_no  mainroad_yes  guestroom_no  guestroom_yes  basement_no  basement_yes  hotwaterheating_no  hotwaterheating_yes  airconditioning_no  airconditioning_yes  prefarea_no  prefarea_yes  furnishingstatus_furnished  furnishingstatus_semi-furnished  furnishingstatus_unfurnished
+ 0    7525000  6000         3          2        4        1        False          True          True          False         True         False                True                False               False                 True         True         False                        True                            False                         False
+ 1    6300000  7200         3          2        1        3        False          True          True          False        False          True                True                False               False                 True         True         False                       False                             True                         False
+ ..       ...   ...       ...        ...      ...      ...          ...           ...           ...            ...          ...           ...                 ...                  ...                 ...                  ...          ...           ...                         ...                              ...                           ...
+ 434  3290000  4040         2          1        1        0        False          True          True          False         True         False                True                False                True                False         True         False                       False                            False                          True
+ 435  6195000  5500         3          2        4        1        False          True         False           True         True         False                True                False               False                 True         True         False                       False                             True                         False
+ 
+ [436 rows x 21 columns],
+        price  area  bedrooms  bathrooms  stories  parking  mainroad_no  mainroad_yes  guestroom_no  guestroom_yes  basement_no  basement_yes  hotwaterheating_no  hotwaterheating_yes  airconditioning_no  airconditioning_yes  prefarea_no  prefarea_yes  furnishingstatus_furnished  furnishingstatus_semi-furnished  furnishingstatus_unfurnished
+ 0    4060000  5900         4          2        2        1         True         False          True          False        False          True                True                False                True                False         True         False                       False                            False                          True
+ 1    6650000  6500         3          2        3        0        False          True          True          False         True         False                True                False               False                 True        False          True                        True                            False                         False
+ ..       ...   ...       ...        ...      ...      ...          ...           ...           ...            ...          ...           ...                 ...                  ...                 ...                  ...          ...           ...                         ...                              ...                           ...
+ 107  7350000  6000         3          2        2        1        False          True         False           True         True         False                True                False               False                 True         True         False                       False                             True                         False
+ 108  5530000  6100         3          2        1        2        False          True          True          False        False          True                True                False                True                False        False          True                        True                            False                         False
+ 
+ [109 rows x 21 columns],
+ LinearRegression(),
+ array([5164653.90033977, 7224722.2980218 , 3109863.24240326,
+        4612075.32722555, 3294646.25725942, 3532275.09556579,
+        5611774.56836513, 6368145.98732717, 2722856.95689964,
+        2629405.61585754, 9617039.50315618, 2798087.30447874,
+        3171096.76847043, 3394639.09125504, 3681088.65424262,
+        5263187.74621468, 3035963.47612348, 4786122.80040058,
+        4349551.9200573 , 3572362.09930463, 5774875.21395645,
+        5886993.57919901, 2730836.19518441, 4727316.4732362 ,
+        5244847.52716839, 7555324.21605663, 3220790.84680245,
+        5191898.79934182, 8143726.91009879, 3398814.0982501 ,
+        6490693.05027908, 3315105.90747787, 6708457.36761333,
+        4201738.21071695, 3557571.06735183, 5836974.50478616,
+        4808660.6744847 , 4362878.73613235, 3191242.95701485,
+        4596554.93225211, 4566042.86048446, 3517779.52374127,
+        7205844.79365848, 3983597.27861093, 3749338.70271077,
+        4274731.09125901, 6757442.10783748, 4037320.43665846,
+        3769334.90397162, 3417627.44377131, 7268416.67644636,
+        2802534.3543136 , 4341750.61420485, 4516422.15345631,
+        3679997.6503783 , 2678959.06481126, 7498029.17782463,
+        2920366.45493135, 4239582.05960198, 2766467.48467018,
+        4841309.8593325 , 3584359.56014887, 5142140.84897592,
+        4221869.20996258, 4698408.50824085, 4662380.98564297,
+        7177841.51216443, 3452198.91383735, 5902436.91361452,
+        6198094.31822816, 4773218.99689051, 5178933.32585714,
+        4490410.961066  , 7968737.41567576, 3519394.94792162,
+        5501905.04909545, 3947055.15571378, 4714056.36707944,
+        4792291.26764389, 4250596.74659376, 7718149.19357362,
+        4053241.11775746, 6453918.60757731, 5355571.58680299,
+        2755188.29175229, 6796008.09793371, 2607277.38176304,
+        3679738.85761968, 7968276.12638762, 8078480.59500828,
+        3266213.77309669, 5897888.53031074, 3569461.0743919 ,
+        3868964.98032496, 7584429.53124934, 4740586.43771671,
+        5139372.69032263, 6423485.10228606, 4914078.82258495,
+        5982087.31289335, 3855027.32194259, 6420308.27282355,
+        3749108.51314804, 5998642.37204411, 4973331.10029264,
+        4336650.86896407, 7059062.72274849, 6398940.86831994,
+        6363889.85312657]),
+ 1324506.9600913948)

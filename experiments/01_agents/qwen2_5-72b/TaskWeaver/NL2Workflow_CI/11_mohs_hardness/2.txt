@@ -1,0 +1,1673 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 4
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+!pip install torch
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 6
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+!pip install torch
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 6
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[4], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[5], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch --upgrade
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[6], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    # Check if the environment is properly set up
+    !which python
+    !pip list
+    # Try to install 'torch' again
+    !pip install torch --upgrade
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[7], line 11
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+'which' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���
+���������ļ���
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    # Try to install 'torch' again
+    !pip install torch --upgrade
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[8], line 8
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.12.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[9], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.12.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[10], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[10], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.12.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[11], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[11], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.12.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[12], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[12], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.9.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[13], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[13], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.9.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[14], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[14], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.9.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[15], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[15], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+except ModuleNotFoundError:
+    !pip install torch==1.9.0
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import median_absolute_error
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/mohs_hardness/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Preprocess the data
+X_train = train_df.drop(columns=['mohs_hardness'])
+y_train = train_df['mohs_hardness']
+X_test = test_df.drop(columns=['mohs_hardness'])
+y_test = test_df['mohs_hardness']
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+# Define the neural network model
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+input_size = X_train_tensor.shape[1]
+model = Net(input_size)
+
+# Define the loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Train the model
+num_epochs = 100
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+
+# Evaluate the model on the test set
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test_tensor)
+    mae = median_absolute_error(y_test_tensor.numpy(), predictions.numpy())
+
+mae, model, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[16], line 2
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[16], line 7
+    import torch
+
+ModuleNotFoundError: No module named 'torch'
+
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+AssertionError: SRE module mismatch
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\Scripts\pip-script.py", line 2, in <module>
+    import re
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\__init__.py", line 125, in <module>
+    from . import _compiler, _parser
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\re\_compiler.py", line 18, in <module>
+    assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+AssertionError: SRE module mismatch
+

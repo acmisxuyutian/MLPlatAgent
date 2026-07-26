@@ -1,0 +1,163 @@
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+
+# Load the datasets
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/train.csv')
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/01_bank_customer_churn/test.csv')
+
+# Drop the specified columns
+train_data = train_data.drop(columns=['CustomerId', 'Complain', 'Surname'])
+test_data = test_data.drop(columns=['CustomerId', 'Complain', 'Surname'])
+
+# Apply one-hot encoding to 'Geography' and 'Card Type'
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_data[['Geography', 'Card Type']]).toarray()
+encoded_test = encoder.transform(test_data[['Geography', 'Card Type']]).toarray()
+
+# Create new DataFrames with the encoded features
+encoded_train_df = pd.DataFrame(encoded_train, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+encoded_test_df = pd.DataFrame(encoded_test, columns=encoder.get_feature_names_out(['Geography', 'Card Type']))
+
+# Concatenate the original DataFrames with the encoded features
+train_data = pd.concat([train_data.drop(columns=['Geography', 'Card Type']), encoded_train_df], axis=1)
+test_data = pd.concat([test_data.drop(columns=['Geography', 'Card Type']), encoded_test_df], axis=1)
+
+# Prepare the data for modeling
+X_train = train_data.drop(columns=['Exited'])
+y_train = train_data['Exited']
+X_test = test_data.drop(columns=['Exited'])
+y_test = test_data['Exited']
+
+X_train, y_train, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      RowNumber  CreditScore Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          9255          686   Male   32       6       0.00              2          1               1        179093.26                   2           510               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 1          1562          632   Male   42       4  119624.60              2          1               1        195978.86                   4           959               0.0                1.0              0.0                0.0             0.0                 1.0               0.0
+ ...         ...          ...    ...  ...     ...        ...            ...        ...             ...              ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 7998        861          667   Male   43       8  190227.46              1          1               0         97508.04                   3           680               1.0                0.0              0.0                1.0             0.0                 0.0               0.0
+ 7999       7271          697   Male   51       1  147910.30              1          1               1         53581.14                   4           639               0.0                1.0              0.0                1.0             0.0                 0.0               0.0
+ 
+ [8000 rows x 19 columns],
+ 0       0
+ 1       0
+        ..
+ 7998    1
+ 7999    0
+ Name: Exited, Length: 8000, dtype: int64,
+       RowNumber  CreditScore Gender  Age  Tenure    Balance  NumOfProducts  HasCrCard  IsActiveMember  EstimatedSalary  Satisfaction Score  Point Earned  Geography_France  Geography_Germany  Geography_Spain  Card Type_DIAMOND  Card Type_GOLD  Card Type_PLATINUM  Card Type_SILVER
+ 0          6253          596   Male   32       3   96709.07              2          0               0         41788.37                   1           709               0.0                1.0              0.0                0.0             1.0                 0.0               0.0
+ 1          4685          623   Male   43       1       0.00              2          1               1        146379.30                   2           508               1.0                0.0              0.0                0.0             0.0                 0.0               1.0
+ ...         ...          ...    ...  ...     ...        ...            ...        ...             ...              ...                 ...           ...               ...                ...              ...                ...             ...                 ...               ...
+ 1998       1096          692   Male   29       4       0.00              1          1               0         76755.99                   3           686               1.0                0.0              0.0                0.0             0.0                 1.0               0.0
+ 1999       6930          628   Male   39       1  115341.19              1          1               1        107674.30                   4           887               0.0                1.0              0.0                0.0             0.0                 0.0               1.0
+ 
+ [2000 rows x 19 columns],
+ 0       0
+ 1       0
+        ..
+ 1998    1
+ 1999    1
+ Name: Exited, Length: 2000, dtype: int64)import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+
+# Convert the data to DMatrix format
+train_dmatrix = xgb.DMatrix(X_train, label=y_train)
+test_dmatrix = xgb.DMatrix(X_test, label=y_test)
+
+# Define the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'seed': 42
+}
+
+# Train the XGBoost model
+model = xgb.train(params, train_dmatrix, num_boost_round=100)
+
+# Make predictions on the test data
+y_pred_proba = model.predict(test_dmatrix)
+
+# Compute the AUC-ROC score
+auc_roc_score = roc_auc_score(y_test, y_pred_proba)
+
+auc_roc_score, y_pred_proba
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:407 in pandas_feature_info
+    new_feature_types.append(_pandas_dtype_mapper[dtype.name])
+
+KeyError: 'object'
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+
+  Cell In[2], line 5
+    train_dmatrix = xgb.DMatrix(X_train, label=y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:729 in inner_f
+    return func(**kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\core.py:885 in __init__
+    handle, feature_names, feature_types = dispatch_data_backend(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:1441 in dispatch_data_backend
+    return _from_pandas_df(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:674 in _from_pandas_df
+    df, feature_names, feature_types = _transform_pandas_df(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:640 in _transform_pandas_df
+    feature_names, feature_types = pandas_feature_info(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\xgboost\data.py:409 in pandas_feature_info
+    _invalid_dataframe_dtype(data)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experi
+import pandas as pd
+
+# Ensure all columns are numeric
+X_train = X_train.apply(pd.to_numeric, errors='coerce')
+X_test = X_test.apply(pd.to_numeric, errors='coerce')
+
+# Convert the data to DMatrix format
+train_dmatrix = xgb.DMatrix(X_train, label=y_train)
+test_dmatrix = xgb.DMatrix(X_test, label=y_test)
+
+# Define the parameters for the XGBoost model
+params = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'auc',
+    'max_depth': 6,
+    'eta': 0.3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'seed': 42
+}
+
+# Train the XGBoost model
+model = xgb.train(params, train_dmatrix, num_boost_round=100)
+
+# Make predictions on the test data
+y_pred_proba = model.predict(test_dmatrix)
+
+# Compute the AUC-ROC score
+auc_roc_score = roc_auc_score(y_test, y_pred_proba)
+
+auc_roc_score, y_pred_proba
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8311379445207118,
+ array([0.00386743, 0.01636009, 0.17557992, ..., 0.8926775 , 0.13865112,
+        0.26418152], dtype=float32))

@@ -1,0 +1,147 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.metrics import roc_auc_score
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Load the dataset
+def load_dataset():
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2: Preprocess the data
+def preprocess_data(df):
+    # Initial Exploration
+    print("First few rows of the dataset:")
+    print(df.head())
+    print("Summary statistics:")
+    print(df.describe())
+    print("Data types:")
+    print(df.dtypes)
+    
+    target_column = 'smoker_status'
+    if target_column in df.columns:
+        print("Distribution of the target variable:")
+        print(df[target_column].value_counts())
+    else:
+        raise KeyError(f"The dataset does not contain the '{target_column}' column.")
+    
+    # Handling Missing Values
+    print("Missing values in the dataset:")
+    print(df.isnull().sum())
+    df.fillna(df.mean(), inplace=True)
+    df.fillna(df.mode().iloc[0], inplace=True)
+    
+    # Feature Scaling
+    scaler = StandardScaler()
+    numerical_features = df.select_dtypes(include=[np.number]).columns.difference([target_column])
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Encoding Categorical Variables
+    categorical_features = df.select_dtypes(include=[object]).columns.difference([target_column])
+    if len(categorical_features) > 0:
+        encoder = OneHotEncoder(drop='first', sparse=False)
+        encoded_features = encoder.fit_transform(df[categorical_features])
+        encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+        df = pd.concat([df.drop(categorical_features, axis=1), encoded_df], axis=1)
+    
+    # Feature Selection
+    X = df.drop(target_column, axis=1)
+    y = df[target_column]
+    selector = SelectKBest(f_classif, k=10)  # Select top 10 features
+    X_selected = selector.fit_transform(X, y)
+    selected_features = X.columns[selector.get_support()]
+    print("Selected Features:", selected_features)
+    
+    # Data Split
+    X_train, X_temp, y_train, y_temp = train_test_split(X_selected, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 3: Train the model
+def train_model(X_train, y_train):
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 15, 20],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    rf = RandomForestClassifier(random_state=42)
+    grid_search = GridSearchCV(rf, param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_rf = grid_search.best_estimator_
+    print("Best Hyperparameters:", grid_search.best_params_)
+    return best_rf
+
+# Step 4: Evaluate the model
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    val_auc = roc_auc_score(y_val, y_val_pred)
+    print(f'Validation AUC-ROC: {val_auc}')
+    
+    y_test_pred = model.predict_proba(X_test)[:, 1]
+    test_auc = roc_auc_score(y_test, y_test_pred)
+    print(f'Test AUC-ROC: {test_auc}')
+    
+    performance_scores = {
+        'Validation AUC-ROC': val_auc,
+        'Test AUC-ROC': test_auc
+    }
+    return performance_scores
+
+# Step 5: Save the model
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+# The main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset()
+    
+    # Step 2: Preprocess the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+    
+    # Step 3: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 4: Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Step 5: Save the model
+    model_path = r'./agent_workspace/trained_models/smoker_status_random_forest.pkl'
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 131, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 116, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+                                                     ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 38, in preprocess_data
+    raise KeyError(f"The dataset does not contain the '{target_column}' column.")
+KeyError: "The dataset does not contain the 'smoker_status' column."

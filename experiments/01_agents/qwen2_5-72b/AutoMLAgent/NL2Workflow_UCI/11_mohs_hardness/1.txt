@@ -1,0 +1,152 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import RFE
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import median_absolute_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Load the dataset
+def load_dataset(dataset_path):
+    """
+    Load the dataset from the given path.
+    """
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Step 2: Preprocess the dataset
+def preprocess_data(df):
+    """
+    Preprocess the dataset by handling missing values, scaling features, and selecting relevant features.
+    """
+    # Check if the target variable is in the dataset
+    if 'mohs_hardness' not in df.columns:
+        raise ValueError("The target variable 'mohs_hardness' is not found in the dataset.")
+
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+    # Feature scaling
+    scaler = StandardScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(df_imputed), columns=df_imputed.columns)
+
+    # Feature engineering (example calculations)
+    if 'atomic_number' in df_scaled.columns:
+        df_scaled['atomic_weight'] = df_scaled['atomic_number'] * 1.0079  # Example calculation
+        df_scaled['electronegativity'] = df_scaled['atomic_number'] * 0.9  # Example calculation
+
+    # Feature selection
+    model = XGBRegressor()
+    rfe = RFE(estimator=model, n_features_to_select=10)
+    df_selected = pd.DataFrame(rfe.fit_transform(df_scaled.drop(columns=['mohs_hardness']), df_scaled['mohs_hardness']), columns=df_scaled.columns[rfe.support_])
+    df_selected['mohs_hardness'] = df_scaled['mohs_hardness']
+
+    return df_selected
+
+# Step 3: Split the dataset
+def split_data(df):
+    """
+    Split the dataset into training, validation, and test sets.
+    """
+    X = df.drop(columns=['mohs_hardness'])
+    y = df['mohs_hardness']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 4: Train the model
+def train_model(X_train, y_train):
+    """
+    Train the XGBoost model with hyperparameter tuning.
+    """
+    model = XGBRegressor()
+    param_grid = {
+        'n_estimators': [100],
+        'max_depth': [6],
+        'learning_rate': [0.1],
+        'subsample': [0.8],
+        'colsample_bytree': [0.8]
+    }
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='neg_median_absolute_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
+    return best_model
+
+# Step 5: Evaluate the model
+def evaluate_model(model, X_val, y_val):
+    """
+    Evaluate the model on the validation set.
+    """
+    y_pred = model.predict(X_val)
+    medae = median_absolute_error(y_val, y_pred)
+    performance_scores = {
+        'Median Absolute Error (MedAE)': medae
+    }
+    return performance_scores
+
+# Step 6: Save the model
+def save_model(model, model_path):
+    """
+    Save the trained model to the specified path.
+    """
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+    # Step 1: Load the dataset
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    df = load_dataset(dataset_path)
+
+    # Step 2: Preprocess the dataset
+    df_processed = preprocess_data(df)
+
+    # Step 3: Split the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df_processed)
+
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 5: Evaluate the model
+    model_performance = evaluate_model(model, X_val, y_val)
+    print("Model Performance on Validation Set:", model_performance)
+
+    # Step 6: Save the model
+    model_path = r'./agent_workspace/trained_models/mohs_hardness_model.pkl'
+    save_model(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 136, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 117, in main
+    df_processed = preprocess_data(df)
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 35, in preprocess_data
+    raise ValueError("The target variable 'mohs_hardness' is not found in the dataset.")
+ValueError: The target variable 'mohs_hardness' is not found in the dataset.

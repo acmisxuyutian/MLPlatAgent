@@ -1,0 +1,510 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    # apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    # submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 42, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 23, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py", line 1222, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Thursday'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def preprocess_data(X):
+    # Identify categorical columns
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    # Initialize the OneHotEncoder
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    # Fit and transform the categorical columns
+    X_encoded = encoder.fit_transform(X[categorical_cols])
+    # Get the encoded column names
+    encoded_col_names = encoder.get_feature_names_out(categorical_cols)
+    # Create a DataFrame for the encoded data
+    X_encoded_df = pd.DataFrame(X_encoded, columns=encoded_col_names)
+    # Drop the original categorical columns
+    X_numeric = X.drop(categorical_cols, axis=1)
+    # Concatenate the numeric and encoded data
+    X_processed = pd.concat([X_numeric, X_encoded_df], axis=1)
+    return X_processed
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    # Preprocess the data
+    X = preprocess_data(X)
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 53, in <module>
+    X = preprocess_data(X)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 20, in preprocess_data
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def preprocess_data(X):
+    # Identify categorical columns
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    # Initialize the OneHotEncoder
+    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    # Fit and transform the categorical columns
+    X_encoded = encoder.fit_transform(X[categorical_cols])
+    # Get the encoded column names
+    encoded_col_names = encoder.get_feature_names_out(categorical_cols)
+    # Create a DataFrame for the encoded data
+    X_encoded_df = pd.DataFrame(X_encoded, columns=encoded_col_names)
+    # Drop the original categorical columns
+    X_numeric = X.drop(categorical_cols, axis=1)
+    # Concatenate the numeric and encoded data
+    X_processed = pd.concat([X_numeric, X_encoded_df], axis=1)
+    return X_processed
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    # Preprocess the data
+    X = preprocess_data(X)
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 63, in <module>
+    score = compute_metrics(y_valid, y_valid_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 34, in compute_metrics
+    score = log_loss(y_test, y_test_pred)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_param_validation.py", line 216, in wrapper
+    return func(*args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/metrics/_classification.py", line 3013, in log_loss
+    raise ValueError(
+ValueError: y_true and y_pred contain different number of classes 36, 37. Please provide the true labels explicitly through the labels argument. Classes found in y_true: ['ARSON' 'ASSAULT' 'BAD CHECKS' 'BRIBERY' 'BURGLARY' 'DISORDERLY CONDUCT'
+ 'DRIVING UNDER THE INFLUENCE' 'DRUG/NARCOTIC' 'DRUNKENNESS'
+ 'EMBEZZLEMENT' 'FAMILY OFFENSES' 'FORGERY/COUNTERFEITING' 'FRAUD'
+ 'GAMBLING' 'KIDNAPPING' 'LARCENY/THEFT' 'LIQUOR LAWS' 'LOITERING'
+ 'MISSING PERSON' 'NON-CRIMINAL' 'OTHER OFFENSES' 'PROSTITUTION'
+ 'RECOVERED VEHICLE' 'ROBBERY' 'RUNAWAY' 'SECONDARY CODES'
+ 'SEX OFFENSES FORCIBLE' 'SEX OFFENSES NON FORCIBLE' 'STOLEN PROPERTY'
+ 'SUICIDE' 'SUSPICIOUS OCC' 'TRESPASS' 'VANDALISM' 'VEHICLE THEFT'
+ 'WARRANTS' 'WEAPON LAWS']
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 34, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 19, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py", line 1222, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/pandas/core/generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Thursday'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Apply one-hot encoding
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoded_cols = encoder.fit_transform(df[categorical_cols])
+    encoded_df = pd.DataFrame(encoded_cols, columns=encoder.get_feature_names_out(categorical_cols))
+    # Drop original categorical columns
+    df = df.drop(categorical_cols, axis=1)
+    # Concatenate the encoded columns with the remaining numeric columns
+    df = pd.concat([df, encoded_df], axis=1)
+    return df
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Preprocess the data
+    X_train = preprocess_data(X_train)
+    X_valid = preprocess_data(X_valid)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 49, in <module>
+    X_train = preprocess_data(X_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 31, in preprocess_data
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import log_loss
+import numpy as np
+import random
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = log_loss(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000, random_state=SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    y_pred = model.predict_proba(X)
+    return y_pred
+
+def preprocess_data(df):
+    # Identify categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    # Apply one-hot encoding
+    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    encoded_cols = encoder.fit_transform(df[categorical_cols])
+    encoded_df = pd.DataFrame(encoded_cols, columns=encoder.get_feature_names_out(categorical_cols))
+    # Drop original categorical columns
+    df = df.drop(categorical_cols, axis=1)
+    # Concatenate the encoded columns with the remaining numeric columns
+    df = pd.concat([df, encoded_df], axis=1)
+    return df
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Category'], axis=1)
+    y = data_df['Category'].to_numpy()
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Preprocess the data
+    X_train = preprocess_data(X_train)
+    X_valid = preprocess_data(X_valid)
+
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final logloss on validation set: ", score)
+
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Category'], axis=1)
+    X_test = preprocess_data(X_test)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 52, in <module>
+    model = train_model(X_train, y_train, X_valid, y_valid)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/workspace/20250831-230229/09_crime_category/train.py", line 20, in train_model
+    model.fit(X_train, y_train)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py", line 1222, in fit
+    X, y = validate_data(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 1107, in check_array
+    _assert_all_finite(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 120, in _assert_all_finite
+    _assert_all_finite_element_wise(
+  File "/remote-home/cs_acmis_xyt/dsAgent/envs/lib/python3.10/site-packages/sklearn/utils/validation.py", line 169, in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+ValueError: Input X contains NaN.
+LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

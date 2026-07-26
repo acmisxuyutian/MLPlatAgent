@@ -1,0 +1,238 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, PolynomialFeatures
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and initial exploration
+def load_dataset():
+    dataset_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crime_category/train.csv'
+    dataset = pd.read_csv(dataset_path)
+    print(dataset.shape)  # Number of rows and columns
+    print(dataset.dtypes)  # Data types of each column
+    print(dataset.describe())  # Basic statistics
+    print(dataset.isnull().sum())  # Count of missing values in each column
+    return dataset
+
+# Data preprocessing
+def preprocess_data(dataset):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='most_frequent')
+    dataset_imputed = pd.DataFrame(imputer.fit_transform(dataset), columns=dataset.columns)
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    dataset_scaled = pd.DataFrame(scaler.fit_transform(dataset_imputed.select_dtypes(include=['float64', 'int64'])), columns=dataset_imputed.select_dtypes(include=['float64', 'int64']).columns)
+    
+    # Convert categorical variables
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoded_features = pd.DataFrame(encoder.fit_transform(dataset_imputed.select_dtypes(include=['object'])), columns=encoder.get_feature_names_out(dataset_imputed.select_dtypes(include=['object']).columns))
+    dataset_encoded = pd.concat([dataset_scaled, encoded_features], axis=1)
+    
+    return dataset_encoded
+
+# Feature engineering
+def feature_engineering(dataset_encoded):
+    # Create interaction terms
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    interaction_features = pd.DataFrame(poly.fit_transform(dataset_encoded), columns=poly.get_feature_names_out(dataset_encoded.columns))
+    dataset_interaction = pd.concat([dataset_encoded, interaction_features], axis=1)
+    
+    # Add domain-specific features (example)
+    if 'datetime_column' in dataset_interaction.columns:
+        dataset_interaction['hour_of_day'] = pd.to_datetime(dataset_interaction['datetime_column']).dt.hour
+        dataset_interaction['day_of_week'] = pd.to_datetime(dataset_interaction['datetime_column']).dt.dayofweek
+    
+    if 'location' in dataset_interaction.columns and 'crime_id' in dataset_interaction.columns:
+        dataset_interaction['crime_density'] = dataset_interaction.groupby(['location', 'hour_of_day'])['crime_id'].transform('count')
+    
+    return dataset_interaction
+
+# Data splitting
+def split_data(dataset_interaction):
+    X = dataset_interaction.drop('犯罪类别', axis=1)
+    y = dataset_interaction['犯罪类别']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, stratify=y, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, stratify=y_temp, random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model definition
+class SimpleFNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(SimpleFNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc2(out)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc3(out)
+        return out
+
+# Model training
+def train_model(model, X_train, y_train, X_val, y_val):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    num_epochs = 100
+    patience = 10
+    best_val_loss = float('inf')
+    early_stopping_counter = 0
+    
+    for epoch in range(num_epochs):
+        model.train()
+        for i, (inputs, labels) in enumerate(zip(X_train, y_train)):
+            inputs = torch.tensor(inputs, dtype=torch.float32)
+            labels = torch.tensor(labels, dtype=torch.long)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in zip(X_val, y_val):
+                inputs = torch.tensor(inputs, dtype=torch.float32)
+                labels = torch.tensor(labels, dtype=torch.long)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+        val_loss /= len(X_val)
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation Loss: {val_loss:.4f}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/best_model.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print('Early stopping triggered.')
+                break
+    
+    return model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    model.load_state_dict(torch.load('./agent_workspace/trained_models/best_model.pth'))
+    model.eval()
+
+    test_loss = 0.0
+    predictions = []
+    true_labels = []
+
+    with torch.no_grad():
+        for inputs, labels in zip(X_test, y_test):
+            inputs = torch.tensor(inputs, dtype=torch.float32)
+            labels = torch.tensor(labels, dtype=torch.long)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
+            predictions.append(outputs.softmax(dim=1).numpy())
+            true_labels.append(labels.numpy())
+
+    test_loss /= len(X_test)
+    print(f'Test Loss: {test_loss:.4f}')
+
+    predictions = np.concatenate(predictions, axis=0)
+    true_labels = np.concatenate(true_labels, axis=0)
+    logloss = log_loss(true_labels, predictions)
+    print(f'Logloss: {logloss:.4f}')
+    
+    performance_scores = {
+        'Logloss': logloss
+    }
+    return performance_scores
+
+# Main function
+def main():
+    # Step 1: Load dataset
+    dataset = load_dataset()
+    
+    # Step 2: Preprocess data
+    dataset_encoded = preprocess_data(dataset)
+    
+    # Step 3: Feature engineering
+    dataset_interaction = feature_engineering(dataset_encoded)
+    
+    # Step 4: Split data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(dataset_interaction)
+    
+    # Step 5: Define and train model
+    input_size = X_train.shape[1]
+    hidden_size = 128
+    num_classes = len(y_train.unique())
+    model = SimpleFNN(input_size, hidden_size, num_classes)
+    model = train_model(model, X_train, y_train, X_val, y_val)
+    
+    # Step 6: Evaluate model
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 200, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in main
+    dataset_encoded = preprocess_data(dataset)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 40, in preprocess_data
+    dataset_scaled = pd.DataFrame(scaler.fit_transform(dataset_imputed.select_dtypes(include=['float64', 'int64'])), columns=dataset_imputed.select_dtypes(include=['float64', 'int64']).columns)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 894, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 454, in fit
+    return self.partial_fit(X, y)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/preprocessing/_data.py", line 494, in partial_fit
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/utils/validation.py", line 929, in check_array
+    dtype_orig = np.result_type(*dtypes_orig)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: at least one array or dtype is required

@@ -1,0 +1,320 @@
+import pandas as pd
+
+# Load the train dataset
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Load the eval dataset
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# Display the first few rows of each dataset
+train_df_head = train_df.head()
+eval_df_head = eval_df.head()
+
+train_df_head, eval_df_head
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(   PassengerId  Survived  Pclass                               Name     Sex   Age  SibSp  Parch         Ticket      Fare Cabin Embarked
+ 0          409         0       3  Birkeland, Mr. Hans Martin Monsen    male  21.0      0      0         312992    7.7750   NaN        S
+ 1          481         0       3     Goodwin, Master. Harold Victor    male   9.0      5      2        CA 2144   46.9000   NaN        S
+ 2          511         1       3           Daly, Mr. Eugene Patrick    male  29.0      0      0         382651    7.7500   NaN        Q
+ 3          610         1       1          Shutes, Miss. Elizabeth W  female  40.0      0      0       PC 17582  153.4625  C125        S
+ 4          548         1       2         Padro y Manent, Mr. Julian    male   NaN      0      0  SC/PARIS 2146   13.8625   NaN        C,
+    PassengerId  Survived  Pclass                           Name     Sex   Age  SibSp  Parch        Ticket     Fare Cabin Embarked
+ 0          206         0       3     Strom, Miss. Telma Matilda  female   2.0      0      1        347054  10.4625    G6        S
+ 1           45         1       3  Devaney, Miss. Margaret Delia  female  19.0      0      0        330958   7.8792   NaN        Q
+ 2          822         1       3              Lulic, Mr. Nikola    male  27.0      0      0        315098   8.6625   NaN        S
+ 3          459         1       2            Toomey, Miss. Ellen  female  50.0      0      0  F.C.C. 13531  10.5000   NaN        S
+ 4          796         0       2             Otter, Mr. Richard    male  39.0      0      0         28213  13.0000   NaN        S)import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Summary statistics
+train_summary = train_df.describe()
+eval_summary = eval_df.describe()
+
+# Distribution of the target variable
+sns.countplot(x='Survived', data=train_df)
+plt.title('Distribution of Survival in Training Data')
+plt.show()
+
+sns.countplot(x='Survived', data=eval_df)
+plt.title('Distribution of Survival in Evaluation Data')
+plt.show()
+
+# Correlation matrix
+train_corr = train_df.corr()
+sns.heatmap(train_corr, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix of Training Data')
+plt.show()
+
+# Pairplot for numerical features
+sns.pairplot(train_df, hue='Survived')
+plt.title('Pairplot of Numerical Features in Training Data')
+plt.show()
+
+# Pairplot for numerical features in eval data
+sns.pairplot(eval_df, hue='Survived')
+plt.title('Pairplot of Numerical Features in Evaluation Data')
+plt.show()
+
+# Store the results
+train_summary, eval_summary, train_corr
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 19
+    train_corr = train_df.corr()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11049 in corr
+    mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:1993 in to_numpy
+    result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1694 in as_array
+    arr = self._interleave(dtype=dtype, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1753 in _interleave
+    result[rl.indexer] = arr
+
+ValueError: could not convert string to float: 'Birkeland, Mr. Hans Martin Monsen'
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Summary statistics
+train_summary = train_df.describe()
+eval_summary = eval_df.describe()
+
+# Distribution of the target variable
+sns.countplot(x='Survived', data=train_df)
+plt.title('Distribution of Survival in Training Data')
+plt.show()
+
+sns.countplot(x='Survived', data=eval_df)
+plt.title('Distribution of Survival in Evaluation Data')
+plt.show()
+
+# Select only numeric columns for correlation matrix
+numeric_columns = ['PassengerId', 'Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare']
+train_numeric = train_df[numeric_columns]
+eval_numeric = eval_df[numeric_columns]
+
+# Correlation matrix
+train_corr = train_numeric.corr()
+sns.heatmap(train_corr, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix of Training Data')
+plt.show()
+
+# Pairplot for numerical features
+sns.pairplot(train_numeric, hue='Survived')
+plt.title('Pairplot of Numerical Features in Training Data')
+plt.show()
+
+# Pairplot for numerical features in eval data
+sns.pairplot(eval_numeric, hue='Survived')
+plt.title('Pairplot of Numerical Features in Evaluation Data')
+plt.show()
+
+# Store the results
+train_summary, eval_summary, train_corr
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       PassengerId  Survived      Pclass         Age       SibSp    Parch       Fare
+ count   712.000000   712.000  712.000000  567.000000  712.000000  712.000  712.00000
+ mean    451.283708     0.375    2.286517   30.164462    0.533708    0.375   33.27181
+ ...            ...       ...         ...         ...         ...      ...        ...
+ 75%     677.250000     1.000    3.000000   39.000000    1.000000    0.000   31.27500
+ max     891.000000     1.000    3.000000   74.000000    8.000000    5.000  512.32920
+ 
+ [8 rows x 7 columns],
+        PassengerId    Survived      Pclass         Age       SibSp       Parch        Fare
+ count    179.00000  179.000000  179.000000  147.000000  179.000000  179.000000  179.000000
+ mean     424.98324    0.418994    2.396648   27.904218    0.480447    0.407821   27.957657
+ ...            ...         ...         ...         ...         ...         ...         ...
+ 75%      637.50000    1.000000    3.000000   35.000000    1.000000    1.000000   27.000000
+ max      890.00000    1.000000    3.000000   80.000000    8.000000    6.000000  247.520800
+ 
+ [8 rows x 7 columns],
+              PassengerId  Survived    Pclass       Age     SibSp     Parch      Fare
+ PassengerId     1.000000 -0.006590 -0.009775  0.036994 -0.042658 -0.003128  0.009199
+ Survived       -0.006590  1.000000 -0.341891 -0.073678 -0.017146  0.072944  0.265238
+ ...                  ...       ...       ...       ...       ...       ...       ...
+ Parch          -0.003128  0.072944  0.009470 -0.215383  0.446711  1.000000  0.226316
+ Fare            0.009199  0.265238 -0.540431  0.080200  0.157932  0.226316  1.000000
+ 
+ [7 rows x 7 columns])import pandas as pd
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+
+# Load the datasets
+train_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv')
+eval_df = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv')
+
+# Handle missing values
+train_df['Age'].fillna(train_df['Age'].median(), inplace=True)
+eval_df['Age'].fillna(eval_df['Age'].median(), inplace=True)
+
+train_df['Embarked'].fillna(train_df['Embarked'].mode()[0], inplace=True)
+eval_df['Embarked'].fillna(eval_df['Embarked'].mode()[0], inplace=True)
+
+train_df['Fare'].fillna(train_df['Fare'].median(), inplace=True)
+eval_df['Fare'].fillna(eval_df['Fare'].median(), inplace=True)
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['Sex'] = label_encoder.fit_transform(train_df['Sex'])
+eval_df['Sex'] = label_encoder.transform(eval_df['Sex'])
+
+train_df['Embarked'] = label_encoder.fit_transform(train_df['Embarked'])
+eval_df['Embarked'] = label_encoder.transform(eval_df['Embarked'])
+
+# Create new features
+train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+eval_df['FamilySize'] = eval_df['SibSp'] + eval_df['Parch'] + 1
+
+train_df['IsAlone'] = 1
+eval_df['IsAlone'] = 1
+train_df['IsAlone'].loc[train_df['FamilySize'] > 1] = 0
+eval_df['IsAlone'].loc[eval_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+eval_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Store the preprocessed datasets
+train_preprocessed = train_df
+eval_preprocessed = eval_df
+
+train_preprocessed, eval_preprocessed
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     PassengerId  Survived  Pclass  Sex   Age  SibSp  Parch    Fare  Embarked  FamilySize  IsAlone
+ 0            409         0       3    1  21.0      0      0   7.775         2           1        1
+ 1            481         0       3    1   9.0      5      2  46.900         2           8        0
+ ..           ...       ...     ...  ...   ...    ...    ...     ...       ...         ...      ...
+ 710          793         0       3    0  29.0      8      2  69.550         2          11        0
+ 711          521         1       1    0  30.0      0      0  93.500         2           1        1
+ 
+ [712 rows x 11 columns],
+      PassengerId  Survived  Pclass  Sex   Age  SibSp  Parch     Fare  Embarked  FamilySize  IsAlone
+ 0            206         0       3    0   2.0      0      1  10.4625         2           2        0
+ 1             45         1       3    0  19.0      0      0   7.8792         1           1        1
+ ..           ...       ...     ...  ...   ...    ...    ...      ...       ...         ...      ...
+ 177          784         0       3    1  27.0      1      2  23.4500         2           4        0
+ 178          853         0       3    0   9.0      1      1  15.2458         0           3        0
+ 
+ [179 rows x 11 columns])from sklearn.model_selection import train_test_split
+
+# Split the preprocessed train dataset into training and validation sets
+X = train_preprocessed.drop('Survived', axis=1)
+y = train_preprocessed['Survived']
+
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+X_train, X_val, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     PassengerId  Pclass  Sex   Age  SibSp  Parch     Fare  Embarked  FamilySize  IsAlone
+ 471          297       3    1  23.5      0      0   7.2292         0           1        1
+ 118          749       1    1  19.0      1      0  53.1000         2           2        0
+ ..           ...     ...  ...   ...    ...    ...      ...       ...         ...      ...
+ 120          641       3    1  20.0      0      0   7.8542         2           1        1
+ 228          336       3    1  29.0      0      0   7.8958         2           1        1
+ 
+ [569 rows x 10 columns],
+      PassengerId  Pclass  Sex   Age  SibSp  Parch      Fare  Embarked  FamilySize  IsAlone
+ 701          739       3    1  29.0      0      0    7.8958         2           1        1
+ 84           112       3    0  14.5      1      0   14.4542         0           2        0
+ ..           ...     ...  ...   ...    ...    ...       ...       ...         ...      ...
+ 235          717       1    0  38.0      0      0  227.5250         0           1        1
+ 642          348       3    0  29.0      1      0   16.1000         2           2        0
+ 
+ [143 rows x 10 columns],
+ 471    0
+ 118    0
+       ..
+ 120    0
+ 228    0
+ Name: Survived, Length: 569, dtype: int64,
+ 701    0
+ 84     0
+       ..
+ 235    1
+ 642    1
+ Name: Survived, Length: 143, dtype: int64)from sklearn.ensemble import RandomForestClassifier
+
+# Initialize the RandomForestClassifier with default parameters
+rf_classifier = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training data
+rf_classifier.fit(X_train, y_train)
+
+# Store the trained model
+rf_classifier, X_train, y_train, X_val, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+      PassengerId  Pclass  Sex   Age  SibSp  Parch     Fare  Embarked  FamilySize  IsAlone
+ 471          297       3    1  23.5      0      0   7.2292         0           1        1
+ 118          749       1    1  19.0      1      0  53.1000         2           2        0
+ ..           ...     ...  ...   ...    ...    ...      ...       ...         ...      ...
+ 120          641       3    1  20.0      0      0   7.8542         2           1        1
+ 228          336       3    1  29.0      0      0   7.8958         2           1        1
+ 
+ [569 rows x 10 columns],
+ 471    0
+ 118    0
+       ..
+ 120    0
+ 228    0
+ Name: Survived, Length: 569, dtype: int64,
+      PassengerId  Pclass  Sex   Age  SibSp  Parch      Fare  Embarked  FamilySize  IsAlone
+ 701          739       3    1  29.0      0      0    7.8958         2           1        1
+ 84           112       3    0  14.5      1      0   14.4542         0           2        0
+ ..           ...     ...  ...   ...    ...    ...       ...       ...         ...      ...
+ 235          717       1    0  38.0      0      0  227.5250         0           1        1
+ 642          348       3    0  29.0      1      0   16.1000         2           2        0
+ 
+ [143 rows x 10 columns],
+ 701    0
+ 84     0
+       ..
+ 235    1
+ 642    1
+ Name: Survived, Length: 143, dtype: int64)from sklearn.metrics import accuracy_score
+
+# Predict the target variable for the validation set
+y_val_pred = rf_classifier.predict(X_val)
+
+# Calculate the accuracy score
+accuracy = accuracy_score(y_val, y_val_pred)
+
+accuracy, y_val_pred, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8181818181818182,
+ array([0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
+        1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1,
+        1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1,
+        1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1], dtype=int64),
+ 701    0
+ 84     0
+       ..
+ 235    1
+ 642    1
+ Name: Survived, Length: 143, dtype: int64)

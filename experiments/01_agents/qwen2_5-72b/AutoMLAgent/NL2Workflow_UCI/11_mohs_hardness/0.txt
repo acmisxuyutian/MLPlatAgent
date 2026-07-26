@@ -1,0 +1,153 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.metrics import median_absolute_error
+from xgboost import XGBRegressor
+from scipy.stats import randint, uniform
+import joblib
+import logging
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Data retrieval and initial setup
+def load_data(data_path):
+    logging.info("Loading dataset...")
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"The dataset at path {data_path} does not exist.")
+    
+    data = pd.read_csv(data_path)
+    if 'mohs_hardness' not in data.columns:
+        raise ValueError("The dataset does not contain the 'mohs_hardness' column.")
+    
+    return data
+
+# Data preprocessing
+def preprocess_data(data):
+    logging.info("Preprocessing data...")
+    # Handle missing values
+    data.fillna(data.mean(), inplace=True)
+    
+    # Standardize features
+    scaler = StandardScaler()
+    features = data.drop(columns=['mohs_hardness'])
+    target = data['mohs_hardness']
+    features_scaled = scaler.fit_transform(features)
+    
+    # Encode categorical variables (if any)
+    features_encoded = pd.get_dummies(pd.DataFrame(features_scaled, columns=features.columns))
+    
+    return features_encoded, target, scaler
+
+# Data splitting
+def split_data(features, target):
+    logging.info("Splitting data...")
+    X_train, X_temp, y_train, y_temp = train_test_split(features, target, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model training and hyperparameter tuning
+def train_model(X_train, y_train):
+    logging.info("Training model...")
+    param_dist = {
+        'n_estimators': randint(100, 500),
+        'max_depth': randint(3, 7),
+        'learning_rate': uniform(0.01, 0.2),
+        'subsample': uniform(0.8, 0.2),
+        'colsample_bytree': uniform(0.8, 0.2)
+    }
+
+    xgb = XGBRegressor(random_state=SEED)
+    search = RandomizedSearchCV(xgb, param_distributions=param_dist, n_iter=100, cv=5, scoring='neg_median_absolute_error', random_state=SEED, n_jobs=-1)
+    search.fit(X_train, y_train)
+    best_model = search.best_estimator_
+    
+    return best_model
+
+# Model evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    logging.info("Evaluating model...")
+    y_val_pred = model.predict(X_val)
+    medae_val = median_absolute_error(y_val, y_val_pred)
+    logging.info(f'Validation MedAE: {medae_val}')
+    
+    y_test_pred = model.predict(X_test)
+    medae_test = median_absolute_error(y_test, y_test_pred)
+    logging.info(f'Test MedAE: {medae_test}')
+    
+    performance_scores = {
+        'Validation MedAE': medae_val,
+        'Test MedAE': medae_test
+    }
+    
+    return performance_scores
+
+# Model saving
+def save_model(model, model_path):
+    logging.info("Saving model...")
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# Inference pipeline
+def predict_mohs_hardness(model, scaler, new_data):
+    new_data_scaled = scaler.transform(new_data)
+    new_data_encoded = pd.get_dummies(pd.DataFrame(new_data_scaled, columns=new_data.columns))
+    prediction = model.predict(new_data_encoded)
+    return prediction
+
+# Main function to orchestrate the pipeline
+def main():
+    data_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    model_path = r'./agent_workspace/trained_models/mohs_hardness_model.pkl'
+    
+    # Step 1: Retrieve or load the dataset
+    data = load_data(data_path)
+    
+    # Step 2: Preprocess the data
+    features_encoded, target, scaler = preprocess_data(data)
+    
+    # Step 3: Split the data
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(features_encoded, target)
+    
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+    
+    # Step 5: Evaluate the model
+    performance_scores = evaluate_model(model, X_val, y_val, X_test, y_test)
+    
+    # Step 6: Save the model
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+2025-09-03 20:55:16,740 - INFO - Loading dataset...
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 136, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 116, in main
+    data = load_data(data_path)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 32, in load_data
+    raise ValueError("The dataset does not contain the 'mohs_hardness' column.")
+ValueError: The dataset does not contain the 'mohs_hardness' column.

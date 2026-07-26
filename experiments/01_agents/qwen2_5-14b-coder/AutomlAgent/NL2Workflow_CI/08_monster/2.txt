@@ -1,0 +1,238 @@
+######代码######
+
+import os
+import requests
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import SMOTE
+from torch.utils.data import DataLoader, TensorDataset
+import random
+import numpy as np
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the Dense Neural Network (DNN) model
+class DNN(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(DNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, num_classes)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Data retrieval
+def download_data(train_url, test_url, train_path, test_path):
+    if not os.path.exists(os.path.dirname(train_path)):
+        os.makedirs(os.path.dirname(train_path))
+
+    if not os.path.exists(os.path.dirname(test_path)):
+        os.makedirs(os.path.dirname(test_path))
+
+    with requests.get(train_url, stream=True) as r:
+        r.raise_for_status()
+        with open(train_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+    with requests.get(test_url, stream=True) as r:
+        r.raise_for_status()
+        with open(test_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_cols = train_df.select_dtypes(include=['object', 'category']).columns
+
+    num_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_cols] = num_imputer.fit_transform(train_df[numerical_cols])
+    test_df[numerical_cols] = num_imputer.transform(test_df[numerical_cols])
+
+    cat_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_cols] = cat_imputer.fit_transform(train_df[categorical_cols])
+    test_df[categorical_cols] = cat_imputer.transform(test_df[categorical_cols])
+
+    # Encode categorical variables
+    train_df = pd.get_dummies(train_df, columns=categorical_cols)
+    test_df = pd.get_dummies(test_df, columns=categorical_cols)
+
+    # Align columns between train and test sets
+    test_df = test_df.reindex(columns=train_df.columns, fill_value=0)
+
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    train_df[numerical_cols] = scaler.fit_transform(train_df[numerical_cols])
+    test_df[numerical_cols] = scaler.transform(test_df[numerical_cols])
+
+    # Data Augmentation (if necessary)
+    smote = SMOTE()
+    X_resampled, y_resampled = smote.fit_resample(train_df.drop('target', axis=1), train_df['target'])
+
+    # Feature Selection
+    rf = RandomForestClassifier()
+    rf.fit(X_resampled, y_resampled)
+    feature_importances = pd.Series(rf.feature_importances_, index=X_resampled.columns).sort_values(ascending=False)
+
+    # Select top features
+    selected_features = feature_importances.index[:10]  # Example: Select top 10 features
+    train_df_selected = train_df[selected_features + ['target']]
+    test_df_selected = test_df[selected_features]
+
+    return train_df_selected, test_df_selected
+
+def train_model(model, train_loader, valid_loader, num_epochs=100, patience=10):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    best_accuracy = 0
+    early_stopping_counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        accuracy = 100 * correct / total
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}, Accuracy: {accuracy:.2f}%')
+
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/best_model.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print("Early stopping triggered.")
+                break
+
+    return model
+
+def evaluate_model(model, test_loader):
+    model.load_state_dict(torch.load('./agent_workspace/trained_models/best_model.pth'))
+    model.eval()
+
+    predictions = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            predictions.extend(predicted.numpy())
+
+    y_true = test_loader.dataset.tensors[1].numpy()
+    performance_scores = {
+        'ACC': accuracy_score(y_true, predictions),
+        'F1': f1_score(y_true, predictions, average='weighted')
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_url = "https://example.com/monster_train.csv"
+    test_url = "https://example.com/monster_test.csv"
+    train_path = "./data/monster_train.csv"
+    test_path = "./data/monster_test.csv"
+
+    download_data(train_url, test_url, train_path, test_path)
+
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    train_df, valid_df = train_test_split(train_df, test_size=0.3, random_state=SEED)
+    valid_df, test_df = train_test_split(valid_df, test_size=0.33, random_state=SEED)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_df_selected, test_df_selected = preprocess_data(train_df, test_df)
+    valid_df_selected = train_df_selected.sample(frac=0.2, random_state=SEED)
+    train_df_selected = train_df_selected.drop(valid_df_selected.index)
+
+    # Convert DataFrames to PyTorch tensors
+    X_train = torch.tensor(train_df_selected.drop('target', axis=1).values, dtype=torch.float32)
+    y_train = torch.tensor(train_df_selected['target'].values, dtype=torch.long)
+    X_valid = torch.tensor(valid_df_selected.drop('target', axis=1).values, dtype=torch.float32)
+    y_valid = torch.tensor(valid_df_selected['target'].values, dtype=torch.long)
+    X_test = torch.tensor(test_df_selected.drop('target', axis=1).values, dtype=torch.float32)
+    y_test = torch.tensor(test_df_selected['target'].values, dtype=torch.long)
+
+    train_dataset = TensorDataset(X_train, y_train)
+    valid_dataset = TensorDataset(X_valid, y_valid)
+    test_dataset = TensorDataset(X_test, y_test)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train.shape[1]
+    num_classes = len(train_df_selected['target'].unique())
+    model = DNN(input_size, num_classes)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    model = train_model(model, train_loader, valid_loader)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 221, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 175, in main
+    download_data(train_url, test_url, train_path, test_path)
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 48, in download_data
+    r.raise_for_status()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://example.com/monster_train.csv

@@ -1,0 +1,508 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Summary statistics of the training dataset
+print("Training Data Summary Statistics:")
+print(train_df.describe())
+
+# Check for missing values in the training dataset
+print("Missing Values in Training Data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing Values in Evaluation Data:")
+print(eval_df.isnull().sum())
+
+
+执行结果：
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Summary Statistics:
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+Missing Values in Training Data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing Values in Evaluation Data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64
+
+生成的代码：
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Handle missing values
+imputer = SimpleImputer(strategy='median')
+
+# Identify numerical and categorical columns
+numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+
+# Impute missing values in LotFrontage
+train_df['LotFrontage'] = imputer.fit_transform(train_df[['LotFrontage']])
+eval_df['LotFrontage'] = imputer.transform(eval_df[['LotFrontage']])
+
+# Create preprocessing pipelines
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ])
+
+# Preprocess the training and evaluation datasets
+X_train = train_df.drop(columns=['Id', 'SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['Id', 'SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert to DataFrame for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=preprocessor.get_feature_names_out())
+
+# Display the first few rows of the preprocessed training dataset
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation dataset
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_2b06016484e229299854f08b5f79df781c06957d3a31711900c2ca2dfc21c90a.py", line 10, in <module>
+    numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Summary statistics of the training dataset
+print("Training Data Summary Statistics:")
+print(train_df.describe())
+
+# Check for missing values in the training dataset
+print("Missing Values in Training Data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing Values in Evaluation Data:")
+print(eval_df.isnull().sum())
+
+# Handle missing values
+imputer = SimpleImputer(strategy='median')
+
+# Identify numerical and categorical columns
+numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+
+# Impute missing values in LotFrontage
+train_df['LotFrontage'] = imputer.fit_transform(train_df[['LotFrontage']])
+eval_df['LotFrontage'] = imputer.transform(eval_df[['LotFrontage']])
+
+# Create preprocessing pipelines
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ])
+
+# Preprocess the training and evaluation datasets
+X_train = train_df.drop(columns=['Id', 'SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['Id', 'SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert to DataFrame for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=preprocessor.get_feature_names_out())
+
+# Display the first few rows of the preprocessed training dataset
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation dataset
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'Id'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 364, in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'Id'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_ecb90f1cf8a800bedce4cbbce3774a9e754627ed5bc56fd4f264a4d704571fed.py", line 69, in <module>
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 993, in fit_transform
+    self._validate_column_callables(X)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 552, in _validate_column_callables
+    transformer_to_input_indices[name] = _get_column_indices(X, columns)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 372, in _get_column_indices
+    raise ValueError("A given column is not a column of the dataframe") from e
+ValueError: A given column is not a column of the dataframe
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Summary Statistics:
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+Missing Values in Training Data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing Values in Evaluation Data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_train.csv'
+eval_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\05_house_prices\\split_eval.csv'
+
+train_df = pd.read_csv(train_path)
+eval_df = pd.read_csv(eval_path)
+
+# Display the first few rows of the training dataset
+print("Training Data:")
+print(train_df.head())
+
+# Display the first few rows of the evaluation dataset
+print("Evaluation Data:")
+print(eval_df.head())
+
+# Summary statistics of the training dataset
+print("Training Data Summary Statistics:")
+print(train_df.describe())
+
+# Check for missing values in the training dataset
+print("Missing Values in Training Data:")
+print(train_df.isnull().sum())
+
+# Check for missing values in the evaluation dataset
+print("Missing Values in Evaluation Data:")
+print(eval_df.isnull().sum())
+
+# Handle missing values
+imputer = SimpleImputer(strategy='median')
+
+# Identify numerical and categorical columns
+numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns.drop('Id')
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+
+# Impute missing values in LotFrontage
+train_df['LotFrontage'] = imputer.fit_transform(train_df[['LotFrontage']])
+eval_df['LotFrontage'] = imputer.transform(eval_df[['LotFrontage']])
+
+# Create preprocessing pipelines
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ])
+
+# Preprocess the training and evaluation datasets
+X_train = train_df.drop(columns=['Id', 'SalePrice'])
+y_train = train_df['SalePrice']
+X_eval = eval_df.drop(columns=['Id', 'SalePrice'])
+y_eval = eval_df['SalePrice']
+
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_eval_preprocessed = preprocessor.transform(X_eval)
+
+# Convert to DataFrame for easier handling
+X_train_preprocessed_df = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_eval_preprocessed_df = pd.DataFrame(X_eval_preprocessed, columns=preprocessor.get_feature_names_out())
+
+# Display the first few rows of the preprocessed training dataset
+print("Preprocessed Training Data:")
+print(X_train_preprocessed_df.head())
+
+# Display the first few rows of the preprocessed evaluation dataset
+print("Preprocessed Evaluation Data:")
+print(X_eval_preprocessed_df.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'SalePrice'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 364, in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'SalePrice'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_6178838ee7eb6982cf884d047a96b9cb9ada82758678f555d0ae13748e184455.py", line 69, in <module>
+    X_train_preprocessed = preprocessor.fit_transform(X_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 993, in fit_transform
+    self._validate_column_callables(X)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\compose\_column_transformer.py", line 552, in _validate_column_callables
+    transformer_to_input_indices[name] = _get_column_indices(X, columns)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_indexing.py", line 372, in _get_column_indices
+    raise ValueError("A given column is not a column of the dataframe") from e
+ValueError: A given column is not a column of the dataframe
+Training Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   134          20       RL  ...        WD         Normal    220000
+1   291          60       RL  ...       New        Partial    233230
+2    25          20       RL  ...        WD         Normal    154000
+3  1094          20       RL  ...        WD         Normal    146000
+4  1289         120       RL  ...        WD         Normal    278000
+
+[5 rows x 81 columns]
+Evaluation Data:
+     Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0  1437          20       RL  ...        WD         Normal    120500
+1    58          60       RL  ...        WD         Normal    196500
+2   781          20       RL  ...        WD         Normal    176000
+3   383          60       RL  ...        WD         Normal    213500
+4  1171          80       RL  ...        WD         Normal    171000
+
+[5 rows x 81 columns]
+Training Data Summary Statistics:
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+Missing Values in Training Data:
+Id                 0
+MSSubClass         0
+MSZoning           0
+LotFrontage      200
+LotArea            0
+                ... 
+MoSold             0
+YrSold             0
+SaleType           0
+SaleCondition      0
+SalePrice          0
+Length: 81, dtype: int64
+Missing Values in Evaluation Data:
+Id                0
+MSSubClass        0
+MSZoning          0
+LotFrontage      59
+LotArea           0
+                 ..
+MoSold            0
+YrSold            0
+SaleType          0
+SaleCondition     0
+SalePrice         0
+Length: 81, dtype: int64

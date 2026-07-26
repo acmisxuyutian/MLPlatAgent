@@ -1,0 +1,161 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Define the paths for the datasets
+train_csv_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv'
+test_csv_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv'
+
+# Define the path for saving the trained model
+model_save_path = './agent_workspace/trained_models/'
+
+# Step 1: Retrieve or load the dataset(s)
+def load_data():
+    train_df = pd.read_csv(train_csv_path)
+    test_df = pd.read_csv(test_csv_path)
+    return train_df, test_df
+
+# Step 2: Preprocess the retrieved dataset(s)
+def preprocess_data(train_df, test_df):
+    # Identify categorical features except 'Disease'
+    categorical_features = train_df.select_dtypes(include=['object']).columns.tolist()
+    if 'Disease' in categorical_features:
+        categorical_features.remove('Disease')
+    
+    # Apply one-hot encoding
+    train_encoded = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+    test_encoded = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+    
+    # Ensure consistency in one-hot encoding across both datasets
+    train_encoded = train_encoded.reindex(columns=test_encoded.columns, fill_value=0)
+    
+    return train_encoded, test_encoded
+
+# Step 3: Perform feature selection
+def feature_selection(train_encoded, test_encoded):
+    X_train = train_encoded.drop(columns=['outcome variable'])
+    y_train = train_encoded['outcome variable']
+    
+    selector = SelectKBest(score_func=mutual_info_classif, k=5)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    selected_features = X_train.columns[selector.get_support()]
+    
+    return selected_features, X_train_selected, test_encoded[selected_features]
+
+# Step 4: Train the models
+def train_models(train_encoded, selected_features, test_encoded):
+    # Model 1: Logistic Regression using all one-hot encoded features
+    model1 = LogisticRegression(max_iter=1000)
+    model1.fit(train_encoded.drop(columns=['outcome variable']), train_encoded['outcome variable'])
+    
+    # Model 2: Logistic Regression using only the top 5 selected features
+    model2 = LogisticRegression(max_iter=1000)
+    model2.fit(train_encoded[selected_features], train_encoded['outcome variable'])
+    
+    return model1, model2
+
+# Step 5: Evaluate the models
+def evaluate_models(model1, model2, train_encoded, selected_features, test_encoded):
+    # Evaluate Model 1
+    y_pred_model1 = model1.predict(test_encoded.drop(columns=['outcome variable']))
+    accuracy_model1 = accuracy_score(test_encoded['outcome variable'], y_pred_model1)
+    precision_model1 = precision_score(test_encoded['outcome variable'], y_pred_model1)
+    recall_model1 = recall_score(test_encoded['outcome variable'], y_pred_model1)
+    
+    # Evaluate Model 2
+    y_pred_model2 = model2.predict(test_encoded[selected_features])
+    accuracy_model2 = accuracy_score(test_encoded['outcome variable'], y_pred_model2)
+    precision_model2 = precision_score(test_encoded['outcome variable'], y_pred_model2)
+    recall_model2 = recall_score(test_encoded['outcome variable'], y_pred_model2)
+    
+    # Print performance metrics
+    print(f"Model 1 - Accuracy: {accuracy_model1}, Precision: {precision_model1}, Recall: {recall_model1}")
+    print(f"Model 2 - Accuracy: {accuracy_model2}, Precision: {precision_model2}, Recall: {recall_model2}")
+    
+    # Select the model based on predefined criteria
+    if accuracy_model1 >= 0.8 and precision_model1 >= 0.8 and recall_model1 >= 0.8:
+        selected_model = model1
+        selected_features = train_encoded.columns
+    elif accuracy_model2 >= 0.8 and precision_model2 >= 0.8 and recall_model2 >= 0.8:
+        selected_model = model2
+        selected_features = selected_features
+    else:
+        selected_model = None
+        selected_features = None
+    
+    return selected_model, selected_features
+
+# Step 6: Save the selected model and selected features
+def save_model(selected_model, selected_features):
+    if selected_model is not None:
+        joblib.dump(selected_model, os.path.join(model_save_path, 'selected_model.pkl'))
+        joblib.dump(selected_features, os.path.join(model_save_path, 'selected_features.pkl'))
+        print("Model and features saved successfully.")
+    else:
+        print("No model meets the performance criteria.")
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the datasets
+    train_df, test_df = load_data()
+    
+    # Step 2: Preprocess the datasets
+    train_encoded, test_encoded = preprocess_data(train_df, test_df)
+    
+    # Step 3: Perform feature selection
+    selected_features, X_train_selected, test_encoded_selected = feature_selection(train_encoded, test_encoded)
+    
+    # Step 4: Train the models
+    model1, model2 = train_models(train_encoded, selected_features, test_encoded)
+    
+    # Step 5: Evaluate the models
+    selected_model, selected_features = evaluate_models(model1, model2, train_encoded, selected_features, test_encoded)
+    
+    # Step 6: Save the selected model and features
+    save_model(selected_model, selected_features)
+
+if __name__ == "__main__":
+    main()
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 135, in <module>
+    main()
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 123, in main
+    selected_features, X_train_selected, test_encoded_selected = feature_selection(train_encoded, test_encoded)
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 53, in feature_selection
+    X_train = train_encoded.drop(columns=['outcome variable'])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['outcome variable'] not found in axis"

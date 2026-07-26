@@ -1,0 +1,199 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import xgboost as xgb
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Drop unnecessary columns
+    columns_to_drop = ['CustomerId', 'Complain', 'Surname']
+    train_df = train_df.drop(columns=columns_to_drop)
+    test_df = test_df.drop(columns=columns_to_drop)
+    
+    # One-hot encoding
+    train_df = pd.get_dummies(train_df, columns=['Geography', 'Card Type'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['Geography', 'Card Type'], drop_first=True)
+    
+    # Split the dataset into features and target
+    X_train = train_df.drop(columns=['Exited'])
+    y_train = train_df['Exited']
+    X_val = test_df.drop(columns=['Exited'])
+    y_val = test_df['Exited']
+    
+    return X_train, y_train, X_val, y_val
+
+def train_model(X_train, y_train):
+    # Define the parameter grid
+    param_grid = {
+        'learning_rate': [0.1],
+        'max_depth': [6],
+        'n_estimators': [100]
+    }
+
+    # Initialize the XGBoost classifier
+    xgb_clf = xgb.XGBClassifier(use_label_encoder=False, eval_metric='auc', enable_categorical=True)
+
+    # Initialize GridSearchCV
+    grid_search = GridSearchCV(estimator=xgb_clf, param_grid=param_grid, cv=3, scoring='roc_auc', verbose=1, n_jobs=-1)
+
+    # Fit the grid search
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_model = grid_search.best_estimator_
+    
+    return best_model
+
+def evaluate_model(model, X_val, y_val):
+    # Predict probabilities
+    y_pred_proba = model.predict_proba(X_val)[:, 1]
+
+    # Compute AUC-ROC score
+    auc_roc = roc_auc_score(y_val, y_pred_proba)
+    
+    # Predict classes
+    y_pred = model.predict(X_val)
+    
+    # Compute accuracy and F1 score
+    accuracy = accuracy_score(y_val, y_pred)
+    f1 = f1_score(y_val, y_pred)
+    
+    performance_scores = {
+        'ACC': accuracy,
+        'F1': f1,
+        'AUC-ROC': auc_roc
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/01_bank_customer_churn/test.csv'
+    
+    train_df = pd.read_csv(train_data_path)
+    test_df = pd.read_csv(test_data_path)
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train, y_train, X_val, y_val = preprocess_data(train_df, test_df)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # This is already done in the preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val)
+    
+    # Step 7. Save the trained model
+    model_path = './agent_workspace/trained_models/xgboost_churn_model.pkl'
+    joblib.dump(model, model_path)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 117, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 102, in main
+    model = train_model(X_train, y_train)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 51, in train_model
+    grid_search.fit(X_train, y_train)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/model_selection/_search.py", line 1051, in fit
+    self._run_search(evaluate_candidates)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/model_selection/_search.py", line 1605, in _run_search
+    evaluate_candidates(ParameterGrid(self.param_grid))
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/model_selection/_search.py", line 1028, in evaluate_candidates
+    _warn_or_raise_about_fit_failures(out, self.error_score)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/model_selection/_validation.py", line 505, in _warn_or_raise_about_fit_failures
+    raise ValueError(all_fits_failed_message)
+ValueError: 
+All the 3 fits failed.
+It is very likely that your model is misconfigured.
+You can try to debug the error by setting error_score='raise'.
+
+Below are more details about the failures:
+--------------------------------------------------------------------------------
+3 fits failed with the following error:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/sklearn/model_selection/_validation.py", line 859, in _fit_and_score
+    estimator.fit(X_train, y_train, **fit_params)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 730, in inner_f
+    return func(**kwargs)
+           ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/sklearn.py", line 1500, in fit
+    train_dmatrix, evals = _wrap_evaluation_matrices(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/sklearn.py", line 521, in _wrap_evaluation_matrices
+    train_dmatrix = create_dmatrix(
+                    ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/sklearn.py", line 958, in _create_dmatrix
+    return QuantileDMatrix(
+           ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 730, in inner_f
+    return func(**kwargs)
+           ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 1529, in __init__
+    self._init(
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 1588, in _init
+    it.reraise()
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 576, in reraise
+    raise exc  # pylint: disable=raising-bad-type
+    ^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 557, in _handle_exception
+    return fn()
+           ^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 641, in <lambda>
+    return self._handle_exception(lambda: self.next(input_data), 0)
+                                          ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 1280, in next
+    input_data(**self.kwargs)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 730, in inner_f
+    return func(**kwargs)
+           ^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/core.py", line 624, in input_data
+    new, cat_codes, feature_names, feature_types = _proxy_transform(
+                                                   ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 1315, in _proxy_transform
+    arr, feature_names, feature_types = _transform_pandas_df(
+                                        ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 490, in _transform_pandas_df
+    _invalid_dataframe_dtype(data)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/xgboost/data.py", line 308, in _invalid_dataframe_dtype
+    raise ValueError(msg)
+ValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, The experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:Gender: object
+

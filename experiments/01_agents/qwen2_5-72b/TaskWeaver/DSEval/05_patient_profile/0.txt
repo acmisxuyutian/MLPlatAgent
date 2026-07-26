@@ -1,0 +1,162 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Load the test dataset
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv'
+test_df = pd.read_csv(test_data_path)
+
+# Display the top 5 rows of each dataset
+train_df.head(), test_df.head()
+
+# Result variables
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                       Disease Fever Cough Fatigue Difficulty Breathing  Age  Gender Blood Pressure Cholesterol Level Outcome Variable
+ 0                  Ebola Virus   Yes   Yes     Yes                  Yes   50    Male         Normal            Normal         Positive
+ 1    Conjunctivitis (Pink Eye)    No   Yes      No                   No   35  Female           High              High         Positive
+ ..                         ...   ...   ...     ...                  ...  ...     ...            ...               ...              ...
+ 277              Typhoid Fever    No   Yes      No                   No   55    Male         Normal               Low         Positive
+ 278               Liver Cancer   Yes   Yes      No                   No   38  Female           High            Normal         Negative
+ 
+ [279 rows x 10 columns],
+                Disease Fever Cough Fatigue Difficulty Breathing  Age  Gender Blood Pressure Cholesterol Level Outcome Variable
+ 0       Hypothyroidism   Yes   Yes     Yes                   No   42  Female           High              High         Positive
+ 1          Tonsillitis   Yes   Yes     Yes                   No   70  Female           High              High         Positive
+ ..                 ...   ...   ...     ...                  ...  ...     ...            ...               ...              ...
+ 68  Sickle Cell Anemia    No    No     Yes                   No   45  Female         Normal            Normal         Positive
+ 69              Stroke   Yes   Yes     Yes                   No   65  Female           High              High         Positive
+ 
+ [70 rows x 10 columns])import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_selection import SelectKBest, chi2
+
+# One-hot encode categorical features (except 'Disease')
+categorical_features = ['Fever', 'Cough', 'Fatigue', 'Difficulty Breathing', 'Gender', 'Blood Pressure', 'Cholesterol Level']
+
+# One-hot encode the training data
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[categorical_features])
+encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+
+# Combine the encoded features with the remaining numerical features
+train_df_encoded = pd.concat([train_df.drop(columns=categorical_features), encoded_train_df], axis=1)
+
+# One-hot encode the test data
+encoded_test = encoder.transform(test_df[categorical_features])
+encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+
+# Combine the encoded features with the remaining numerical features
+test_df_encoded = pd.concat([test_df.drop(columns=categorical_features), encoded_test_df], axis=1)
+
+# Feature selection: Select the most important 5 features
+X_train = train_df_encoded.drop(columns=['Disease', 'Outcome Variable'])
+y_train = train_df_encoded['Outcome Variable']
+
+selector = SelectKBest(score_func=chi2, k=5)
+selector.fit(X_train, y_train)
+selected_features = X_train.columns[selector.get_support()]
+
+# Result variables
+train_df_encoded, test_df_encoded, selected_features
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(                       Disease  Age Outcome Variable  Fever_No  Fever_Yes  Cough_No  Cough_Yes  Fatigue_No  Fatigue_Yes  Difficulty Breathing_No  Difficulty Breathing_Yes  Gender_Female  Gender_Male  Blood Pressure_High  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_High  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0                  Ebola Virus   50         Positive       0.0        1.0       0.0        1.0         0.0          1.0                      0.0                       1.0            0.0          1.0                  0.0                 0.0                    1.0                     0.0                    0.0                       1.0
+ 1    Conjunctivitis (Pink Eye)   35         Positive       1.0        0.0       0.0        1.0         1.0          0.0                      1.0                       0.0            1.0          0.0                  1.0                 0.0                    0.0                     1.0                    0.0                       0.0
+ ..                         ...  ...              ...       ...        ...       ...        ...         ...          ...                      ...                       ...            ...          ...                  ...                 ...                    ...                     ...                    ...                       ...
+ 277              Typhoid Fever   55         Positive       1.0        0.0       0.0        1.0         1.0          0.0                      1.0                       0.0            0.0          1.0                  0.0                 0.0                    1.0                     0.0                    1.0                       0.0
+ 278               Liver Cancer   38         Negative       0.0        1.0       0.0        1.0         1.0          0.0                      1.0                       0.0            1.0          0.0                  1.0                 0.0                    0.0                     0.0                    0.0                       1.0
+ 
+ [279 rows x 19 columns],
+                Disease  Age Outcome Variable  Fever_No  Fever_Yes  Cough_No  Cough_Yes  Fatigue_No  Fatigue_Yes  Difficulty Breathing_No  Difficulty Breathing_Yes  Gender_Female  Gender_Male  Blood Pressure_High  Blood Pressure_Low  Blood Pressure_Normal  Cholesterol Level_High  Cholesterol Level_Low  Cholesterol Level_Normal
+ 0       Hypothyroidism   42         Positive       0.0        1.0       0.0        1.0         0.0          1.0                      1.0                       0.0            1.0          0.0                  1.0                 0.0                    0.0                     1.0                    0.0                       0.0
+ 1          Tonsillitis   70         Positive       0.0        1.0       0.0        1.0         0.0          1.0                      1.0                       0.0            1.0          0.0                  1.0                 0.0                    0.0                     1.0                    0.0                       0.0
+ ..                 ...  ...              ...       ...        ...       ...        ...         ...          ...                      ...                       ...            ...          ...                  ...                 ...                    ...                     ...                    ...                       ...
+ 68  Sickle Cell Anemia   45         Positive       1.0        0.0       1.0        0.0         0.0          1.0                      1.0                       0.0            1.0          0.0                  0.0                 0.0                    1.0                     0.0                    0.0                       1.0
+ 69              Stroke   65         Positive       0.0        1.0       0.0        1.0         0.0          1.0                      1.0                       0.0            1.0          0.0                  1.0                 0.0                    0.0                     1.0                    0.0                       0.0
+ 
+ [70 rows x 19 columns],
+ Index(['Blood Pressure_High', 'Blood Pressure_Low', 'Cholesterol Level_High',
+        'Cholesterol Level_Low', 'Cholesterol Level_Normal'],
+       dtype='object'))import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+
+# Load the training and test datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv'
+
+# Load the datasets
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# One-hot encode categorical features (except 'Disease')
+categorical_features = ['Fever', 'Cough', 'Fatigue', 'Difficulty Breathing', 'Gender', 'Blood Pressure', 'Cholesterol Level']
+
+# One-hot encode the training data
+encoder = OneHotEncoder()
+encoded_train = encoder.fit_transform(train_df[categorical_features])
+encoded_train_df = pd.DataFrame(encoded_train.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+
+# Combine the encoded features with the remaining numerical features
+train_df_encoded = pd.concat([train_df.drop(columns=categorical_features), encoded_train_df], axis=1)
+
+# One-hot encode the test data
+encoded_test = encoder.transform(test_df[categorical_features])
+encoded_test_df = pd.DataFrame(encoded_test.toarray(), columns=encoder.get_feature_names_out(categorical_features))
+
+# Combine the encoded features with the remaining numerical features
+test_df_encoded = pd.concat([test_df.drop(columns=categorical_features), encoded_test_df], axis=1)
+
+# Feature selection: Select the most important 5 features
+X_train_all = train_df_encoded.drop(columns=['Disease', 'Outcome Variable'])
+y_train = train_df_encoded['Outcome Variable']
+
+selector = SelectKBest(score_func=chi2, k=5)
+selector.fit(X_train_all, y_train)
+selected_features = X_train_all.columns[selector.get_support()]
+
+# Build logistic regression model1 using all one-hot encoded features
+model1 = LogisticRegression()
+model1.fit(X_train_all, y_train)
+
+# Build logistic regression model2 using only the most important 5 features
+X_train_selected = train_df_encoded[selected_features]
+model2 = LogisticRegression()
+model2.fit(X_train_selected, y_train)
+
+# Prepare the test data
+X_test_all = test_df_encoded.drop(columns=['Disease', 'Outcome Variable'])
+X_test_selected = test_df_encoded[selected_features]
+y_test = test_df_encoded['Outcome Variable']
+
+# Evaluate the performance of model1 on the test set
+y_pred1 = model1.predict(X_test_all)
+accuracy1 = accuracy_score(y_test, y_pred1)
+report1 = classification_report(y_test, y_pred1)
+
+# Evaluate the performance of model2 on the test set
+y_pred2 = model2.predict(X_test_selected)
+accuracy2 = accuracy_score(y_test, y_pred2)
+report2 = classification_report(y_test, y_pred2)
+
+# Result variables
+model1, model2, accuracy1, accuracy2, report1, report2, selected_features
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LogisticRegression(),
+ LogisticRegression(),
+ 0.5714285714285714,
+ 0.6142857142857143,
+ '              precision    recall  f1-score   support\n\n    Negative       0.50      0.53      0.52        30\n    Positive       0.63      0.60      0.62        40\n\n    accuracy                           0.57        70\n   macro avg       0.57      0.57      0.57        70\nweighted avg       0.58      0.57      0.57        70\n',
+ '              precision    recall  f1-score   support\n\n    Negative       0.54      0.67      0.60        30\n    Positive       0.70      0.57      0.63        40\n\n    accuracy                           0.61        70\n   macro avg       0.62      0.62      0.61        70\nweighted avg       0.63      0.61      0.62        70\n',
+ Index(['Blood Pressure_High', 'Blood Pressure_Low', 'Cholesterol Level_High',
+        'Cholesterol Level_Low', 'Cholesterol Level_Normal'],
+       dtype='object'))

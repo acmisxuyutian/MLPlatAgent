@@ -1,0 +1,129 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.linear_model import Ridge
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and preparation
+def preprocess_data(train_path, test_path):
+    # Load datasets
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    # Exclude unnecessary columns
+    train_df.drop(columns=['Entity', 'Year'], errors='ignore', inplace=True)
+    test_df.drop(columns=['Entity', 'Year'], errors='ignore', inplace=True)
+
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    train_df_imputed = pd.DataFrame(imputer.fit_transform(train_df.select_dtypes(include=[np.number])), columns=train_df.select_dtypes(include=[np.number]).columns)
+    test_df_imputed = pd.DataFrame(imputer.transform(test_df.select_dtypes(include=[np.number])), columns=test_df.select_dtypes(include=[np.number]).columns)
+
+    # Encode categorical variables
+    categorical_features = train_df.select_dtypes(include=['object']).columns
+    encoder = OneHotEncoder(drop='first')
+    encoded_train = pd.DataFrame(encoder.fit_transform(train_df[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+    encoded_test = pd.DataFrame(encoder.transform(test_df[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+
+    train_df_encoded = pd.concat([train_df_imputed, encoded_train], axis=1)
+    test_df_encoded = pd.concat([test_df_imputed, encoded_test], axis=1)
+
+    # Scale numerical features
+    numerical_features = train_df_encoded.select_dtypes(include=[np.number]).columns
+    scaler = StandardScaler()
+    scaled_train = pd.DataFrame(scaler.fit_transform(train_df_encoded[numerical_features]), columns=numerical_features)
+    scaled_test = pd.DataFrame(scaler.transform(test_df_encoded[numerical_features]), columns=numerical_features)
+
+    train_df_scaled = pd.concat([scaled_train, train_df_encoded.drop(columns=numerical_features)], axis=1)
+    test_df_scaled = pd.concat([scaled_test, test_df_encoded.drop(columns=numerical_features)], axis=1)
+
+    return train_df_scaled, test_df_scaled
+
+def train_model(train_df, val_df):
+    X_train = train_df.drop(columns=['Renewable energy share in the total final energy consumption (%)'])
+    y_train = train_df['Renewable energy share in the total final energy consumption (%)']
+    X_val = val_df.drop(columns=['Renewable energy share in the total final energy consumption (%)'])
+    y_val = val_df['Renewable energy share in the total final energy consumption (%)']
+
+    # Initialize Ridge Regression model
+    ridge = Ridge()
+
+    # Hyperparameter tuning
+    param_grid = {'alpha': [0.01, 0.1, 1.0, 10.0]}
+    grid_search = GridSearchCV(ridge, param_grid, cv=5, scoring='neg_mean_squared_error')
+    grid_search.fit(X_train, y_train)
+
+    best_ridge = grid_search.best_estimator_
+
+    return best_ridge, X_val, y_val
+
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    rmse_val = mean_squared_error(y_val, y_val_pred, squared=False)
+    performance_scores = {
+        'RMSE': rmse_val
+    }
+    return performance_scores
+
+def main():
+    # Step 1: Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/07_sustainable_energy/test.csv'
+
+    # Step 2: Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    train_df, test_df = preprocess_data(train_path, test_path)
+    X_train, X_val, y_train, y_val = train_test_split(train_df.drop(columns=['Renewable energy share in the total final energy consumption (%)']),
+                                                    train_df['Renewable energy share in the total final energy consumption (%)'],
+                                                    test_size=0.2, random_state=SEED)
+
+    # Step 3: With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    train_df = pd.concat([X_train, y_train], axis=1)
+    val_df = pd.concat([X_val, y_val], axis=1)
+
+    # Step 4: Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model, X_val, y_val = train_model(train_df, val_df)
+
+    # Step 5: train the retrieved/loaded model using the defined "train_model" function
+    # Step 6: evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_val, y_val)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 105, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 85, in main
+    train_df, test_df = preprocess_data(train_path, test_path)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 36, in preprocess_data
+    encoded_train = pd.DataFrame(encoder.fit_transform(train_df[categorical_features]), columns=encoder.get_feature_names_out(categorical_features))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 867, in __init__
+    mgr = ndarray_to_mgr(
+          ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/construction.py", line 336, in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/construction.py", line 420, in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+ValueError: Shape of passed values is (2919, 1), indices imply (2919, 124)

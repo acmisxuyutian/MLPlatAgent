@@ -1,0 +1,214 @@
+import pandas as pd
+
+# Load the training dataset
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Display the first few rows of the dataframe
+display(train_df.head())
+
+# Result variables
+train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+            id  age  height  weight  waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride  HDL  LDL  hemoglobin  Urine_protein  serum_creatinine  AST  ALT  Gtp  dental_caries  smoking
+0        60700   40     150      50   80.0            0.5             0.5             1              1       120          78                  102          179            48   60  109        11.8              1               0.6   14   11    9              0        0
+1        44065   65     150      50   69.0            0.7             1.0             1              1       139          89                  243          210            98   67  122        16.3              1               0.6   17   24   25              0        0
+...        ...  ...     ...     ...    ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...  ...  ...         ...            ...               ...  ...  ...  ...            ...      ...
+127402  146867   60     170      85   97.0            1.2             1.5             1              1       135          81                   87          175            86   42  116        15.0              1               1.0   33   53   40              0        0
+127403  121958   40     175      85   88.0            1.2             1.0             1              1       100          70                  112          295           184   51  209        15.2              1               0.9   17   13   55              0        1
+
+[127404 rows x 24 columns]import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+
+# Load the training dataset (already loaded in the previous step)
+train_df = train_df
+
+# Check for missing values
+missing_values = train_df.isnull().sum()
+
+# Handle missing values - Impute numerical columns with median and categorical with mode
+imputer_num = SimpleImputer(strategy='median')
+imputer_cat = SimpleImputer(strategy='most_frequent')
+
+# Apply imputation
+numerical_features = train_df.select_dtypes(include=[np.number]).columns
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns
+
+train_df[numerical_features] = imputer_num.fit_transform(train_df[numerical_features])
+train_df[categorical_features] = imputer_cat.fit_transform(train_df[categorical_features])
+
+# Identify and handle outliers (anomalies) in the numerical features
+for feature in numerical_features:
+    q1 = train_df[feature].quantile(0.25)
+    q3 = train_df[feature].quantile(0.75)
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    train_df[feature] = np.where(train_df[feature] < lower_bound, lower_bound, train_df[feature])
+    train_df[feature] = np.where(train_df[feature] > upper_bound, upper_bound, train_df[feature])
+
+# Select relevant features
+features = [col for col in train_df.columns if col != 'smoking']
+X = train_df[features]
+y = train_df['smoking']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+
+# Result variables
+X_train_scaled, X_val_scaled, y_train, y_val
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 21
+    train_df[categorical_features] = imputer_cat.fit_transform(train_df[categorical_features])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:434 in fit
+    X = self._validate_input(X, in_fit=True)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:363 in _validate_input
+    raise ve
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\impute\_base.py:344 in _validate_input
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:931 in check_array
+    dtype_orig = np.result_type(*dt
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# Load the training dataset (already loaded in the previous step)
+train_df = train_df
+
+# Check for missing values
+missing_values = train_df.isnull().sum()
+
+# Handle missing values - Impute numerical columns with median and categorical with mode
+imputer_num = SimpleImputer(strategy='median')
+imputer_cat = SimpleImputer(strategy='most_frequent')
+
+# Apply imputation
+numerical_features = train_df.select_dtypes(include=[np.number]).columns
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns
+
+if len(numerical_features) > 0:
+    train_df[numerical_features] = imputer_num.fit_transform(train_df[numerical_features])
+
+if len(categorical_features) > 0:
+    train_df[categorical_features] = imputer_cat.fit_transform(train_df[categorical_features].values.reshape(-1, 1))
+else:
+    # No categorical features, do nothing
+    pass
+
+# Identify and handle outliers (anomalies) in the numerical features
+for feature in numerical_features:
+    q1 = train_df[feature].quantile(0.25)
+    q3 = train_df[feature].quantile(0.75)
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    train_df[feature] = np.where(train_df[feature] < lower_bound, lower_bound, train_df[feature])
+    train_df[feature] = np.where(train_df[feature] > upper_bound, upper_bound, train_df[feature])
+
+# Select relevant features
+features = [col for col in train_df.columns if col != 'smoking']
+X = train_df[features]
+y = train_df['smoking']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+
+# Result variables
+X_train_scaled, X_val_scaled, y_train, y_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.33944093, -0.36187651, -0.59993964, ..., -1.18306801,
+         -0.82941123,  0.        ],
+        [-1.00857494, -0.36187651,  1.10653492, ...,  0.74308127,
+          0.41045817,  0.        ],
+        [-1.61513386, -1.21064516,  2.24418463, ...,  0.34180017,
+         -0.6806269 ,  0.        ],
+        ...,
+        [-1.51297931,  0.48689215,  0.53771007, ..., -0.46076203,
+          0.50964772,  0.        ],
+        [-1.08293041, -0.78626083,  0.53771007, ...,  0.74308127,
+          0.06329473,  0.        ],
+        [ 0.21432365, -0.36187651, -0.59993964, ..., -1.50409289,
+         -1.22616944,  0.        ]]),
+ array([[-1.67731772, -0.36187651,  0.53771007, ...,  0.98384993,
+         -0.58143735,  0.        ],
+        [-0.19105602,  1.33566081, -0.59993964, ..., -1.10281179,
+         -0.18467915,  0.        ],
+        [-0.55848636,  1.33566081, -0.03111479, ...,  2.10743701,
+          1.15437981,  0.        ],
+        ...,
+        [ 0.8201001 ,  1.33566081,  0.53771007, ...,  0.42205639,
+          0.65843205,  0.        ],
+        [-1.47003093, -0.36187651,  0.53771007, ...,  0.02077529,
+         -0.38305825,  0.        ],
+        [-1.56483904,  1.33566081, -1.73758935, ..., -0.46076203,
+         -1.02779034,  0.        ]]),
+ 83549     0.0
+ 29166     1.0
+          ... 
+ 15795     1.0
+ 121958    0.0
+ Name: smoking, Length: 101923, dtype: float64,
+ 85446    1.0
+ 96697    1.0
+         ... 
+ 26938    1.0
+ 14194    0.0
+ Name: smoking, Length: 25481, dtype: float64)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Initialize the model
+model = RandomForestClassifier(random_state=42)
+
+# Train the model
+model.fit(X_train_scaled, y_train)
+
+# Predict probabilities on the validation set
+y_val_pred_proba = model.predict_proba(X_val_scaled)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc_val = roc_auc_score(y_val, y_val_pred_proba)
+
+# Result variables
+model, auc_roc_val
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42), 0.849910139008071)

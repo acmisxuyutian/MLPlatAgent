@@ -1,0 +1,213 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
+from pytorch_tabnet.tab_model import TabNetRegressor
+from sklearn.metrics import mean_absolute_error
+import torch
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data Retrieval
+def retrieve_data():
+    source_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+    destination_path = 'data/crab_age_train.csv'
+    
+    # Create the destination directory if it doesn't exist
+    os.makedirs('data', exist_ok=True)
+    
+    # Copy the dataset to the destination path
+    os.system(f'cp {source_path} {destination_path}')
+    
+    # Load the dataset into a DataFrame
+    df = pd.read_csv(destination_path)
+    
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Inspect the first few rows
+    print(df.head())
+    
+    # Check for missing values
+    print(df.isnull().sum())
+    
+    # Verify data types
+    print(df.dtypes)
+    
+    # Identify numerical and categorical features
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
+    
+    # Impute missing values for numerical features
+    numerical_imputer = SimpleImputer(strategy='mean')
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+    
+    # Impute missing values for categorical features
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # One-hot encode categorical features
+    df = pd.get_dummies(df, columns=categorical_features)
+    
+    # Create domain-specific features
+    if 'shell_size' in df.columns and 'weight' in df.columns:
+        df['shell_size_to_weight_ratio'] = df['shell_size'] / df['weight']
+    
+    return df
+
+# Data Augmentation
+def augment_data(df):
+    # Ensure 'age' is present in the dataset
+    if 'age' in df.columns:
+        # Generate synthetic data
+        smote = SMOTE()
+        X_resampled, y_resampled = smote.fit_resample(df.drop(columns=['age']), df['age'])
+        
+        # Combine the original and synthetic data
+        df_augmented = pd.concat([df, pd.DataFrame(X_resampled, columns=df.drop(columns=['age']).columns)], axis=0)
+        df_augmented['age'] = pd.concat([df['age'], pd.Series(y_resampled)], axis=0)
+    else:
+        print("The target variable 'age' is not found in the dataset.")
+        return df  # Return the original dataframe if 'age' is not found
+    
+    # Add random noise to numerical features
+    numerical_features = df_augmented.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    df_augmented[numerical_features] += np.random.randn(*df_augmented[numerical_features].shape) * 0.01
+    
+    return df_augmented
+
+# Model Training
+def train_model(X_train, y_train, X_val, y_val):
+    # Define the TabNet model
+    model = TabNetRegressor(
+        n_d=64,  # Number of features in the decision step
+        n_a=64,  # Number of features in the attention step
+        n_steps=5,  # Number of decision steps
+        gamma=1.5,  # Sparsity coefficient
+        lambda_sparse=0.0001,  # Sparsity regularization
+        optimizer_fn=torch.optim.Adam,  # Optimizer
+        optimizer_params=dict(lr=2e-2),  # Learning rate
+        mask_type='entmax'  # Mask type
+    )
+    
+    # Train the model
+    model.fit(
+        X_train=X_train, y_train=y_train,
+        eval_set=[(X_train, y_train), (X_val, y_val)],
+        eval_name=['train', 'valid'],
+        eval_metric=['mae'],
+        max_epochs=100,
+        patience=20,
+        batch_size=32,
+        virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False
+    )
+    
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    # Evaluate the model on the test set
+    y_pred = model.predict(X_test)
+    test_mae = mean_absolute_error(y_test, y_pred)
+    print(f'Test MAE: {test_mae}')
+    
+    # Return performance scores
+    performance_scores = {
+        'MAE': test_mae
+    }
+    
+    return performance_scores
+
+# Main function to orchestrate the entire pipeline
+def main():
+    # Step 1: Retrieve or load the dataset
+    df = retrieve_data()
+    
+    # Step 2: Preprocess the data
+    df = preprocess_data(df)
+    
+    # Step 3: Augment the data
+    df = augment_data(df)
+    
+    # Step 4: Split the dataset into train, validation, and test sets
+    if 'age' in df.columns:
+        X = df.drop(columns=['age'])
+        y = df['age']
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+    else:
+        print("The target variable 'age' is not found in the dataset.")
+        return
+    
+    # Step 5: Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+    
+    # Step 6: Evaluate the model
+    performance_scores = evaluate_model(model, X_test, y_test)
+    
+    # Step 7: Save the trained model
+    MODEL_DIR = "./agent_workspace/trained_models"
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    model.save_model(os.path.join(MODEL_DIR, 'tabnet_regressor_model'))
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+      id Sex  Length  ...  Viscera_Weight  Shell_Weight  Age
+0  20612   M  1.6125  ...        6.265239      7.059025    9
+1   2935   F  1.5250  ...        7.002326      8.930093   10
+2  73847   M  1.5000  ...        6.166016      8.079607   12
+3  46445   M  1.1250  ...        2.891649      3.685435   10
+4  66755   I  0.8625  ...        0.737087      1.275727    6
+
+[5 rows x 10 columns]
+id                0
+Sex               0
+Length            0
+Diameter          0
+Height            0
+Weight            0
+Shucked_Weight    0
+Viscera_Weight    0
+Shell_Weight      0
+Age               0
+dtype: int64
+id                  int64
+Sex                object
+Length            float64
+Diameter          float64
+Height            float64
+Weight            float64
+Shucked_Weight    float64
+Viscera_Weight    float64
+Shell_Weight      float64
+Age                 int64
+dtype: object
+The target variable 'age' is not found in the dataset.
+The target variable 'age' is not found in the dataset.
+Model Performance on Test Set: None

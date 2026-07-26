@@ -1,0 +1,189 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set random seeds for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Identify numerical and categorical features
+    numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
+    
+    # Handle missing values
+    imputer = SimpleImputer(strategy='mean')
+    df[numerical_features] = imputer.fit_transform(df[numerical_features])
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    
+    # Encode categorical features
+    label_encoder = LabelEncoder()
+    df['obesity_risk_level'] = label_encoder.fit_transform(df['obesity_risk_level'])
+    
+    # Feature engineering
+    df['interaction_feature'] = df['feature1'] * df['feature2']
+    
+    # Feature selection
+    X = df.drop('obesity_risk_level', axis=1)
+    y = df['obesity_risk_level']
+    selector = RFE(LogisticRegression(), n_features_to_select=10)
+    X_selected = selector.fit_transform(X, y)
+    
+    return X_selected, y, label_encoder
+
+def train_model(model, train_loader, valid_loader, epochs=50, lr=0.001):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        
+        model.eval()
+        valid_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                valid_loss += loss.item()
+        
+        print(f'Epoch {epoch+1}/{epochs}, Train Loss: {running_loss/len(train_loader)}, Valid Loss: {valid_loss/len(valid_loader)}')
+    
+    return model
+
+def evaluate_model(model, test_loader, label_encoder):
+    model.eval()
+    y_true = []
+    y_pred = []
+    
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            y_true.extend(labels.numpy())
+            y_pred.extend(predicted.numpy())
+    
+    y_true = label_encoder.inverse_transform(y_true)
+    y_pred = label_encoder.inverse_transform(y_pred)
+    
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred, average='weighted')
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset_path = 'datasets/obesity_CVD_risk.csv'
+    df = pd.read_csv(dataset_path)
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X, y, label_encoder = preprocess_data(df)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.long))
+    valid_dataset = TensorDataset(torch.tensor(X_valid, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.long))
+    test_dataset = TensorDataset(torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.long))
+    
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # processed_data = preprocess_data()
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    class TabNet(nn.Module):
+        def __init__(self, input_size, hidden_size=64, num_layers=3, dropout=0.2):
+            super(TabNet, self).__init__()
+            self.layers = nn.ModuleList([nn.Linear(input_size, hidden_size)])
+            self.layers.extend([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers-1)])
+            self.dropout = nn.Dropout(dropout)
+            self.output_layer = nn.Linear(hidden_size, 3)  # Assuming 3 classes
+    
+        def forward(self, x):
+            for layer in self.layers:
+                x = torch.relu(layer(x))
+                x = self.dropout(x)
+            x = self.output_layer(x)
+            return x
+    
+    model = TabNet(input_size=X_train.shape[1])
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    model = train_model(model, train_loader, valid_loader)
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader, label_encoder)
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 160, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 112, in main
+    df = pd.read_csv(dataset_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'datasets/obesity_CVD_risk.csv'

@@ -1,0 +1,120 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+TRAINED_MODELS_PATH = "./agent_workspace/trained_models"  # path for saving trained models
+
+# Data preprocessing and feature engineering
+def preprocess_data(df):
+    # Check for missing values
+    if df.isnull().sum().sum() > 0:
+        df.fillna(df.mean(), inplace=True)
+
+    # Handle outliers
+    z_scores = stats.zscore(df.drop('species', axis=1))
+    abs_z_scores = abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    # Normalize the features
+    scaler = StandardScaler()
+    df[df.columns[:-1]] = scaler.fit_transform(df[df.columns[:-1]])
+
+    return df
+
+def train_model(X_train, y_train):
+    # Define the model and hyperparameter grid
+    param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'penalty': ['l1', 'l2']}
+    log_reg = LogisticRegression(solver='liblinear')
+    grid_search = GridSearchCV(log_reg, param_grid, cv=5, scoring='accuracy')
+    grid_search.fit(X_train, y_train)
+
+    # Best model
+    best_model = grid_search.best_estimator_
+
+    return best_model
+
+def evaluate_model(model, X_test, y_test):
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+    # Calculate performance metrics
+    performance_scores = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred, average='weighted'),
+        'Recall': recall_score(y_test, y_pred, average='weighted'),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+
+    return performance_scores
+
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    iris = load_iris()
+    df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+    df['species'] = iris.target
+
+    # Step 2. Create a train-valid-test split of the data
+    X = df.drop('species', axis=1)
+    y = df['species']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering
+    df_train = pd.concat([X_train, y_train], axis=1)
+    df_val = pd.concat([X_val, y_val], axis=1)
+    df_test = pd.concat([X_test, y_test], axis=1)
+
+    df_train = preprocess_data(df_train)
+    df_val = preprocess_data(df_val)
+    df_test = preprocess_data(df_test)
+
+    X_train = df_train.drop('species', axis=1)
+    y_train = df_train['species']
+    X_val = df_val.drop('species', axis=1)
+    y_val = df_val['species']
+    X_test = df_test.drop('species', axis=1)
+    y_test = df_test['species']
+
+    # Step 4. Define required model
+    model = train_model(X_train, y_train)
+
+    # Step 5. Evaluate the trained model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Save the trained model
+    if not os.path.exists(TRAINED_MODELS_PATH):
+        os.makedirs(TRAINED_MODELS_PATH)
+    model_path = os.path.join(TRAINED_MODELS_PATH, 'logistic_regression_model.pkl')
+    joblib.dump(model, model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Model Performance on Test Set: {'Accuracy': 1.0, 'Precision': 1.0, 'Recall': 1.0, 'F1': 1.0}

@@ -1,0 +1,186 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# 查看数据的基本信息
+print(train_df.head())
+print(train_df.info())
+print(train_df.describe())
+
+
+执行结果：
+       id  store_sales  unit_sales  ...  prepared_food  florist    cost
+0  177400         8.49           3  ...              0        0  133.42
+1   35064         4.47           3  ...              0        0  109.06
+2  268168         6.84           3  ...              1        1   91.58
+3  177181         4.54           2  ...              0        0  124.36
+4  271461         8.34           3  ...              1        1   96.55
+
+[5 rows x 17 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 28827 entries, 0 to 28826
+Data columns (total 17 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    28827 non-null  int64  
+ 1   store_sales           28827 non-null  float64
+ 2   unit_sales            28827 non-null  int64  
+ 3   total_children        28827 non-null  int64  
+ 4   num_children_at_home  28827 non-null  int64  
+ 5   avg_cars_at_home      28827 non-null  int64  
+ 6   gross_weight          28827 non-null  float64
+ 7   recyclable_package    28827 non-null  int64  
+ 8   low_fat               28827 non-null  int64  
+ 9   units_per_case        28827 non-null  int64  
+ 10  store_sqft            28827 non-null  int64  
+ 11  coffee_bar            28827 non-null  int64  
+ 12  video_store           28827 non-null  int64  
+ 13  salad_bar             28827 non-null  int64  
+ 14  prepared_food         28827 non-null  int64  
+ 15  florist               28827 non-null  int64  
+ 16  cost                  28827 non-null  float64
+dtypes: float64(3), int64(14)
+memory usage: 3.7 MB
+None
+                  id   store_sales  ...       florist          cost
+count   28827.000000  28827.000000  ...  28827.000000  28827.000000
+mean   179280.083117      6.346687  ...      0.503382     99.469236
+std    103581.432281      3.299741  ...      0.499997     30.021605
+min         2.000000      0.520000  ...      0.000000     50.790000
+25%     89447.500000      3.740000  ...      0.000000     69.650000
+50%    178659.000000      5.790000  ...      1.000000     98.810000
+75%    267904.000000      8.400000  ...      1.000000    126.620000
+max    360333.000000     19.850000  ...      1.000000    149.750000
+
+[8 rows x 17 columns]
+
+生成的代码：
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# 删除不必要的列
+train_df = train_df.drop(columns=['id'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['cost'])
+y = train_df['cost']
+
+# 特征选择：选择与目标变量相关性较高的特征
+correlation = X.corrwith(y)
+print(correlation)
+
+# 选择相关性较高的特征
+selected_features = correlation[correlation.abs() > 0.1].index
+X = X[selected_features]
+
+# 数据标准化
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 划分训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_0c8741f7d8e240d376ed788e166488cca36f299529487b907189019ea634f167.py", line 6, in <module>
+    train_df = train_df.drop(columns=['id'])
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# 重新读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# 删除不必要的列
+train_df = train_df.drop(columns=['id'])
+
+# 分离特征和目标变量
+X = train_df.drop(columns=['cost'])
+y = train_df['cost']
+
+# 特征选择：选择与目标变量相关性较高的特征
+correlation = X.corrwith(y)
+print(correlation)
+
+# 选择相关性较高的特征
+selected_features = correlation[correlation.abs() > 0.1].index
+X = X[selected_features]
+
+# 数据标准化
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 划分训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+
+执行结果：
+store_sales            -0.022680
+unit_sales             -0.037412
+total_children         -0.003172
+num_children_at_home   -0.001820
+avg_cars_at_home        0.031317
+gross_weight            0.008737
+recyclable_package     -0.007552
+low_fat                -0.009455
+units_per_case         -0.006365
+store_sqft             -0.060135
+coffee_bar             -0.052836
+video_store            -0.113761
+salad_bar              -0.100932
+prepared_food          -0.100916
+florist                -0.109448
+dtype: float64
+
+生成的代码：
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_log_error
+
+# 使用所有特征
+X = train_df.drop(columns=['cost'])
+y = train_df['cost']
+
+# 数据标准化
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 划分训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# 训练线性回归模型
+linear_reg = LinearRegression()
+linear_reg.fit(X_train, y_train)
+
+# 训练随机森林回归模型
+rf_reg = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_reg.fit(X_train, y_train)
+
+# 预测
+y_pred_linear = linear_reg.predict(X_val)
+y_pred_rf = rf_reg.predict(X_val)
+
+# 计算 RMLSE
+rmlse_linear = np.sqrt(mean_squared_log_error(y_val, y_pred_linear))
+rmlse_rf = np.sqrt(mean_squared_log_error(y_val, y_pred_rf))
+
+print(f"RMLSE (Linear Regression): {rmlse_linear}")
+print(f"RMLSE (Random Forest): {rmlse_rf}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_82e3a9e6dc26f70e9e37e1c8d984ad0f8fa658f23704b723c270aebf21ba5770.py", line 6, in <module>
+    X = train_df.drop(columns=['cost'])
+NameError: name 'train_df' is not defined

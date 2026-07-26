@@ -1,0 +1,219 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data paths
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_train.csv'
+eval_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/ml_benchmark/07_icr_identify/split_eval.csv'
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, eval_df):
+    # Concatenate train and eval data for preprocessing
+    combined_df = pd.concat([train_df, eval_df], axis=0)
+    
+    # Data exploration
+    print(combined_df.describe())
+    
+    # Handle missing values
+    combined_df.fillna(combined_df.mean(), inplace=True)
+    
+    # Detect and handle outliers using IQR
+    Q1 = combined_df.quantile(0.25)
+    Q3 = combined_df.quantile(0.75)
+    IQR = Q3 - Q1
+    combined_df = combined_df[~((combined_df < (Q1 - 1.5 * IQR)) | (combined_df > (Q3 + 1.5 * IQR))).any(axis=1)]
+    
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    numerical_cols = combined_df.select_dtypes(include=[np.number]).columns
+    combined_df[numerical_cols] = scaler.fit_transform(combined_df[numerical_cols])
+    
+    # Encode categorical variables
+    label_encoders = {}
+    for col in combined_df.select_dtypes(include=['object']).columns:
+        le = LabelEncoder()
+        combined_df[col] = le.fit_transform(combined_df[col])
+        label_encoders[col] = le
+    
+    # Split back into train and eval
+    train_df = combined_df.iloc[:len(train_df)]
+    eval_df = combined_df.iloc[len(train_df):]
+    
+    return train_df, eval_df, label_encoders
+
+# Define the Neural Logic Network (NLN) model
+class NLN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(NLN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+    
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+# Training process
+def train_model(model, train_loader, valid_loader, criterion, optimizer, num_epochs=10):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        
+        model.eval()
+        with torch.no_grad():
+            valid_loss = 0
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                valid_loss += loss.item()
+        
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {valid_loss/len(valid_loader):.4f}')
+    
+    return model
+
+# Evaluation process
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        total_loss = 0
+        all_preds = []
+        all_labels = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            all_preds.extend(preds.numpy())
+            all_labels.extend(labels.numpy())
+    
+    performance_scores = {
+        'ACC': accuracy_score(all_labels, all_preds),
+        'F1': f1_score(all_labels, all_preds),
+        'Confusion Matrix': confusion_matrix(all_labels, all_preds)
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from user's local storage
+    train_df = pd.read_csv(train_data_path)
+    eval_df = pd.read_csv(eval_data_path)
+    
+    # Step 2. Create a train-valid-test split of the data
+    train_df, test_df = train_test_split(train_df, test_size=0.1, random_state=SEED, stratify=train_df['target'])
+    train_df, valid_df = train_test_split(train_df, test_size=0.2, random_state=SEED, stratify=train_df['target'])
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering
+    train_df, valid_df, label_encoders = preprocess_data(train_df, valid_df)
+    test_df, _, _ = preprocess_data(test_df, pd.DataFrame())
+    
+    # Step 4. Define required model
+    input_size = train_df.shape[1] - 1  # Exclude the target column
+    hidden_size = 64
+    num_classes = len(np.unique(train_df['target']))
+    model = NLN(input_size, hidden_size, num_classes)
+    
+    # Step 5. Prepare data loaders
+    train_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(
+            torch.tensor(train_df.drop('target', axis=1).values, dtype=torch.float32),
+            torch.tensor(train_df['target'].values, dtype=torch.long)
+        ),
+        batch_size=32, shuffle=True
+    )
+    
+    valid_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(
+            torch.tensor(valid_df.drop('target', axis=1).values, dtype=torch.float32),
+            torch.tensor(valid_df['target'].values, dtype=torch.long)
+        ),
+        batch_size=32, shuffle=False
+    )
+    
+    test_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(
+            torch.tensor(test_df.drop('target', axis=1).values, dtype=torch.float32),
+            torch.tensor(test_df['target'].values, dtype=torch.long)
+        ),
+        batch_size=32, shuffle=False
+    )
+    
+    # Step 6. Train the model
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = train_model(model, train_loader, valid_loader, criterion, optimizer)
+    
+    # Step 7. Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+    
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/nln_model.pth"
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'target'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 188, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 134, in main
+    train_df, test_df = train_test_split(train_df, test_size=0.1, random_state=SEED, stratify=train_df['target'])
+                                                                                              ~~~~~~~~^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'target'

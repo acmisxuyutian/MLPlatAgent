@@ -1,0 +1,169 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+from torch.utils.data import DataLoader, TensorDataset
+
+# Data preprocessing and feature engineering
+def preprocess_data():
+    # Load the dataset
+    df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv')
+    
+    # Drop missing values
+    df.dropna(inplace=True)
+    
+    # Drop duplicates
+    df.drop_duplicates(inplace=True)
+    
+    # Feature engineering: Create BMI_Category feature
+    def categorize_bmi(bmi):
+        if bmi < 18.5:
+            return 'Underweight'
+        elif 18.5 <= bmi < 24.9:
+            return 'Normal'
+        elif 25 <= bmi < 29.9:
+            return 'Overweight'
+        else:
+            return 'Obesity'
+    
+    df['BMI_Category'] = df['BMI'].apply(categorize_bmi)
+    
+    # One-hot encoding
+    df = pd.get_dummies(df, columns=['BMI_Category'])
+    
+    # Split into features and target
+    X = df.drop('Heart_Disease', axis=1)
+    y = df['Heart_Disease']
+    
+    # Convert to numpy arrays
+    X = X.values
+    y = y.values
+    
+    return X, y
+
+def train_model(model, train_loader, valid_loader, criterion, optimizer, num_epochs=100):
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.view(-1, 1))
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f'Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}')
+        
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0.0
+            for inputs, labels in valid_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels.view(-1, 1))
+                val_loss += loss.item()
+            print(f'Validation Loss: {val_loss/len(valid_loader)}')
+    
+    return model
+
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_loss = 0.0
+        y_true = []
+        y_pred = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.view(-1, 1))
+            test_loss += loss.item()
+            y_true.extend(labels.numpy())
+            y_pred.extend((outputs > 0.5).numpy())
+        
+        performance_scores = {
+            'ACC': accuracy_score(y_true, y_pred),
+            'F1': f1_score(y_true, y_pred)
+        }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    X, y = preprocess_data()
+    
+    # Step 2. Create a train-valid-test split of the data
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    # Convert to PyTorch tensors
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32))
+    valid_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val, dtype=torch.float32))
+    test_dataset = TensorDataset(torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32))
+    
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    
+    # Step 4. Define required model
+    input_size = X_train.shape[1]
+    model = HeartDiseaseModel(input_size)
+    
+    # Step 5. Train the model
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = train_model(model, train_loader, valid_loader, criterion, optimizer)
+    
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, test_loader, criterion)
+    
+    return model_performance
+
+# Define the model architecture
+class HeartDiseaseModel(nn.Module):
+    def __init__(self, input_size):
+        super(HeartDiseaseModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.sigmoid(self.fc3(x))
+        return x
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 155, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 115, in main
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't convert np.ndarray of type numpy.object_. The only supported types are: float64, float32, float16, complex64, complex128, int64, int32, int16, int8, uint64, uint32, uint16, uint8, and bool.

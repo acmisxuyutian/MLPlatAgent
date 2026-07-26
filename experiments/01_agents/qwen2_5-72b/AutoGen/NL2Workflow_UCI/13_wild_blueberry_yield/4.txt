@@ -1,0 +1,117 @@
+
+生成的代码：
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.ensemble import RandomForestRegressor
+
+# 加载数据
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/wild_blueberry_yield/train.csv'
+data = pd.read_csv(data_path)
+
+# 查看数据的基本信息
+print(data.head())
+print(data.info())
+print(data.describe())
+
+# 检查缺失值
+print(data.isnull().sum())
+
+# 处理缺失值（如果有）
+# 假设我们使用中位数填充数值型特征的缺失值
+data.fillna(data.median(), inplace=True)
+
+# 分离特征和目标变量
+X = data.drop(columns=['yield'])
+y = data['yield']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 特征缩放
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 选择模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测
+y_pred = model.predict(X_test)
+
+# 计算MAE
+mae = mean_absolute_error(y_test, y_pred)
+print(f'Mean Absolute Error (MAE): {mae}')
+
+
+执行结果：
+      id  clonesize  honeybee  ...  fruitmass      seeds       yield
+0    245       25.0      0.50  ...   0.399724  29.742583  4177.01520
+1   3017       12.5      0.25  ...   0.376874  27.735098  3238.02815
+2   8047       12.5      0.25  ...   0.488569  40.655498  7451.72563
+3  14223       12.5      0.25  ...   0.466671  37.966864  6580.39696
+4  13397       25.0      0.50  ...   0.453650  36.600113  6019.26248
+
+[5 rows x 18 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 12231 entries, 0 to 12230
+Data columns (total 18 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   id                    12231 non-null  int64  
+ 1   clonesize             12231 non-null  float64
+ 2   honeybee              12231 non-null  float64
+ 3   bumbles               12231 non-null  float64
+ 4   andrena               12231 non-null  float64
+ 5   osmia                 12231 non-null  float64
+ 6   MaxOfUpperTRange      12231 non-null  float64
+ 7   MinOfUpperTRange      12231 non-null  float64
+ 8   AverageOfUpperTRange  12231 non-null  float64
+ 9   MaxOfLowerTRange      12231 non-null  float64
+ 10  MinOfLowerTRange      12231 non-null  float64
+ 11  AverageOfLowerTRange  12231 non-null  float64
+ 12  RainingDays           12231 non-null  float64
+ 13  AverageRainingDays    12231 non-null  float64
+ 14  fruitset              12231 non-null  float64
+ 15  fruitmass             12231 non-null  float64
+ 16  seeds                 12231 non-null  float64
+ 17  yield                 12231 non-null  float64
+dtypes: float64(17), int64(1)
+memory usage: 1.7 MB
+None
+                 id     clonesize  ...         seeds         yield
+count  12231.000000  12231.000000  ...  12231.000000  12231.000000
+mean    7655.390074     19.694628  ...     36.193681   6030.165882
+std     4421.960747      6.562779  ...      4.045115   1339.792879
+min        1.000000     10.000000  ...     22.079199   1945.530610
+25%     3817.000000     12.500000  ...     33.232449   5126.993180
+50%     7641.000000     25.000000  ...     36.047770   6117.475900
+75%    11507.500000     25.000000  ...     39.203069   7028.673500
+max    15286.000000     40.000000  ...     46.585105   8969.401840
+
+[8 rows x 18 columns]
+id                      0
+clonesize               0
+honeybee                0
+bumbles                 0
+andrena                 0
+osmia                   0
+MaxOfUpperTRange        0
+MinOfUpperTRange        0
+AverageOfUpperTRange    0
+MaxOfLowerTRange        0
+MinOfLowerTRange        0
+AverageOfLowerTRange    0
+RainingDays             0
+AverageRainingDays      0
+fruitset                0
+fruitmass               0
+seeds                   0
+yield                   0
+dtype: int64
+Mean Absolute Error (MAE): 388.6592709272988

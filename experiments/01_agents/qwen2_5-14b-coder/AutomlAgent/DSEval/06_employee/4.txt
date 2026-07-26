@@ -1,0 +1,148 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, confusion_matrix
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval
+def load_data():
+    train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/train.csv'
+    test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/test.csv'
+    
+    employee_train = pd.read_csv(train_data_path)
+    employee_test = pd.read_csv(test_data_path)
+    
+    return employee_train, employee_test
+
+# Data preprocessing and feature engineering
+def preprocess_data(employee_train, employee_test):
+    # Calculate YearsInCompany
+    employee_train['YearsInCompany'] = 2023 - employee_train['JoiningYear']
+    employee_test['YearsInCompany'] = 2023 - employee_test['JoiningYear']
+    
+    # Identify categorical columns
+    categorical_cols = employee_train.select_dtypes(include=['object']).columns
+    
+    # One-hot encode categorical columns
+    employee_train = pd.get_dummies(employee_train, columns=categorical_cols, drop_first=True)
+    employee_test = pd.get_dummies(employee_test, columns=categorical_cols, drop_first=True)
+    
+    # Ensure both train and test data have the same columns after one-hot encoding
+    missing_cols = set(employee_train.columns) - set(employee_test.columns)
+    for col in missing_cols:
+        employee_test[col] = 0
+
+    missing_cols = set(employee_test.columns) - set(employee_train.columns)
+    for col in missing_cols:
+        employee_train[col] = 0
+    
+    # Interaction Terms
+    if 'Department' in employee_train.columns and 'Department' in employee_test.columns:
+        employee_train['YearsInCompany_Department'] = employee_train['YearsInCompany'] * employee_train['Department']
+        employee_test['YearsInCompany_Department'] = employee_test['YearsInCompany'] * employee_test['Department']
+    
+    # Aggregation
+    agg_features = employee_train.groupby('Department').mean().reset_index()
+    employee_train = pd.merge(employee_train, agg_features, on='Department', suffixes=('', '_agg'))
+    employee_test = pd.merge(employee_test, agg_features, on='Department', suffixes=('', '_agg'))
+    
+    # Correlation Analysis
+    corr_matrix = employee_train.corr()
+    high_corr_features = corr_matrix[abs(corr_matrix) > 0.8].stack().drop_duplicates().index
+    high_corr_features = [col for col in high_corr_features if col != 'LeaveOrNot']
+    employee_train.drop(columns=high_corr_features, inplace=True)
+    employee_test.drop(columns=high_corr_features, inplace=True)
+    
+    # Feature Importance
+    X_train = employee_train.drop(columns=['LeaveOrNot'])
+    y_train = employee_train['LeaveOrNot']
+    dt_model = RandomForestClassifier(random_state=42)
+    dt_model.fit(X_train, y_train)
+    feature_importances = pd.Series(dt_model.feature_importances_, index=X_train.columns).sort_values(ascending=False)
+    relevant_features = feature_importances[feature_importances > 0.01].index
+    employee_train = employee_train[relevant_features.tolist() + ['LeaveOrNot']]
+    employee_test = employee_test[relevant_features.tolist() + ['LeaveOrNot']]
+    
+    return employee_train, employee_test
+
+# Model training
+def train_model(employee_train):
+    train_data, valid_data = train_test_split(employee_train, test_size=0.2, random_state=42)
+    X_train = train_data.drop(columns=['LeaveOrNot'])
+    y_train = train_data['LeaveOrNot']
+    X_valid = valid_data.drop(columns=['LeaveOrNot'])
+    y_valid = valid_data['LeaveOrNot']
+    
+    rf_model = RandomForestClassifier(n_estimators=200, max_depth=10, min_samples_split=5, min_samples_leaf=2, random_state=42)
+    rf_model.fit(X_train, y_train)
+    
+    return rf_model, X_valid, y_valid
+
+# Model evaluation
+def evaluate_model(rf_model, X_valid, y_valid, X_test, y_test):
+    y_pred = rf_model.predict(X_test)
+    y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
+    
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': conf_matrix
+    }
+    
+    return performance_scores
+
+# Main function
+def main():
+    employee_train, employee_test = load_data()
+    employee_train, employee_test = preprocess_data(employee_train, employee_test)
+    rf_model, X_valid, y_valid = train_model(employee_train)
+    X_test = employee_test.drop(columns=['LeaveOrNot'])
+    y_test = employee_test['LeaveOrNot']
+    performance_scores = evaluate_model(rf_model, X_valid, y_valid, X_test, y_test)
+    
+    # Save the trained model
+    model_save_path = './agent_workspace/trained_models/employee_retention_model.pkl'
+    joblib.dump(rf_model, model_save_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 123, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 110, in main
+    employee_train, employee_test = preprocess_data(employee_train, employee_test)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 56, in preprocess_data
+    agg_features = employee_train.groupby('Department').mean().reset_index()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 9183, in groupby
+    return DataFrameGroupBy(
+           ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/groupby/groupby.py", line 1329, in __init__
+    grouper, exclusions, obj = get_grouper(
+                               ^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/groupby/grouper.py", line 1043, in get_grouper
+    raise KeyError(gpr)
+KeyError: 'Department'

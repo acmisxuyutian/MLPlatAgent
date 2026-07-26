@@ -1,0 +1,170 @@
+import pandas as pd
+
+data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv'
+train_data = pd.read_csv(data_path)
+top_5_rows = train_data.head()
+columns = train_data.columns.tolist()
+
+top_5_rows, columns
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(      id Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight  Age
+ 0  20612   M  1.6125    1.1500  0.4000  31.269499       15.252031        6.265239      7.059025    9
+ 1   2935   F  1.5250    1.1750  0.4125  30.220567       12.232809        7.002326      8.930093   10
+ 2  73847   M  1.5000    1.1625  0.3875  29.114936       13.125818        6.166016      8.079607   12
+ 3  46445   M  1.1250    0.8875  0.2375  12.998246        5.499803        2.891649      3.685435   10
+ 4  66755   I  0.8625    0.6375  0.1875   4.280774        1.644271        0.737087      1.275727    6,
+ ['id',
+  'Sex',
+  'Length',
+  'Diameter',
+  'Height',
+  'Weight',
+  'Shucked_Weight',
+  'Viscera_Weight',
+  'Shell_Weight',
+  'Age'])import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training data
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+
+target_column = 'Age'
+feature_columns = ['Sex', 'Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight', 'Viscera_Weight', 'Shell_Weight']
+
+# Handle missing values by filling them with the median of each column
+train_data[feature_columns] = train_data[feature_columns].fillna(train_data[feature_columns].median())
+
+# Encode the categorical variable 'Sex'
+label_encoder = LabelEncoder()
+train_data['Sex'] = label_encoder.fit_transform(train_data['Sex'])
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(train_data[feature_columns], train_data[target_column], test_size=0.2, random_state=42)
+
+# Result variables
+X_train, X_test, y_train, y_test, label_encoder
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 12
+    train_data[feature_columns] = train_data[feature_columns].fillna(train_data[feature_columns].median())
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11706 in median
+    result = super().median(axis, skipna, numeric_only, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:12431 in median
+    return self._stat_function(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:12377 in _stat_function
+    return self._reduce(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11562 in _reduce
+    res = df._mgr.reduce(blk_func)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1500 in reduce
+    nbs = blk.reduce(func)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\blocks.py:404 in reduce
+    result = func(self.values)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11481 in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\nanops.py:147 in f
+    result = alt(values, axis=axis, skipna=skipna
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training data
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+
+target_column = 'Age'
+feature_columns = ['Sex', 'Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight', 'Viscera_Weight', 'Shell_Weight']
+
+# Handle missing values by filling them with the median of each column
+train_data[feature_columns] = train_data[feature_columns].apply(lambda x: x.fillna(x.median()) if x.dtype != 'O' else x.fillna(x.mode()[0]))
+
+# Encode the categorical variable 'Sex'
+label_encoder = LabelEncoder()
+train_data['Sex'] = label_encoder.fit_transform(train_data['Sex'])
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(train_data[feature_columns], train_data[target_column], test_size=0.2, random_state=42)
+
+# Result variables
+X_train, X_test, y_train, y_test, label_encoder
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 5553     1  1.0875    0.8750  0.2750  12.133586        5.499803        2.919999      3.543687
+ 28476    2  1.2500    0.9625  0.3250  18.016107        8.972617        3.827183      4.535920
+ ...    ...     ...       ...     ...        ...             ...             ...           ...
+ 15795    1  0.5625    0.4125  0.0875   1.644271        0.396893        0.212621      0.425243
+ 56422    1  1.1500    0.8250  0.2625  10.149121        5.499803        2.140387      3.118445
+ 
+ [47392 rows x 8 columns],
+        Sex  Length  Diameter  Height     Weight  Shucked_Weight  Viscera_Weight  Shell_Weight
+ 26164    1  0.8000    0.6125  0.1750   4.847765        1.587572        0.779611      1.630096
+ 32999    2  1.8250    1.3750  0.5250  50.532984       19.461932       11.623295     15.252031
+ ...    ...     ...       ...     ...        ...             ...             ...           ...
+ 39654    2  1.5000    1.1750  0.3625  28.434548       13.196692        5.542327      6.775531
+ 51513    2  1.3125    1.0000  0.3625  28.264451       11.949314        6.307764      7.512618
+ 
+ [11848 rows x 8 columns],
+ 5553     8
+ 28476    7
+         ..
+ 15795    5
+ 56422    7
+ Name: Age, Length: 47392, dtype: int64,
+ 26164     5
+ 32999    11
+          ..
+ 39654     9
+ 51513    24
+ Name: Age, Length: 11848, dtype: int64,
+ LabelEncoder())import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import LabelEncoder
+
+# Load the training data
+train_data = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/crab_age/train.csv')
+
+target_column = 'Age'
+feature_columns = ['Sex', 'Length', 'Diameter', 'Height', 'Weight', 'Shucked_Weight', 'Viscera_Weight', 'Shell_Weight']
+
+# Handle missing values by filling them with the median of each column
+train_data[feature_columns] = train_data[feature_columns].apply(lambda x: x.fillna(x.median()) if x.dtype != 'O' else x.fillna(x.mode()[0]))
+
+# Encode the categorical variable 'Sex'
+label_encoder = LabelEncoder()
+train_data['Sex'] = label_encoder.fit_transform(train_data['Sex'])
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(train_data[feature_columns], train_data[target_column], test_size=0.2, random_state=42)
+
+# Train a Random Forest Regressor model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict the age of crabs on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model's performance on the test set using MAE
+mae = mean_absolute_error(y_test, y_pred)
+
+# Result variables
+model, mae
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestRegressor(random_state=42), 1.4473100945307225)

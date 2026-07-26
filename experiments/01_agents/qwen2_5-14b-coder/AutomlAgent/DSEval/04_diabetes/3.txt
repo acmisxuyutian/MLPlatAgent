@@ -1,0 +1,175 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import GridSearchCV
+import joblib
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data retrieval and initialization
+def load_data(train_path, test_path):
+    try:
+        train_data = pd.read_csv(train_path)
+        test_data = pd.read_csv(test_path)
+        return train_data, test_data
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return None, None
+
+# Preprocessing the datasets
+def preprocess_data(train_data, test_data):
+    # Remove duplicate rows
+    train_data.drop_duplicates(inplace=True)
+    test_data.drop_duplicates(inplace=True)
+    
+    # Define categorical columns for one-hot encoding
+    categorical_cols = ['gender', 'smoking_history']
+    
+    # One-hot encoding for training data
+    train_encoded = pd.get_dummies(train_data, columns=categorical_cols, drop_first=True)
+    
+    # One-hot encoding for test data
+    test_encoded = pd.get_dummies(test_data, columns=categorical_cols, drop_first=True)
+    
+    # Ensure both datasets have the same columns
+    missing_cols = set(train_encoded.columns) - set(test_encoded.columns)
+    for col in missing_cols:
+        test_encoded[col] = 0
+    
+    test_encoded = test_encoded[train_encoded.columns]
+    
+    return train_encoded, test_encoded
+
+# Feature ranking
+def feature_ranking(train_data, target_col):
+    X = train_data.drop(columns=[target_col])
+    y = train_data[target_col]
+    
+    # Train a preliminary random forest classifier
+    rf = RandomForestClassifier(random_state=SEED)
+    rf.fit(X, y)
+    
+    # Get feature importances
+    feature_importances = rf.feature_importances_
+    feature_names = X.columns
+    
+    # Create a DataFrame for feature importances
+    feature_importance_df = pd.DataFrame({'feature': feature_names, 'importance': feature_importances})
+    
+    # Rank features based on importance
+    ranked_features = feature_importance_df.sort_values(by='importance', ascending=False)
+    
+    return ranked_features
+
+# Model training and hyperparameter optimization
+def train_and_optimize_model(train_data, target_col, ranked_features):
+    X = train_data[ranked_features['feature']]
+    y = train_data[target_col]
+    
+    # Define the model
+    rf = RandomForestClassifier(random_state=SEED)
+    
+    # Define hyperparameters grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    
+    # Perform grid search with cross-validation
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=3, scoring='roc_auc', n_jobs=-1)
+    grid_search.fit(X, y)
+    
+    # Get the best model
+    best_rf = grid_search.best_estimator_
+    
+    return best_rf
+
+# Model evaluation
+def evaluate_model(model, test_data, target_col, ranked_features):
+    X_test = test_data[ranked_features['feature']]
+    y_test = test_data[target_col]
+    
+    # Predict probabilities
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Calculate AUC-ROC score
+    auc_roc = roc_auc_score(y_test, y_pred_proba)
+    
+    # Generate confusion matrix
+    y_pred = model.predict(X_test)
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    
+    # Print results
+    print(f"AUC-ROC Score: {auc_roc}")
+    print("Confusion Matrix:")
+    print(conf_matrix)
+    
+    # Check if the AUC-ROC score meets the performance requirement
+    if auc_roc >= 0.8:
+        print("The model meets the performance requirement.")
+    else:
+        print("The model does not meet the performance requirement.")
+    
+    return auc_roc
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/04_diabetes/test.csv'
+    train_data, test_data = load_data(train_path, test_path)
+    
+    if train_data is None or test_data is None:
+        print("Failed to load data. Exiting.")
+        return None
+    
+    # Step 2. Preprocess the datasets
+    train_data, test_data = preprocess_data(train_data, test_data)
+    
+    # Step 3. Feature ranking
+    target_col = 'diabetes'
+    ranked_features = feature_ranking(train_data, target_col)
+    
+    # Step 4. Train and optimize the model
+    model = train_and_optimize_model(train_data, target_col, ranked_features)
+    
+    # Step 5. Evaluate the model
+    model_performance = evaluate_model(model, test_data, target_col, ranked_features)
+    
+    # Step 6. Save the trained model
+    model_save_path = './agent_workspace/trained_models/diabetes_random_forest_classifier.pkl'
+    joblib.dump(model, model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error loading data: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+
+Failed to load data. Exiting.
+Model Performance on Test Set: None

@@ -1,0 +1,338 @@
+import pandas as pd
+
+# Load the training and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/08_heart_attack/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Convert the values in the 'Diet' column
+diet_mapping = {'Healthy': 1, 'Average': 2, 'Unhealthy': 3}
+train_df['Diet'] = train_df['Diet'].map(diet_mapping)
+test_df['Diet'] = test_df['Diet'].map(diet_mapping)
+
+# Put all the result variables in the last line
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     Patient ID  Age     Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day         Country      Continent           Hemisphere  Heart Attack Risk
+ 0       RCA7696   84    Male          217          75         1               1        1        1                    1                17.107142     2                        0               1            10                 1.737428  153618  35.185856            544                                3                    6        Colombia  South America  Northern Hemisphere                  0
+ 1       RRP0438   88    Male          209         104         1               0        1        0                    1                 2.851698     3                        1               0             1                11.876890  124693  30.991599            649                                2                    4           Japan           Asia  Northern Hemisphere                  1
+ ...         ...  ...     ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...             ...            ...                  ...                ...
+ 7008    CKR7663   85  Female          285          54         1               1        1        1                    1                11.070968     3                        0               0             2                 8.001822  138980  25.499506            552                                1                   10         Nigeria         Africa  Northern Hemisphere                  0
+ 7009    ONB1019   89    Male          240          53         1               1        1        0                    0                 6.651998     1                        0               0             4                 6.183405  120005  35.195328            619                                0                    7  United Kingdom         Europe  Northern Hemisphere                  0
+ 
+ [7010 rows x 25 columns],
+      Patient ID  Age   Sex  Cholesterol  Heart Rate  Diabetes  Family History  Smoking  Obesity  Alcohol Consumption  Exercise Hours Per Week  Diet  Previous Heart Problems  Medication Use  Stress Level  Sedentary Hours Per Day  Income        BMI  Triglycerides  Physical Activity Days Per Week  Sleep Hours Per Day    Country      Continent           Hemisphere  Heart Attack Risk
+ 0       BPY8954   65  Male          340          75         0               0        1        1                    1                 9.870784     1                        1               1             7                 5.567363  216664  35.561283            315                                0                    4  Argentina  South America  Southern Hemisphere                  0
+ 1       TBS9300   77  Male          361          46         1               0        1        0                    0                 2.763339     1                        0               0             5                 9.964626  221778  26.638707            471                                3                    6   Thailand           Asia  Northern Hemisphere                  1
+ ...         ...  ...   ...          ...         ...       ...             ...      ...      ...                  ...                      ...   ...                      ...             ...           ...                      ...     ...        ...            ...                              ...                  ...        ...            ...                  ...                ...
+ 1751    DJW0544   56  Male          196          85         1               1        1        1                    1                 7.220243     3                        1               0             2                 0.735033   75945  24.850645            173                                2                    9  Australia      Australia  Southern Hemisphere                  0
+ 1752    YCD6797   34  Male          337          77         1               0        1        0                    0                 2.798784     3                        1               0             3                 4.616085   44594  33.214358            716                                1                    4      Italy         Europe  Southern Hemisphere                  0
+ 
+ [1753 rows x 25 columns])from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Define the target and feature columns
+features = train_df.columns.drop('Heart Attack Risk')
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[features], train_df[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 12
+    rf_model.fit(train_df[features], train_df[target])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'RCA7696'
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Define the target and feature columns
+features = train_df.columns.drop(['Heart Attack Risk', 'Patient ID'])
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df[features], train_df[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 12
+    rf_model.fit(train_df[features], train_df[target])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Male'
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import pandas as pd
+
+# Convert categorical variables to numeric using one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=['Sex'], drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=['Sex'], drop_first=True)
+
+# Define the target and feature columns
+features = train_df_encoded.columns.drop(['Heart Attack Risk', 'Patient ID'])
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df_encoded[features], train_df_encoded[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df_encoded[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df_encoded[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 17
+    rf_model.fit(train_df_encoded[features], train_df_encoded[target])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\ensemble\_forest.py:360 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:973 in check_array
+    array = array.astype(new_dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:6643 in astype
+    new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:430 in astype
+    return self.apply(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:363 in apply
+    applied = getattr(b, f)(**kwargs)
+
+  File D:\LLM-Driven_AI-Stu
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import pandas as pd
+
+# Identify all categorical columns
+non_numeric_columns = train_df.select_dtypes(exclude=["number"]).columns
+
+# Convert all categorical columns to numeric using one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=non_numeric_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=non_numeric_columns, drop_first=True)
+
+# Define the target and feature columns
+features = train_df_encoded.columns.drop(['Heart Attack Risk', 'Patient ID'])
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df_encoded[features], train_df_encoded[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df_encoded[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df_encoded[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[5], line 13
+    features = train_df_encoded.columns.drop(['Heart Attack Risk', 'Patient ID'])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['Patient ID'] not found in axis"
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import pandas as pd
+
+# Identify all categorical columns
+non_numeric_columns = train_df.select_dtypes(exclude=["number"]).columns
+
+# Convert all categorical columns to numeric using one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=non_numeric_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=non_numeric_columns, drop_first=True)
+
+# Define the target and feature columns
+features_to_drop = ['Heart Attack Risk']
+if 'Patient ID' in train_df_encoded.columns:
+    features_to_drop.append('Patient ID')
+
+features = train_df_encoded.columns.drop(features_to_drop)
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df_encoded[features], train_df_encoded[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df_encoded[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df_encoded[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 27
+    y_pred_proba = rf_model.predict_proba(test_df_encoded[features])[:, 1]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4108 in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6200 in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:6252 in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+
+KeyError: "['Patient ID_AAD0466', 'Patient ID_AAD3011', 'Patient ID_AAE4089', 'Patient ID_AAL7171', 'Patient ID_AAM1257', 'Patient ID_AAM2719', 'Patient ID_AAM9231', 'Patient ID_AAN5057', 'Patient ID_AAO6684', 'Patient ID_AAW4407', 'Patient ID_AAX1328', 'Patient ID_AAX3685', 'Patient ID_ABF1387', 'Patient ID_ABF7237', 'Patient ID_ABK3320', 'Patient ID_ABL0984', 'Patient ID_ABQ2368', 'Patient ID_ABQ4870', 'Patient ID_ABQ9359', 'Patient ID_ABR4218', 'Patient ID_ABU8147', 'Patient ID_ABY4350', 'Patient ID_ABZ3724', 'Patient ID_ACA3141', 'Patient ID_ACC6425', 'Patient ID_ACD0827', 'Patient ID_ACF2978', 'Patient ID_ACF8246', 'Patient ID_ACG8026', 'Patient ID_ACI6622', 'Patient ID_ACQ1598', 'Patient ID_ACQ6112', 'Patient ID_ACV5445', 'Patient ID_ACV8384', 'Patient ID_ACY3251', 'Patie
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+import pandas as pd
+
+# Identify all categorical columns
+non_numeric_columns = train_df.select_dtypes(exclude=["number"]).columns
+
+# Convert all categorical columns to numeric using one-hot encoding
+train_df_encoded = pd.get_dummies(train_df, columns=non_numeric_columns, drop_first=True)
+test_df_encoded = pd.get_dummies(test_df, columns=non_numeric_columns, drop_first=True)
+
+# Align the columns of the test set with the training set
+missing_cols = set(train_df_encoded.columns) - set(test_df_encoded.columns)
+for col in missing_cols:
+    test_df_encoded[col] = 0
+
+# Ensure the order of columns is the same
+train_df_encoded = train_df_encoded[train_df_encoded.columns]
+test_df_encoded = test_df_encoded[train_df_encoded.columns]
+
+# Define the target and feature columns
+features_to_drop = ['Heart Attack Risk']
+if 'Patient ID' in train_df_encoded.columns:
+    features_to_drop.append('Patient ID')
+
+features = train_df_encoded.columns.drop(features_to_drop)
+target = 'Heart Attack Risk'
+
+# Initialize the RandomForest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Fit the model on the training set
+rf_model.fit(train_df_encoded[features], train_df_encoded[target])
+
+# Make predictions on the test set
+y_pred_proba = rf_model.predict_proba(test_df_encoded[features])[:, 1]
+
+# Evaluate the performance of the model
+roc_auc = roc_auc_score(test_df_encoded[target], y_pred_proba)
+
+# Put all the result variables in the last line
+rf_model, y_pred_proba, roc_auc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ array([0.28, 0.37, 0.23, ..., 0.32, 0.23, 0.31]),
+ 0.5060658174097665)

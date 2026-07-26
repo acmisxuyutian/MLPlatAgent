@@ -1,0 +1,159 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "_experiments/datasets"  # path for saving and loading dataset(s) (or the user's uploaded dataset) for preprocessing, training, hyperparamter tuning, and evaluation
+
+# Data preprocessing and feature engineering
+def preprocess_data(df, feature_names):
+    # Check for missing values
+    missing_values = df.isnull().sum()
+    print("Missing Values:\n", missing_values)
+
+    # Handle missing values
+    if missing_values.any():
+        df.fillna(df.mean(), inplace=True)
+
+    # Check for outliers and handle them using Z-score
+    z_scores = stats.zscore(df.drop('species', axis=1))
+    abs_z_scores = abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    # Normalize the features
+    scaler = StandardScaler()
+    df[feature_names] = scaler.fit_transform(df[feature_names])
+
+    return df, scaler
+
+# Train the model
+def train_model(X_train, y_train):
+    model = RandomForestClassifier(n_estimators=100, max_depth=20, min_samples_split=2, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+# Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='weighted')
+    recall = recall_score(y_test, y_pred, average='weighted')
+    f1 = f1_score(y_test, y_pred, average='weighted')
+    report = classification_report(y_test, y_pred)
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-Score': f1,
+        'Classification Report': report
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    iris = load_iris()
+    df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+    df['species'] = iris.target
+    df['species'] = df['species'].map({0: 'setosa', 1: 'versicolor', 2: 'virginica'})
+
+    # Step 2. Create a train-valid-test split of the data
+    X = df.drop('species', axis=1)
+    y = df['species']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering
+    df_train = pd.concat([X_train, y_train], axis=1)
+    df_train, scaler = preprocess_data(df_train, iris.feature_names)
+    X_train = df_train.drop('species', axis=1)
+    y_train = df_train['species']
+
+    df_test = pd.concat([X_test, y_test], axis=1)
+    df_test, _ = preprocess_data(df_test, iris.feature_names)
+    X_test = df_test.drop('species', axis=1)
+    y_test = df_test['species']
+
+    df_val = pd.concat([X_val, y_val], axis=1)
+    df_val, _ = preprocess_data(df_val, iris.feature_names)
+    X_val = df_val.drop('species', axis=1)
+    y_val = df_val['species']
+
+    # Step 4. Define required model
+    model = RandomForestClassifier(n_estimators=100, max_depth=20, min_samples_split=2, random_state=42)
+
+    # Step 5. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 6. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 7. Save the model
+    model_path = './agent_workspace/trained_models/random_forest_iris_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    # Step 8. Load the model and make predictions
+    loaded_model = joblib.load(model_path)
+    new_data = [[5.1, 3.5, 1.4, 0.2]]  # Example new data point
+    new_data_df = pd.DataFrame(new_data, columns=iris.feature_names)
+    new_data_df[iris.feature_names] = scaler.transform(new_data_df[iris.feature_names])
+    prediction = loaded_model.predict(new_data_df)
+    print(f"Predicted Species: {prediction[0]}")
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Missing Values:
+ sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+species              0
+dtype: int64
+Missing Values:
+ sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+species              0
+dtype: int64
+Missing Values:
+ sepal length (cm)    0
+sepal width (cm)     0
+petal length (cm)    0
+petal width (cm)     0
+species              0
+dtype: int64
+Predicted Species: setosa
+Model Performance on Test Set: {'Accuracy': 0.9777777777777777, 'Precision': 0.9793650793650793, 'Recall': 0.9777777777777777, 'F1-Score': 0.9777448559670782, 'Classification Report': '              precision    recall  f1-score   support\n\n      setosa       1.00      1.00      1.00        19\n  versicolor       1.00      0.92      0.96        13\n   virginica       0.93      1.00      0.96        13\n\n    accuracy                           0.98        45\n   macro avg       0.98      0.97      0.97        45\nweighted avg       0.98      0.98      0.98        45\n'}

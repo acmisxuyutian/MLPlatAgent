@@ -1,0 +1,152 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.metrics import mean_squared_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Define the paths to the datasets
+train_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+test_data_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv'
+
+# Load the datasets
+train_data = pd.read_csv(train_data_path)
+test_data = pd.read_csv(test_data_path)
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_data, test_data):
+    # Identify missing values
+    missing_values_train = train_data.isnull().sum()
+    missing_values_test = test_data.isnull().sum()
+    print("Missing values in train data:\n", missing_values_train)
+    print("Missing values in test data:\n", missing_values_test)
+
+    # Handle missing values
+    numerical_cols = train_data.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = train_data.select_dtypes(include=['object']).columns
+
+    imputer_num = SimpleImputer(strategy='mean')
+    imputer_cat = SimpleImputer(strategy='most_frequent')
+
+    train_data[numerical_cols] = imputer_num.fit_transform(train_data[numerical_cols])
+    train_data[categorical_cols] = imputer_cat.fit_transform(train_data[categorical_cols])
+    test_data[numerical_cols] = imputer_num.transform(test_data[numerical_cols])
+    test_data[categorical_cols] = imputer_cat.transform(test_data[categorical_cols])
+
+    # Remove duplicates
+    train_data = train_data.drop_duplicates()
+    test_data = test_data.drop_duplicates()
+
+    # Feature engineering
+    train_data['interaction_term'] = train_data['channel_A'] * train_data['channel_B']
+    test_data['interaction_term'] = test_data['channel_A'] * test_data['channel_B']
+
+    train_data['total_spend'] = train_data['channel_A'] + train_data['channel_B'] + train_data['channel_C']
+    test_data['total_spend'] = test_data['channel_A'] + test_data['channel_B'] + test_data['channel_C']
+
+    # Normalization/Standardization
+    scaler = StandardScaler()
+    train_data[numerical_cols] = scaler.fit_transform(train_data[numerical_cols])
+    test_data[numerical_cols] = scaler.transform(test_data[numerical_cols])
+
+    return train_data, test_data
+
+# Define the model architecture
+class FNN(nn.Module):
+    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+        super(FNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc3 = nn.Linear(hidden_size2, output_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        out = self.relu(self.fc1(x))
+        out = self.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out
+
+# Train the model
+def train_model(model, train_data, num_epochs=100, learning_rate=0.005, batch_size=64):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(num_epochs):
+        # Forward pass
+        outputs = model(train_data.drop('media_cost', axis=1).values)
+        loss = criterion(outputs, train_data['media_cost'].values.view(-1, 1))
+
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_data):
+    test_predictions = model(test_data.drop('media_cost', axis=1).values).detach().numpy()
+    rmse = mean_squared_error(test_data['media_cost'], test_predictions, squared=False)
+    performance_scores = {
+        'RMSE': rmse
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Preprocess the data
+    train_data, test_data = preprocess_data(train_data, test_data)
+
+    # Define the model
+    input_size = train_data.shape[1] - 1  # Exclude the target variable
+    hidden_size1 = 128
+    hidden_size2 = 64
+    output_size = 1
+    model = FNN(input_size, hidden_size1, hidden_size2, output_size)
+
+    # Train the model
+    model = train_model(model, train_data)
+
+    # Evaluate the model
+    model_performance = evaluate_model(model, test_data)
+
+    # Save the model
+    model_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/models/media_campaign_cost_model.pth'
+    torch.save(model.state_dict(), model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 116, in main
+    train_data, test_data = preprocess_data(train_data, test_data)
+                                            ^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'train_data' where it is not associated with a value

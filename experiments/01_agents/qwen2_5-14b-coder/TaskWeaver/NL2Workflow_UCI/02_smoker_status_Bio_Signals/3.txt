@@ -1,0 +1,194 @@
+import pandas as pd
+
+dataset_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+train_df = pd.read_csv(dataset_path)
+train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+            id  age  height  weight  waist  eyesight_left  eyesight_right  hearing_left  hearing_right  systolic  relaxation  fasting_blood_sugar  Cholesterol  triglyceride  HDL  LDL  hemoglobin  Urine_protein  serum_creatinine  AST  ALT  Gtp  dental_caries  smoking
+0        60700   40     150      50   80.0            0.5             0.5             1              1       120          78                  102          179            48   60  109        11.8              1               0.6   14   11    9              0        0
+1        44065   65     150      50   69.0            0.7             1.0             1              1       139          89                  243          210            98   67  122        16.3              1               0.6   17   24   25              0        0
+...        ...  ...     ...     ...    ...            ...             ...           ...            ...       ...         ...                  ...          ...           ...  ...  ...         ...            ...               ...  ...  ...  ...            ...      ...
+127402  146867   60     170      85   97.0            1.2             1.5             1              1       135          81                   87          175            86   42  116        15.0              1               1.0   33   53   40              0        0
+127403  121958   40     175      85   88.0            1.2             1.0             1              1       100          70                  112          295           184   51  209        15.2              1               0.9   17   13   55              0        1
+
+[127404 rows x 24 columns]import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+# Load the dataset
+train_df = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+
+# Handle missing values by filling them with the median for numerical columns and mode for categorical columns
+numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+train_df[numerical_cols] = train_df[numerical_cols].fillna(train_df[numerical_cols].median())
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+train_df[categorical_cols] = train_df[categorical_cols].fillna(train_df[categorical_cols].mode().iloc[0])
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['smoking'] = label_encoder.fit_transform(train_df['smoking'])
+
+# Split the data into features and target variable
+X = train_df.drop('smoking', axis=1)
+y = train_df['smoking']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Store the preprocessed data
+preprocessed_data = {'X_train': X_train_scaled, 'X_test': X_test_scaled, 'y_train': y_train, 'y_test': y_test, 'label_encoder': label_encoder}
+
+preprocessed_data
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 12
+    train_df[categorical_cols] = train_df[categorical_cols].fillna(train_df[categorical_cols].mode().iloc[0])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1191 in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1752 in _getitem_axis
+    self._validate_integer(key, axis)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexing.py:1685 in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+
+IndexError: single positional indexer is out-of-bounds
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+# Load the dataset
+train_df = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+
+# Handle missing values by filling them with the median for numerical columns and mode for categorical columns
+numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+train_df[numerical_cols] = train_df[numerical_cols].fillna(train_df[numerical_cols].median())
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+for col in categorical_cols:
+    train_df[col] = train_df[col].fillna(train_df[col].mode()[0])
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['smoking'] = label_encoder.fit_transform(train_df['smoking'])
+
+# Split the data into features and target variable
+X = train_df.drop('smoking', axis=1)
+y = train_df['smoking']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Store the preprocessed data
+preprocessed_data = {'X_train': X_train_scaled, 'X_test': X_test_scaled, 'y_train': y_train, 'y_test': y_test, 'label_encoder': label_encoder}
+
+preprocessed_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+{'X_train': array([[-0.33944093, -0.36180387, -0.59612279, ..., -0.85711182,
+         -0.61383136,  2.01288228],
+        [-1.00857494, -0.36180387,  1.10314976, ...,  0.46608203,
+          0.18512104,  2.01288228],
+        [-1.61513386, -1.20800212,  2.23599813, ...,  0.19041664,
+         -0.51795707,  2.01288228],
+        ...,
+        [-1.51297931,  0.48439439,  0.53672558, ..., -0.36091413,
+          0.24903723,  2.01288228],
+        [-1.08293041, -0.784903  ,  0.53672558, ...,  0.46608203,
+         -0.03858563, -0.49680004],
+        [ 0.21432365, -0.36180387, -0.59612279, ..., -1.07764413,
+         -0.86949613, -0.49680004]]),
+ 'X_test': array([[-1.67731772, -0.36180387,  0.53672558, ...,  0.63148126,
+         -0.45404088, -0.49680004],
+        [-0.19105602,  1.33059265, -0.59612279, ..., -0.80197874,
+         -0.19837611, -0.49680004],
+        [-0.55848636,  1.33059265, -0.0296986 , ...,  1.40334434,
+          0.66449248,  2.01288228],
+        ...,
+        [ 0.8201001 ,  1.33059265,  0.53672558, ...,  0.24554972,
+          0.34491152, -0.49680004],
+        [-1.47003093, -0.36180387,  0.53672558, ..., -0.03011567,
+         -0.3262085 ,  2.01288228],
+        [-1.56483904,  1.33059265, -1.72897116, ..., -0.36091413,
+         -0.74166375, -0.49680004]]),
+ 'y_train': 83549     0
+ 29166     1
+          ..
+ 15795     1
+ 121958    0
+ Name: smoking, Length: 101923, dtype: int64,
+ 'y_test': 85446    1
+ 96697    1
+         ..
+ 26938    1
+ 14194    0
+ Name: smoking, Length: 25481, dtype: int64,
+ 'label_encoder': LabelEncoder()}import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Load the dataset
+train_df = pd.read_csv(r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv')
+
+# Handle missing values by filling them with the median for numerical columns and mode for categorical columns
+numerical_cols = train_df.select_dtypes(include=['float64', 'int64']).columns
+train_df[numerical_cols] = train_df[numerical_cols].fillna(train_df[numerical_cols].median())
+categorical_cols = train_df.select_dtypes(include=['object']).columns
+for col in categorical_cols:
+    train_df[col] = train_df[col].fillna(train_df[col].mode()[0])
+
+# Encode categorical variables
+label_encoder = LabelEncoder()
+train_df['smoking'] = label_encoder.fit_transform(train_df['smoking'])
+
+# Split the data into features and target variable
+X = train_df.drop('smoking', axis=1)
+y = train_df['smoking']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train the machine learning model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# Store the results
+results = {'model': model, 'y_pred_proba': y_pred_proba, 'auc_roc': auc_roc}
+
+results
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+{'model': RandomForestClassifier(random_state=42),
+ 'y_pred_proba': array([0.48, 0.77, 0.59, ..., 0.47, 0.78, 0.13]),
+ 'auc_roc': 0.8520139105868711}

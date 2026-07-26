@@ -1,0 +1,113 @@
+import pandas as pd
+
+# Load the training data
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+train_data = pd.read_csv(train_data_path)
+
+# Display the first few rows and the schema of the data
+train_data.head(), train_data.info()
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       id  store_sales  unit_sales  total_children  num_children_at_home  avg_cars_at_home  gross_weight  recyclable_package  low_fat  units_per_case  store_sqft  coffee_bar  video_store  salad_bar  prepared_food  florist    cost
+ 0  177400         8.49           3               1                     0                 4          17.7                   0        1              34       30268           0            0          0              0        0  133.42
+ 1   35064         4.47           3               2                     0                 3          11.3                   1        0              32       28206           1            0          0              0        0  109.06
+ 2  268168         6.84           3               0                     0                 1          10.5                   1        1              24       30584           1            1          1              1        1   91.58
+ 3  177181         4.54           2               3                     0                 1          12.3                   0        1               3       28206           1            0          0              0        0  124.36
+ 4  271461         8.34           3               1                     0                 2          16.1                   1        0              14       23688           1            1          1              1        1   96.55,
+ None)from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Preprocessing: Check for missing values and handle them if necessary
+train_data.fillna(train_data.mean(), inplace=True)
+
+# Encode categorical variables if any (for now, assume all features are numerical)
+# No explicit categorical variables found in the data schema, so we skip this step
+
+# Split the data into features (X) and target (y)
+X = train_data.drop(['cost'], axis=1)
+y = train_data['cost']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the machine learning model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Evaluate the model on the validation set
+y_pred = model.predict(X_val)
+rmlse = np.sqrt(mean_squared_error(y_val, y_pred))
+
+# Return the trained model, the split datasets, and the RMLSE
+model, X_train, X_val, y_train, y_val, rmlse
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+            id  store_sales  unit_sales  total_children  num_children_at_home  avg_cars_at_home  gross_weight  recyclable_package  low_fat  units_per_case  store_sqft  coffee_bar  video_store  salad_bar  prepared_food  florist
+ 6914    74634         2.96           2               0                     0                 3          7.65                   1        0               5       27694           1            1          1              1        1
+ 8119    85299         1.42           2               4                     0                 2         10.60                   1        0              32       23759           1            0          1              1        1
+ ...       ...          ...         ...             ...                   ...               ...           ...                 ...      ...             ...         ...         ...          ...        ...            ...      ...
+ 15795    5955         5.91           3               5                     0                 4          8.17                   0        1              32       20319           0            0          0              0        0
+ 23654  211431         5.56           4               2                     1                 2         19.40                   1        0               6       21215           1            0          0              0        0
+ 
+ [23061 rows x 16 columns],
+            id  store_sales  unit_sales  total_children  num_children_at_home  avg_cars_at_home  gross_weight  recyclable_package  low_fat  units_per_case  store_sqft  coffee_bar  video_store  salad_bar  prepared_food  florist
+ 28039   40578         6.90           3               4                     0                 4         21.50                   1        0              29       39696           0            0          1              1        0
+ 9061    53287         7.89           3               2                     2                 4          8.79                   0        0              23       23688           1            1          1              1        1
+ ...       ...          ...         ...             ...                   ...               ...           ...                 ...      ...             ...         ...         ...          ...        ...            ...      ...
+ 23720  140857         3.12           4               1                     0                 3         11.70                   1        1              21       30584           1            1          1              1        1
+ 11812  217410         2.10           3               2                     0                 2          7.36                   0        0               2       23112           1            1          1              1        1
+ 
+ [5766 rows x 16 columns],
+ 6914     95.78
+ 8119     75.76
+          ...  
+ 15795    72.61
+ 23654    91.28
+ Name: cost, Length: 23061, dtype: float64,
+ 28039    145.52
+ 9061     117.86
+           ...  
+ 23720    146.72
+ 11812     53.21
+ Name: cost, Length: 5766, dtype: float64,
+ 29.911318687449228)import pandas as pd
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Load the test data
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv'
+test_data = pd.read_csv(test_data_path)
+
+# Preprocess the test data: Handle missing values and scale features
+# Assuming the same preprocessing steps as the training data
+test_data.fillna(test_data.mean(), inplace=True)
+
+# Split the test data into features (X_test) and target (y_test)
+X_test = test_data.drop(['cost'], axis=1)
+y_test = test_data['cost']
+
+# Make predictions on the test set
+y_pred_test = model.predict(X_test)
+
+# Calculate the RMLSE on the test set
+rmlse_test = np.sqrt(mean_squared_error(y_test, y_pred_test))
+
+# Report the RMLSE
+rmlse_test, y_pred_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(29.988315884110296,
+ array([ 96.69504505,  93.3968763 , 105.68901053, ...,  96.54034588,
+         98.83569719,  95.36430767]),
+ 0        75.44
+ 1       131.75
+          ...  
+ 7205     94.79
+ 7206     95.55
+ Name: cost, Length: 7207, dtype: float64)

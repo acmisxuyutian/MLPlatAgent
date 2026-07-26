@@ -1,0 +1,119 @@
+import pandas as pd
+
+# Load the train and eval datasets
+train_data = pd.read_csv('D:\\PythonCodes\\benchmark/ml_benchmark/08_santander_value/split_train.csv')
+eval_data = pd.read_csv('D:\\PythonCodes\\benchmark/ml_benchmark/08_santander_value/split_eval.csv')
+
+# Check basic information
+train_info = train_data.info()
+eval_info = eval_data.info()
+
+# Check shape
+train_shape = train_data.shape
+eval_shape = eval_data.shape
+
+# Check data types
+train_dtypes = train_data.dtypes
+eval_dtypes = eval_data.dtypes
+
+# Check missing values
+train_missing = train_data.isnull().sum()
+eval_missing = eval_data.isnull().sum()
+
+train_data, eval_data, train_info, eval_info, train_shape, eval_shape, train_dtypes, eval_dtypes, train_missing, eval_missing
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           target  48df886f9  0deb4b6a8  34b15f335  a8cb14b00  2f0771a37  s30347e683  d08d1fbe3  6ee66e115   20aa07010  dc5a8f1d8  11d86fa6a  77c9823f2  8d6c2a0b2  4681de4fd  adf119b9a  cff75dd09  96f83a237  b8a716ebf
+ 0     10666666.66        0.0          0        0.0          0          0           0          0          0        0.00        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 1      4000000.00        0.0          0        0.0          0          0           0          0          0        0.00        0.0        0.0          0          0          0          0        0.0          0        0.0
+ ...           ...        ...        ...        ...        ...        ...         ...        ...        ...         ...        ...        ...        ...        ...        ...        ...        ...        ...        ...
+ 3565   5000000.00        0.0          0        0.0          0          0           0          0          0  5000000.00        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 3566   1549000.00        0.0          0        0.0          0          0           0          0          0  2836666.66        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 
+ [3567 rows x 19 columns],
+          target  48df886f9  0deb4b6a8   34b15f335  a8cb14b00  2f0771a37  s30347e683  d08d1fbe3  6ee66e115  20aa07010  dc5a8f1d8  11d86fa6a  77c9823f2  8d6c2a0b2  4681de4fd  adf119b9a  cff75dd09  96f83a237  b8a716ebf
+ 0     8018000.0        0.0          0  3738666.66          0          0           0          0          0  5029000.0        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 1     5000000.0        0.0          0        0.00          0          0           0          0          0        0.0        0.0        0.0          0          0          0          0        0.0          0        0.0
+ ..          ...        ...        ...         ...        ...        ...         ...        ...        ...        ...        ...        ...        ...        ...        ...        ...        ...        ...        ...
+ 890   1800000.0        0.0          0        0.00          0          0           0          0          0        0.0        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 891  11400000.0        0.0          0        0.00          0          0           0   40000000          0        0.0        0.0        0.0          0          0          0          0        0.0          0        0.0
+ 
+ [892 rows x 19 columns],
+ None,
+ None,
+ (3567, 19),
+ (892, 19),
+ target       float64
+ 48df886f9    float64
+               ...   
+ 96f83a237      int64
+ b8a716ebf    float64
+ Length: 19, dtype: object,
+ target       float64
+ 48df886f9    float64
+               ...   
+ 96f83a237      int64
+ b8a716ebf    float64
+ Length: 19, dtype: object,
+ target       0
+ 48df886f9    0
+             ..
+ 96f83a237    0
+ b8a716ebf    0
+ Length: 19, dtype: int64,
+ target       0
+ 48df886f9    0
+             ..
+ 96f83a237    0
+ b8a716ebf    0
+ Length: 19, dtype: int64)import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval datasets
+train_data = pd.read_csv('D:\\PythonCodes\\benchmark/ml_benchmark/08_santander_value/split_train.csv')
+eval_data = pd.read_csv('D:\\PythonCodes\\benchmark/ml_benchmark/08_santander_value/split_eval.csv')
+
+# Visualize the distribution of the target variable
+plt.figure(figsize=(10, 6))
+sns.histplot(train_data['target'], kde=True)
+plt.title('Distribution of Target Variable')
+plt.xlabel('Target Value')
+plt.ylabel('Frequency')
+plt.show()
+
+# Visualize the distribution of a few selected features
+selected_features = ['48df886f9', '0deb4b6a8', '34b15f335', 'a8cb14b00']
+for feature in selected_features:
+    plt.figure(figsize=(10, 6))
+    sns.histplot(train_data[feature], kde=True)
+    plt.title(f'Distribution of {feature}')
+    plt.xlabel(feature)
+    plt.ylabel('Frequency')
+    plt.show()
+
+# Correlation matrix
+plt.figure(figsize=(12, 10))
+corr_matrix = train_data.corr()
+sns.heatmap(corr_matrix, annot=False, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Relationship between selected features and the target
+for feature in selected_features:
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x=train_data[feature], y=train_data['target'])
+    plt.title(f'Relationship between {feature} and Target')
+    plt.xlabel(feature)
+    plt.ylabel('Target Value')
+    plt.show()
+
+# Store the results
+eda_results = {
+    'train_data': train_data,
+    'eval_data': eval_data,
+    'corr_matrix': corr_matrix
+}
+
+eda_results

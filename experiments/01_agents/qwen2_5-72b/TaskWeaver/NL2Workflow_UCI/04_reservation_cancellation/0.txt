@@ -1,0 +1,125 @@
+import pandas as pd
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataset
+train_df.head()
+
+train_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+0      15559             2               0                     0                  3                  0                           0                   1         65          2018             11             2                    0               0                             0                                     0                60.0                       2               0
+1      32783             2               0                     1                  4                  0                           0                   1         73          2018             12            26                    1               0                             0                                     0               111.6                       1               0
+...      ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+33672    860             2               0                     0                  2                  0                           0                   0         21          2017             12            10                    0               0                             0                                     0                70.0                       0               0
+33673  15795             2               0                     2                  1                  0                           0                   1        253          2018             10             5                    1               0                             0                                     0               115.2                       0               1
+
+[33674 rows x 19 columns]import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+# Preprocess the training dataset
+# Handle missing values
+train_df.fillna(train_df.median(), inplace=True)
+
+# Encode categorical variables
+categorical_columns = ['type_of_meal_plan', 'room_type_reserved', 'market_segment_type', 'booking_status']
+label_encoders = {}
+for col in categorical_columns:
+    le = LabelEncoder()
+    train_df[col] = le.fit_transform(train_df[col])
+    label_encoders[col] = le
+
+# Display the first few rows of the preprocessed dataset
+train_df.head()
+
+train_df, label_encoders
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(          id  no_of_adults  no_of_children  no_of_weekend_nights  no_of_week_nights  type_of_meal_plan  required_car_parking_space  room_type_reserved  lead_time  arrival_year  arrival_month  arrival_date  market_segment_type  repeated_guest  no_of_previous_cancellations  no_of_previous_bookings_not_canceled  avg_price_per_room  no_of_special_requests  booking_status
+ 0      15559             2               0                     0                  3                  0                           0                   1         65          2018             11             2                    0               0                             0                                     0                60.0                       2               0
+ 1      32783             2               0                     1                  4                  0                           0                   1         73          2018             12            26                    1               0                             0                                     0               111.6                       1               0
+ ...      ...           ...             ...                   ...                ...                ...                         ...                 ...        ...           ...            ...           ...                  ...             ...                           ...                                   ...                 ...                     ...             ...
+ 33672    860             2               0                     0                  2                  0                           0                   0         21          2017             12            10                    0               0                             0                                     0                70.0                       0               0
+ 33673  15795             2               0                     2                  1                  0                           0                   1        253          2018             10             5                    1               0                             0                                     0               115.2                       0               1
+ 
+ [33674 rows x 19 columns],
+ {'type_of_meal_plan': LabelEncoder(),
+  'room_type_reserved': LabelEncoder(),
+  'market_segment_type': LabelEncoder(),
+  'booking_status': LabelEncoder()})from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# Split the data into features and target
+X = train_df.drop(columns=['id', 'booking_status'])
+y = train_df['booking_status']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Perform cross-validation
+scores = cross_val_score(model, X_train, y_train, cv=5, scoring='roc_auc')
+
+# Train the model on the full training set
+model.fit(X_train, y_train)
+
+# Predict probabilities on the validation set
+y_pred_proba = model.predict_proba(X_val)[:, 1]
+
+# Calculate AUC-ROC on the validation set
+val_auc_roc = roc_auc_score(y_val, y_pred_proba)
+
+scores, val_auc_roc, model
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([0.86548472, 0.87699444, 0.87077142, 0.87865478, 0.87388504]),
+ 0.8686876011266256,
+ RandomForestClassifier(random_state=42))import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import roc_auc_score
+
+# Load the test dataset
+test_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/reservation_cancellation/test.csv'
+test_df = pd.read_csv(test_file_path)
+
+# Preprocess the test dataset
+# Handle missing values
+test_df.fillna(test_df.median(), inplace=True)
+
+# Encode categorical variables
+for col in categorical_columns:
+    le = label_encoders[col]
+    test_df[col] = le.transform(test_df[col])
+
+# Split the test data into features and target
+X_test = test_df.drop(columns=['id', 'booking_status'])
+y_test = test_df['booking_status']
+
+# Predict probabilities on the test set
+y_pred_proba_test = model.predict_proba(X_test)[:, 1]
+
+# Calculate AUC-ROC on the test set
+test_auc_roc = roc_auc_score(y_test, y_pred_proba_test)
+
+test_auc_roc, y_pred_proba_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.8767171699177579,
+ array([0.01      , 0.7925    , 0.34      , ..., 0.94      , 0.76      ,
+        0.04333333]),
+ 0       0
+ 1       1
+        ..
+ 8418    1
+ 8419    1
+ Name: booking_status, Length: 8420, dtype: int64)

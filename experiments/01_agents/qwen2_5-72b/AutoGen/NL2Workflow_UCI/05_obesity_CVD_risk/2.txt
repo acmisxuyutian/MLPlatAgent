@@ -1,0 +1,143 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# 查看数据的基本信息
+print(train_data.head())
+print(train_data.info())
+print(train_data.describe())
+print(train_data.isnull().sum())
+
+
+执行结果：
+      id  Gender  ...                 MTRANS           NObeyesdad
+0   9958    Male  ...             Automobile       Obesity_Type_I
+1   7841    Male  ...  Public_Transportation  Insufficient_Weight
+2   9293    Male  ...  Public_Transportation      Obesity_Type_II
+3  15209  Female  ...             Automobile       Obesity_Type_I
+4  16515    Male  ...  Public_Transportation  Overweight_Level_II
+
+[5 rows x 18 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 16606 entries, 0 to 16605
+Data columns (total 18 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   id                              16606 non-null  int64  
+ 1   Gender                          16606 non-null  object 
+ 2   Age                             16606 non-null  float64
+ 3   Height                          16606 non-null  float64
+ 4   Weight                          16606 non-null  float64
+ 5   family_history_with_overweight  16606 non-null  object 
+ 6   FAVC                            16606 non-null  object 
+ 7   FCVC                            16606 non-null  float64
+ 8   NCP                             16606 non-null  float64
+ 9   CAEC                            16606 non-null  object 
+ 10  SMOKE                           16606 non-null  object 
+ 11  CH2O                            16606 non-null  float64
+ 12  SCC                             16606 non-null  object 
+ 13  FAF                             16606 non-null  float64
+ 14  TUE                             16606 non-null  float64
+ 15  CALC                            16606 non-null  object 
+ 16  MTRANS                          16606 non-null  object 
+ 17  NObeyesdad                      16606 non-null  object 
+dtypes: float64(8), int64(1), object(9)
+memory usage: 2.3+ MB
+None
+                 id           Age  ...           FAF           TUE
+count  16606.000000  16606.000000  ...  16606.000000  16606.000000
+mean   10363.210888     23.892845  ...      0.985767      0.619577
+std     5999.344301      5.747219  ...      0.841048      0.604124
+min        0.000000     14.000000  ...      0.000000      0.000000
+25%     5171.250000     20.000000  ...      0.008822      0.000000
+50%    10377.500000     22.832105  ...      1.000000      0.573958
+75%    15542.500000     26.000000  ...      1.600536      1.000000
+max    20757.000000     61.000000  ...      3.000000      2.000000
+
+[8 rows x 9 columns]
+id                                0
+Gender                            0
+Age                               0
+Height                            0
+Weight                            0
+family_history_with_overweight    0
+FAVC                              0
+FCVC                              0
+NCP                               0
+CAEC                              0
+SMOKE                             0
+CH2O                              0
+SCC                               0
+FAF                               0
+TUE                               0
+CALC                              0
+MTRANS                            0
+NObeyesdad                        0
+dtype: int64
+
+生成的代码：
+# 对分类变量进行独热编码
+categorical_columns = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC', 'SMOKE', 'SCC', 'CALC', 'MTRANS', 'NObeyesdad']
+train_data_encoded = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
+
+# 查看编码后的数据
+print(train_data_encoded.head())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_467d7373dd337d60e9697554b2822af7aebe4c5e3c8248f4dd0bfd8a2cfa7229.py", line 3, in <module>
+    train_data_encoded = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
+NameError: name 'pd' is not defined. Did you mean: 'id'?
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/obesity_CVD_risk/train.csv'
+train_data = pd.read_csv(train_file_path)
+
+# 对分类变量进行独热编码
+categorical_columns = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC', 'SMOKE', 'SCC', 'CALC', 'MTRANS', 'NObeyesdad']
+train_data_encoded = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
+
+# 查看编码后的数据
+print(train_data_encoded.head())
+
+
+执行结果：
+      id  ...  NObeyesdad_Overweight_Level_II
+0   9958  ...                           False
+1   7841  ...                           False
+2   9293  ...                           False
+3  15209  ...                           False
+4  16515  ...                            True
+
+[5 rows x 29 columns]
+
+生成的代码：
+from sklearn.model_selection import train_test_split
+
+# 分离特征和目标变量
+X = train_data_encoded.drop(columns=['NObeyesdad_Insufficient_Weight', 'NObeyesdad_Normal_Weight', 'NObeyesdad_Overweight_Level_I', 'NObeyesdad_Overweight_Level_II', 'NObeyesdad_Obesity_Type_I', 'NObeyesdad_Obesity_Type_II', 'NObeyesdad_Obesity_Type_III'])
+y = train_data_encoded[['NObeyesdad_Insufficient_Weight', 'NObeyesdad_Normal_Weight', 'NObeyesdad_Overweight_Level_I', 'NObeyesdad_Overweight_Level_II', 'NObeyesdad_Obesity_Type_I', 'NObeyesdad_Obesity_Type_II', 'NObeyesdad_Obesity_Type_III']]
+
+# 将数据集分为训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 查看数据集的形状
+print(f"X_train shape: {X_train.shape}")
+print(f"y_train shape: {y_train.shape}")
+print(f"X_val shape: {X_val.shape}")
+print(f"y_val shape: {y_val.shape}")
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_96c1c7c8ae27926ba4dca16d1db9db6d99b849f27be1edf710afc9782d36648d.py", line 4, in <module>
+    X = train_data_encoded.drop(columns=['NObeyesdad_Insufficient_Weight', 'NObeyesdad_Normal_Weight', 'NObeyesdad_Overweight_Level_I', 'NObeyesdad_Overweight_Level_II', 'NObeyesdad_Obesity_Type_I', 'NObeyesdad_Obesity_Type_II', 'NObeyesdad_Obesity_Type_III'])
+NameError: name 'train_data_encoded' is not defined

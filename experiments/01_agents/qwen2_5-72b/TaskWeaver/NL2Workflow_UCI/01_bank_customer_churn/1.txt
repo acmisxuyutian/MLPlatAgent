@@ -1,0 +1,75 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+# Load the dataset
+file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/bank_customer_churn/train.csv'
+df = pd.read_csv(file_path)
+
+# Data Preprocessing
+# Separate features and target
+X = df.drop('Exited', axis=1)
+y = df['Exited']
+
+# Identify categorical and numerical columns
+numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = X.select_dtypes(include=['object']).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = StandardScaler()
+categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+# Create preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing
+preprocessed_data = preprocessor.fit_transform(X)
+preprocessed_data
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+<Compressed Sparse Row sparse matrix of dtype 'float64'
+	with 1716351 stored elements and shape (132027, 2757)>from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# Split the preprocessed data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(preprocessed_data, y, test_size=0.2, random_state=42)
+
+# Create a RandomForestClassifier model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Store the result variables
+model, X_test, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(RandomForestClassifier(random_state=42),
+ <Compressed Sparse Row sparse matrix of dtype 'float64'
+ 	with 343278 stored elements and shape (26406, 2757)>,
+ 22332     0
+ 12829     0
+          ..
+ 1402      0
+ 101886    0
+ Name: Exited, Length: 26406, dtype: int64)from sklearn.metrics import roc_auc_score
+
+# Predict probabilities on the test set
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Calculate AUC-ROC score
+auc_roc_score = roc_auc_score(y_test, y_pred_proba)
+auc_roc_score
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.8779217377385176

@@ -1,0 +1,208 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+import requests
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from imblearn.over_sampling import SMOTE
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import log_loss
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Retrieve the dataset
+def retrieve_dataset():
+    url = 'https://example.com/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+    response = requests.get(url)
+    with open('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv', 'wb') as f:
+        f.write(response.content)
+
+# Step 2: Preprocess the dataset
+def preprocess_data():
+    # Load the dataset
+    df = pd.read_csv('/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv', on_bad_lines='skip')
+
+    # Handle missing values using mean imputation
+    df.fillna(df.mean(), inplace=True)
+
+    # Ensure correct data types
+    # Example: Convert 'feature_name' to float
+    df['feature_name'] = df['feature_name'].astype('float64')
+
+    # Normalize numerical features
+    scaler = MinMaxScaler()
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Encode categorical variables
+    encoder = OneHotEncoder(sparse=False)
+    categorical_features = df.select_dtypes(include=['object']).columns
+    encoded_features = encoder.fit_transform(df[categorical_features])
+    encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_features))
+    df = pd.concat([df.drop(categorical_features, axis=1), encoded_df], axis=1)
+
+    # Apply SMOTE if the dataset is imbalanced
+    smote = SMOTE()
+    X = df.drop('survival_status', axis=1)
+    y = df['survival_status']
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    # Split the dataset into training (70%), validation (20%), and test (10%) sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 3: Train the Neural Logic Network (NLN)
+class NLN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers):
+        super(NLN, self).__init__()
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(input_size, hidden_size))
+        for _ in range(num_layers - 1):
+            self.layers.append(nn.Linear(hidden_size, hidden_size))
+        self.layers.append(nn.Linear(hidden_size, 1))
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        for layer in self.layers:
+            x = torch.relu(layer(x))
+        x = self.sigmoid(x)
+        return x
+
+def train_model(X_train, y_train, X_val, y_val):
+    input_size = X_train.shape[1]
+    hidden_size = 64
+    num_layers = 2
+    learning_rate = 0.001
+    batch_size = 32
+    num_epochs = 100
+
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+
+    # Create DataLoader
+    train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # Initialize the model, loss function, and optimizer
+    model = NLN(input_size, hidden_size, num_layers)
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Training loop
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val_tensor)
+            val_loss = criterion(val_outputs, y_val_tensor)
+            val_logloss = log_loss(y_val_tensor.numpy(), val_outputs.numpy())
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Val Logloss: {val_logloss:.4f}')
+
+    return model
+
+# Step 4: Evaluate the model
+def evaluate_model(model, X_test, y_test):
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(X_test_tensor)
+        test_logloss = log_loss(y_test_tensor.numpy(), test_outputs.numpy())
+
+    performance_scores = {
+        'Logloss': test_logloss
+    }
+
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Retrieve the dataset
+    retrieve_dataset()
+
+    # Step 2: Preprocess the dataset
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data()
+
+    # Step 3: Train the model
+    model = train_model(X_train, y_train, X_val, y_val)
+
+    # Step 4: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 159, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data()
+                                                     ^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 35, in preprocess_data
+    df.fillna(df.mean(), inplace=True)
+              ^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11693, in mean
+    result = super().mean(axis, skipna, numeric_only, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 12420, in mean
+    return self._stat_function(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 12377, in _stat_function
+    return self._reduce(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11562, in _reduce
+    res = df._mgr.reduce(blk_func)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/managers.py", line 1500, in reduce
+    nbs = blk.reduce(func)
+          ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/internals/blocks.py", line 404, in reduce
+    result = func(self.values)
+             ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 11481, in blk_func
+    return op(values, axis=axis, skipna=skipna, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 147, in f
+    result = alt(values, axis=axis, skipna=skipna, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 404, in new_func
+    result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 720, in nanmean
+    the_sum = _ensure_numeric(the_sum)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/nanops.py", line 1686, in _ensure_numeric
+    raise TypeError(f"Could not convert {x} to numeric")
+TypeError: Could not convert ['<html><head>    <title>Example Domain</title>    <meta charset="utf-8" />    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />    <style type="text/css">    body {        background-color: #f0f0f2;        margin: 0;        padding: 0;    }    div {        width: 600px;        margin: 5em auto;        padding: 2em;        background-color: #fdfdff;        border-radius: 0.5em;    }        color: #38488f;        text-decoration: none;    }    @media (max-width: 700px) {        div {            margin: 0 auto;            width: auto;        }    }    </style>    </head><body><div>    <h1>Example Domain</h1>    <p>This domain is for use in illustrative examples in documents. You may use this    domain in literature without prior coordination or asking for permission.</p>    <p><a href="https://www.iana.org/domains/example">More information...</a></p></div></body></html>'] to numeric

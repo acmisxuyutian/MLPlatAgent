@@ -1,0 +1,98 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Load the datasets
+train_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/train.csv'
+test_data_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/smoker_status_Bio_Signals/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Feature selection
+features = train_df.columns[:-1]  # Assuming the last column is the target variable
+X_train = train_df[features]
+y_train = train_df.iloc[:, -1]
+X_test = test_df[features]
+y_test = test_df.iloc[:, -1]
+
+# Data normalization
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Put all the result variables in the last line
+X_train_scaled, y_train, X_test_scaled, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([[-0.40800059, -0.3637642 , -1.72969546, ..., -0.8517551 ,
+         -0.8712019 , -0.49742564],
+        [-0.76958795,  1.75019545, -1.72969546, ..., -0.13904905,
+         -0.35808242, -0.49742564],
+        [-0.86798927,  0.90461159, -1.16298296, ..., -0.63246093,
+         -0.64671213, -0.49742564],
+        ...,
+        [ 1.1403367 ,  0.05902773, -0.59627047, ..., -0.74210801,
+         -0.71085206, -0.49742564],
+        [ 1.46497194,  1.32740352,  0.53715452, ...,  1.45083367,
+          0.1229671 , -0.49742564],
+        [ 0.92353644, -0.3637642 ,  1.10386701, ..., -0.74210801,
+          0.60401661, -0.49742564]]),
+ 0         0
+ 1         0
+          ..
+ 127402    0
+ 127403    1
+ Name: smoking, Length: 127404, dtype: int64,
+ array([[ 1.43860552, -0.78655613,  1.10386701, ..., -0.24869614,
+         -0.13359264, -0.49742564],
+        [-0.65975321, -0.78655613,  2.237292  , ..., -0.24869614,
+         -0.61464216, -0.49742564],
+        [-1.25422587, -2.05493191, -0.59627047, ...,  0.29953929,
+          0.15503706,  2.01035072],
+        ...,
+        [ 1.71324671, -0.3637642 ,  1.10386701, ..., -0.02940197,
+          0.86057635, -0.49742564],
+        [ 1.36587505, -0.3637642 ,  0.53715452, ..., -0.8517551 ,
+         -0.32601245, -0.49742564],
+        [ 0.12728347, -1.20934806,  0.53715452, ...,  0.46400991,
+         -0.51843226, -0.49742564]]),
+ 0        1
+ 1        1
+         ..
+ 31850    0
+ 31851    1
+ Name: smoking, Length: 31852, dtype: int64)import xgboost as xgb
+from sklearn.metrics import roc_auc_score
+
+# Define the DART booster
+xgb_model = xgb.XGBClassifier(booster='dart', learning_rate=0.1, n_estimators=100)
+
+# Train the model
+xgb_model.fit(X_train_scaled, y_train)
+
+# Predict probabilities on the test set
+y_pred_proba = xgb_model.predict_proba(X_test_scaled)[:, 1]
+
+# Calculate AUC-ROC
+auc_roc = roc_auc_score(y_test, y_pred_proba)
+
+# Put all the result variables in the last line
+xgb_model, y_pred_proba, auc_roc
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(XGBClassifier(base_score=None, booster='dart', callbacks=None,
+               colsample_bylevel=None, colsample_bynode=None,
+               colsample_bytree=None, device=None, early_stopping_rounds=None,
+               enable_categorical=False, eval_metric=None, feature_types=None,
+               feature_weights=None, gamma=None, grow_policy=None,
+               importance_type=None, interaction_constraints=None,
+               learning_rate=0.1, max_bin=None, max_cat_threshold=None,
+               max_cat_to_onehot=None, max_delta_step=None, max_depth=None,
+               max_leaves=None, min_child_weight=None, missing=nan,
+               monotone_constraints=None, multi_strategy=None, n_estimators=100,
+               n_jobs=None, num_parallel_tree=None, ...),
+ array([0.7796717 , 0.59173924, 0.76506555, ..., 0.8200079 , 0.83174884,
+        0.49017134], dtype=float32),
+ 0.8618324216113601)

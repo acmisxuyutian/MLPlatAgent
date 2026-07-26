@@ -1,0 +1,412 @@
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import median_absolute_error
+import numpy as np
+import random
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = median_absolute_error(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Convert data to PyTorch tensors
+    X_train = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
+    X_valid = torch.tensor(X_valid.values, dtype=torch.float32)
+    y_valid = torch.tensor(y_valid, dtype=torch.float32).view(-1, 1)
+
+    # Define the model
+    model = nn.Sequential(
+        nn.Linear(X_train.shape[1], 64),
+        nn.Tanh(),
+        nn.Linear(64, 1)
+    )
+
+    # Define the loss function and optimizer
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+    # Train the model
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = criterion(outputs, y_train)
+        loss.backward()
+        optimizer.step()
+
+        # Validate the model
+        model.eval()
+        with torch.no_grad():
+            y_valid_pred = model(X_valid)
+            valid_loss = criterion(y_valid_pred, y_valid)
+            valid_mae = compute_metrics(y_valid.numpy(), y_valid_pred.numpy().flatten())
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Valid Loss: {valid_loss.item():.4f}, Valid MAE: {valid_mae:.4f}')
+
+    return model
+
+def predict(model, X):
+    X = torch.tensor(X.values, dtype=torch.float32)
+    model.eval()
+    with torch.no_grad():
+        y_pred = model(X)
+    return y_pred.numpy().flatten()
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Hardness'], axis=1)
+    y = data_df['Hardness'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final MAE on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Hardness'], axis=1)
+    y_test_pred = predict(model, X_test)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Epoch [1/100], Loss: 34.7016, Valid Loss: 5.1037, Valid MAE: 1.0701
+Epoch [2/100], Loss: 4.8368, Valid Loss: 3.0189, Valid MAE: 1.6867
+Epoch [3/100], Loss: 3.1125, Valid Loss: 2.9803, Valid MAE: 1.2021
+Epoch [4/100], Loss: 2.9754, Valid Loss: 2.9358, Valid MAE: 1.3365
+Epoch [5/100], Loss: 2.9592, Valid Loss: 2.9375, Valid MAE: 1.3004
+Epoch [6/100], Loss: 2.9527, Valid Loss: 2.9296, Valid MAE: 1.3112
+Epoch [7/100], Loss: 2.9466, Valid Loss: 2.9162, Valid MAE: 1.3804
+Epoch [8/100], Loss: 2.9431, Valid Loss: 2.9239, Valid MAE: 1.3222
+Epoch [9/100], Loss: 2.9367, Valid Loss: 2.9176, Valid MAE: 1.3289
+Epoch [10/100], Loss: 2.9323, Valid Loss: 2.9144, Valid MAE: 1.3267
+Epoch [11/100], Loss: 2.9293, Valid Loss: 2.9107, Valid MAE: 1.3268
+Epoch [12/100], Loss: 2.9250, Valid Loss: 2.9061, Valid MAE: 1.3338
+Epoch [13/100], Loss: 2.9216, Valid Loss: 2.9012, Valid MAE: 1.2553
+Epoch [14/100], Loss: 2.9131, Valid Loss: 2.9048, Valid MAE: 1.2961
+Epoch [15/100], Loss: 2.9163, Valid Loss: 2.8971, Valid MAE: 1.3172
+Epoch [16/100], Loss: 2.9131, Valid Loss: 2.8959, Valid MAE: 1.3116
+Epoch [17/100], Loss: 2.9107, Valid Loss: 2.8930, Valid MAE: 1.3135
+Epoch [18/100], Loss: 2.9083, Valid Loss: 2.8903, Valid MAE: 1.3131
+Epoch [19/100], Loss: 2.9061, Valid Loss: 2.8874, Valid MAE: 1.3135
+Epoch [20/100], Loss: 2.9039, Valid Loss: 2.8843, Valid MAE: 1.3139
+Epoch [21/100], Loss: 2.9014, Valid Loss: 2.8817, Valid MAE: 1.3141
+Epoch [22/100], Loss: 2.8991, Valid Loss: 2.8792, Valid MAE: 1.3145
+Epoch [23/100], Loss: 2.8968, Valid Loss: 2.8768, Valid MAE: 1.3147
+Epoch [24/100], Loss: 2.8943, Valid Loss: 2.8747, Valid MAE: 1.3150
+Epoch [25/100], Loss: 2.8923, Valid Loss: 2.8729, Valid MAE: 1.3153
+Epoch [26/100], Loss: 2.8906, Valid Loss: 2.8708, Valid MAE: 1.3155
+Epoch [27/100], Loss: 2.8887, Valid Loss: 2.8701, Valid MAE: 1.3158
+Epoch [28/100], Loss: 2.8873, Valid Loss: 2.8685, Valid MAE: 1.3161
+Epoch [29/100], Loss: 2.8859, Valid Loss: 2.8668, Valid MAE: 1.3163
+Epoch [30/100], Loss: 2.8844, Valid Loss: 2.8652, Valid MAE: 1.3166
+Epoch [31/100], Loss: 2.8831, Valid Loss: 2.8637, Valid MAE: 1.3169
+Epoch [32/100], Loss: 2.8819, Valid Loss: 2.8624, Valid MAE: 1.3171
+Epoch [33/100], Loss: 2.8805, Valid Loss: 2.8612, Valid MAE: 1.3173
+Epoch [34/100], Loss: 2.8792, Valid Loss: 2.8600, Valid MAE: 1.3176
+Epoch [35/100], Loss: 2.8782, Valid Loss: 2.8589, Valid MAE: 1.3178
+Epoch [36/100], Loss: 2.8772, Valid Loss: 2.8579, Valid MAE: 1.3180
+Epoch [37/100], Loss: 2.8763, Valid Loss: 2.8568, Valid MAE: 1.3183
+Epoch [38/100], Loss: 2.8755, Valid Loss: 2.8558, Valid MAE: 1.3185
+Epoch [39/100], Loss: 2.8746, Valid Loss: 2.8547, Valid MAE: 1.3187
+Epoch [40/100], Loss: 2.8737, Valid Loss: 2.8536, Valid MAE: 1.3189
+Epoch [41/100], Loss: 2.8728, Valid Loss: 2.8525, Valid MAE: 1.3191
+Epoch [42/100], Loss: 2.8719, Valid Loss: 2.8514, Valid MAE: 1.3193
+Epoch [43/100], Loss: 2.8710, Valid Loss: 2.8504, Valid MAE: 1.3195
+Epoch [44/100], Loss: 2.8703, Valid Loss: 2.8495, Valid MAE: 1.3197
+Epoch [45/100], Loss: 2.8696, Valid Loss: 2.8485, Valid MAE: 1.3199
+Epoch [46/100], Loss: 2.8689, Valid Loss: 2.8476, Valid MAE: 1.3201
+Epoch [47/100], Loss: 2.8681, Valid Loss: 2.8467, Valid MAE: 1.3202
+Epoch [48/100], Loss: 2.8675, Valid Loss: 2.8459, Valid MAE: 1.3204
+Epoch [49/100], Loss: 2.8669, Valid Loss: 2.8452, Valid MAE: 1.3206
+Epoch [50/100], Loss: 2.8664, Valid Loss: 2.8445, Valid MAE: 1.3208
+Epoch [51/100], Loss: 2.8660, Valid Loss: 2.8438, Valid MAE: 1.3209
+Epoch [52/100], Loss: 2.8655, Valid Loss: 2.8432, Valid MAE: 1.3211
+Epoch [53/100], Loss: 2.8651, Valid Loss: 2.8426, Valid MAE: 1.3213
+Epoch [54/100], Loss: 2.8646, Valid Loss: 2.8420, Valid MAE: 1.3214
+Epoch [55/100], Loss: 2.8642, Valid Loss: 2.8414, Valid MAE: 1.3216
+Epoch [56/100], Loss: 2.8638, Valid Loss: 2.8409, Valid MAE: 1.3217
+Epoch [57/100], Loss: 2.8635, Valid Loss: 2.8403, Valid MAE: 1.3219
+Epoch [58/100], Loss: 2.8631, Valid Loss: 2.8398, Valid MAE: 1.3220
+Epoch [59/100], Loss: 2.8628, Valid Loss: 2.8393, Valid MAE: 1.3222
+Epoch [60/100], Loss: 2.8624, Valid Loss: 2.8387, Valid MAE: 1.3223
+Epoch [61/100], Loss: 2.8620, Valid Loss: 2.8382, Valid MAE: 1.3224
+Epoch [62/100], Loss: 2.8617, Valid Loss: 2.8378, Valid MAE: 1.3226
+Epoch [63/100], Loss: 2.8614, Valid Loss: 2.8373, Valid MAE: 1.3227
+Epoch [64/100], Loss: 2.8611, Valid Loss: 2.8368, Valid MAE: 1.3229
+Epoch [65/100], Loss: 2.8608, Valid Loss: 2.8364, Valid MAE: 1.3230
+Epoch [66/100], Loss: 2.8605, Valid Loss: 2.8359, Valid MAE: 1.3231
+Epoch [67/100], Loss: 2.8602, Valid Loss: 2.8354, Valid MAE: 1.3232
+Epoch [68/100], Loss: 2.8599, Valid Loss: 2.8350, Valid MAE: 1.3234
+Epoch [69/100], Loss: 2.8597, Valid Loss: 2.8346, Valid MAE: 1.3235
+Epoch [70/100], Loss: 2.8594, Valid Loss: 2.8342, Valid MAE: 1.3236
+Epoch [71/100], Loss: 2.8591, Valid Loss: 2.8339, Valid MAE: 1.3237
+Epoch [72/100], Loss: 2.8589, Valid Loss: 2.8335, Valid MAE: 1.3238
+Epoch [73/100], Loss: 2.8586, Valid Loss: 2.8331, Valid MAE: 1.3239
+Epoch [74/100], Loss: 2.8584, Valid Loss: 2.8328, Valid MAE: 1.3240
+Epoch [75/100], Loss: 2.8582, Valid Loss: 2.8325, Valid MAE: 1.3241
+Epoch [76/100], Loss: 2.8580, Valid Loss: 2.8321, Valid MAE: 1.3243
+Epoch [77/100], Loss: 2.8578, Valid Loss: 2.8318, Valid MAE: 1.3243
+Epoch [78/100], Loss: 2.8576, Valid Loss: 2.8315, Valid MAE: 1.3245
+Epoch [79/100], Loss: 2.8574, Valid Loss: 2.8312, Valid MAE: 1.3245
+Epoch [80/100], Loss: 2.8572, Valid Loss: 2.8309, Valid MAE: 1.3247
+Epoch [81/100], Loss: 2.8570, Valid Loss: 2.8306, Valid MAE: 1.3247
+Epoch [82/100], Loss: 2.8569, Valid Loss: 2.8303, Valid MAE: 1.3248
+Epoch [83/100], Loss: 2.8567, Valid Loss: 2.8300, Valid MAE: 1.3249
+Epoch [84/100], Loss: 2.8565, Valid Loss: 2.8298, Valid MAE: 1.3250
+Epoch [85/100], Loss: 2.8564, Valid Loss: 2.8295, Valid MAE: 1.3251
+Epoch [86/100], Loss: 2.8562, Valid Loss: 2.8292, Valid MAE: 1.3252
+Epoch [87/100], Loss: 2.8561, Valid Loss: 2.8290, Valid MAE: 1.3253
+Epoch [88/100], Loss: 2.8559, Valid Loss: 2.8287, Valid MAE: 1.3254
+Epoch [89/100], Loss: 2.8558, Valid Loss: 2.8285, Valid MAE: 1.3254
+Epoch [90/100], Loss: 2.8556, Valid Loss: 2.8282, Valid MAE: 1.3255
+Epoch [91/100], Loss: 2.8555, Valid Loss: 2.8280, Valid MAE: 1.3256
+Epoch [92/100], Loss: 2.8554, Valid Loss: 2.8278, Valid MAE: 1.3257
+Epoch [93/100], Loss: 2.8552, Valid Loss: 2.8275, Valid MAE: 1.3258
+Epoch [94/100], Loss: 2.8551, Valid Loss: 2.8273, Valid MAE: 1.3259
+Epoch [95/100], Loss: 2.8550, Valid Loss: 2.8271, Valid MAE: 1.3259
+Epoch [96/100], Loss: 2.8549, Valid Loss: 2.8269, Valid MAE: 1.3260
+Epoch [97/100], Loss: 2.8547, Valid Loss: 2.8267, Valid MAE: 1.3260
+Epoch [98/100], Loss: 2.8546, Valid Loss: 2.8265, Valid MAE: 1.3261
+Epoch [99/100], Loss: 2.8545, Valid Loss: 2.8263, Valid MAE: 1.3262
+Epoch [100/100], Loss: 2.8544, Valid Loss: 2.8261, Valid MAE: 1.3263
+Final MAE on validation set:  1.326284408569336
+Final mae on test set:  1.326284408569336
+
+==================================================:
+===================生成的代码========================:
+import pandas as pd
+from sklearn.metrics import median_absolute_error
+import numpy as np
+import random
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from submission import submit_predictions_for_test_set
+
+SEED = 42
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+def compute_metrics(y_test, y_test_pred):
+    score = median_absolute_error(y_test, y_test_pred)
+    return score
+
+def train_model(X_train, y_train, X_valid, y_valid):
+    # Normalize the input data
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_valid = scaler.transform(X_valid)
+
+    # Convert data to PyTorch tensors
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
+    X_valid = torch.tensor(X_valid, dtype=torch.float32)
+    y_valid = torch.tensor(y_valid, dtype=torch.float32).view(-1, 1)
+
+    # Define the model
+    model = nn.Sequential(
+        nn.Linear(X_train.shape[1], 64),
+        nn.Tanh(),
+        nn.Linear(64, 1)
+    )
+
+    # Define the loss function and optimizer
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+    # Define the learning rate scheduler
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
+    # Train the model
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = criterion(outputs, y_train)
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+
+        # Validate the model
+        model.eval()
+        with torch.no_grad():
+            y_valid_pred = model(X_valid)
+            valid_loss = criterion(y_valid_pred, y_valid)
+            valid_mae = compute_metrics(y_valid.numpy(), y_valid_pred.numpy().flatten())
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, Valid Loss: {valid_loss.item():.4f}, Valid MAE: {valid_mae:.4f}')
+
+    return model, scaler
+
+def predict(model, X, scaler):
+    X = scaler.transform(X)
+    X = torch.tensor(X, dtype=torch.float32)
+    model.eval()
+    with torch.no_grad():
+        y_pred = model(X)
+    return y_pred.numpy().flatten()
+
+if __name__ == '__main__':
+    data_df = pd.read_csv('train.csv')
+
+    X = data_df.drop(['Hardness'], axis=1)
+    y = data_df['Hardness'].to_numpy()
+
+    # Apply preprocessing
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+
+    # Define and train the model
+    model, scaler = train_model(X_train, y_train, X_valid, y_valid)
+
+    # Evaluate the model on the valid set using compute_metrics and print the results
+    y_valid_pred = predict(model, X_valid, scaler)
+    score = compute_metrics(y_valid, y_valid_pred)
+    print("Final MAE on validation set: ", score)
+
+    # Submit predictions for the test set
+    submission_df = pd.read_csv('test.csv')
+    X_test = submission_df.drop(['Hardness'], axis=1)
+    y_test_pred = predict(model, X_test, scaler)
+    submit_predictions_for_test_set(y_test_pred)
+==================================================:
+===================执行结果========================:
+The script has been executed. Here is the output:
+Epoch [1/100], Loss: 23.7923, Valid Loss: 21.0155, Valid MAE: 4.7208
+Epoch [2/100], Loss: 21.6818, Valid Loss: 19.1444, Valid MAE: 4.4907
+Epoch [3/100], Loss: 19.7616, Valid Loss: 17.4232, Valid MAE: 4.2728
+Epoch [4/100], Loss: 17.9954, Valid Loss: 15.8289, Valid MAE: 4.0709
+Epoch [5/100], Loss: 16.3598, Valid Loss: 14.3471, Valid MAE: 3.8425
+Epoch [6/100], Loss: 14.8400, Valid Loss: 12.9694, Valid MAE: 3.6429
+Epoch [7/100], Loss: 13.4271, Valid Loss: 11.6909, Valid MAE: 3.4270
+Epoch [8/100], Loss: 12.1162, Valid Loss: 10.5092, Valid MAE: 3.1957
+Epoch [9/100], Loss: 10.9045, Valid Loss: 9.4231, Valid MAE: 2.9912
+Epoch [10/100], Loss: 9.7905, Valid Loss: 8.4318, Valid MAE: 2.7863
+Epoch [11/100], Loss: 8.7732, Valid Loss: 7.5339, Valid MAE: 2.5877
+Epoch [12/100], Loss: 7.8511, Valid Loss: 6.7277, Valid MAE: 2.4205
+Epoch [13/100], Loss: 7.0222, Valid Loss: 6.0103, Valid MAE: 2.2581
+Epoch [14/100], Loss: 6.2835, Valid Loss: 5.3780, Valid MAE: 2.0853
+Epoch [15/100], Loss: 5.6310, Valid Loss: 4.8258, Valid MAE: 1.9295
+Epoch [16/100], Loss: 5.0598, Valid Loss: 4.3483, Valid MAE: 1.8091
+Epoch [17/100], Loss: 4.5643, Valid Loss: 3.9393, Valid MAE: 1.7158
+Epoch [18/100], Loss: 4.1381, Valid Loss: 3.5920, Valid MAE: 1.6164
+Epoch [19/100], Loss: 3.7747, Valid Loss: 3.2999, Valid MAE: 1.5305
+Epoch [20/100], Loss: 3.4672, Valid Loss: 3.0562, Valid MAE: 1.4529
+Epoch [21/100], Loss: 3.2089, Valid Loss: 2.8544, Valid MAE: 1.3741
+Epoch [22/100], Loss: 2.9935, Valid Loss: 2.6886, Valid MAE: 1.3173
+Epoch [23/100], Loss: 2.8150, Valid Loss: 2.5533, Valid MAE: 1.2373
+Epoch [24/100], Loss: 2.6677, Valid Loss: 2.4435, Valid MAE: 1.1812
+Epoch [25/100], Loss: 2.5468, Valid Loss: 2.3549, Valid MAE: 1.1623
+Epoch [26/100], Loss: 2.4479, Valid Loss: 2.2838, Valid MAE: 1.1193
+Epoch [27/100], Loss: 2.3672, Valid Loss: 2.2268, Valid MAE: 1.0785
+Epoch [28/100], Loss: 2.3014, Valid Loss: 2.1813, Valid MAE: 1.0513
+Epoch [29/100], Loss: 2.2479, Valid Loss: 2.1451, Valid MAE: 1.0158
+Epoch [30/100], Loss: 2.2044, Valid Loss: 2.1163, Valid MAE: 0.9898
+Epoch [31/100], Loss: 2.1689, Valid Loss: 2.1139, Valid MAE: 0.9901
+Epoch [32/100], Loss: 2.1659, Valid Loss: 2.1115, Valid MAE: 0.9869
+Epoch [33/100], Loss: 2.1629, Valid Loss: 2.1092, Valid MAE: 0.9873
+Epoch [34/100], Loss: 2.1600, Valid Loss: 2.1069, Valid MAE: 0.9832
+Epoch [35/100], Loss: 2.1572, Valid Loss: 2.1047, Valid MAE: 0.9787
+Epoch [36/100], Loss: 2.1544, Valid Loss: 2.1025, Valid MAE: 0.9745
+Epoch [37/100], Loss: 2.1516, Valid Loss: 2.1004, Valid MAE: 0.9712
+Epoch [38/100], Loss: 2.1489, Valid Loss: 2.0983, Valid MAE: 0.9682
+Epoch [39/100], Loss: 2.1463, Valid Loss: 2.0963, Valid MAE: 0.9652
+Epoch [40/100], Loss: 2.1437, Valid Loss: 2.0943, Valid MAE: 0.9633
+Epoch [41/100], Loss: 2.1411, Valid Loss: 2.0923, Valid MAE: 0.9621
+Epoch [42/100], Loss: 2.1386, Valid Loss: 2.0904, Valid MAE: 0.9582
+Epoch [43/100], Loss: 2.1362, Valid Loss: 2.0885, Valid MAE: 0.9564
+Epoch [44/100], Loss: 2.1338, Valid Loss: 2.0867, Valid MAE: 0.9547
+Epoch [45/100], Loss: 2.1314, Valid Loss: 2.0849, Valid MAE: 0.9530
+Epoch [46/100], Loss: 2.1291, Valid Loss: 2.0831, Valid MAE: 0.9512
+Epoch [47/100], Loss: 2.1268, Valid Loss: 2.0814, Valid MAE: 0.9496
+Epoch [48/100], Loss: 2.1246, Valid Loss: 2.0797, Valid MAE: 0.9494
+Epoch [49/100], Loss: 2.1224, Valid Loss: 2.0781, Valid MAE: 0.9463
+Epoch [50/100], Loss: 2.1203, Valid Loss: 2.0765, Valid MAE: 0.9460
+Epoch [51/100], Loss: 2.1181, Valid Loss: 2.0749, Valid MAE: 0.9479
+Epoch [52/100], Loss: 2.1161, Valid Loss: 2.0734, Valid MAE: 0.9473
+Epoch [53/100], Loss: 2.1140, Valid Loss: 2.0719, Valid MAE: 0.9447
+Epoch [54/100], Loss: 2.1121, Valid Loss: 2.0704, Valid MAE: 0.9436
+Epoch [55/100], Loss: 2.1101, Valid Loss: 2.0689, Valid MAE: 0.9474
+Epoch [56/100], Loss: 2.1082, Valid Loss: 2.0675, Valid MAE: 0.9444
+Epoch [57/100], Loss: 2.1063, Valid Loss: 2.0661, Valid MAE: 0.9407
+Epoch [58/100], Loss: 2.1044, Valid Loss: 2.0648, Valid MAE: 0.9370
+Epoch [59/100], Loss: 2.1026, Valid Loss: 2.0635, Valid MAE: 0.9380
+Epoch [60/100], Loss: 2.1008, Valid Loss: 2.0622, Valid MAE: 0.9404
+Epoch [61/100], Loss: 2.0991, Valid Loss: 2.0620, Valid MAE: 0.9398
+Epoch [62/100], Loss: 2.0989, Valid Loss: 2.0619, Valid MAE: 0.9393
+Epoch [63/100], Loss: 2.0987, Valid Loss: 2.0618, Valid MAE: 0.9388
+Epoch [64/100], Loss: 2.0986, Valid Loss: 2.0617, Valid MAE: 0.9383
+Epoch [65/100], Loss: 2.0984, Valid Loss: 2.0615, Valid MAE: 0.9378
+Epoch [66/100], Loss: 2.0982, Valid Loss: 2.0614, Valid MAE: 0.9373
+Epoch [67/100], Loss: 2.0981, Valid Loss: 2.0613, Valid MAE: 0.9368
+Epoch [68/100], Loss: 2.0979, Valid Loss: 2.0612, Valid MAE: 0.9363
+Epoch [69/100], Loss: 2.0977, Valid Loss: 2.0610, Valid MAE: 0.9358
+Epoch [70/100], Loss: 2.0975, Valid Loss: 2.0609, Valid MAE: 0.9353
+Epoch [71/100], Loss: 2.0974, Valid Loss: 2.0608, Valid MAE: 0.9348
+Epoch [72/100], Loss: 2.0972, Valid Loss: 2.0607, Valid MAE: 0.9342
+Epoch [73/100], Loss: 2.0970, Valid Loss: 2.0605, Valid MAE: 0.9340
+Epoch [74/100], Loss: 2.0969, Valid Loss: 2.0604, Valid MAE: 0.9344
+Epoch [75/100], Loss: 2.0967, Valid Loss: 2.0603, Valid MAE: 0.9348
+Epoch [76/100], Loss: 2.0965, Valid Loss: 2.0602, Valid MAE: 0.9352
+Epoch [77/100], Loss: 2.0964, Valid Loss: 2.0600, Valid MAE: 0.9355
+Epoch [78/100], Loss: 2.0962, Valid Loss: 2.0599, Valid MAE: 0.9352
+Epoch [79/100], Loss: 2.0960, Valid Loss: 2.0598, Valid MAE: 0.9349
+Epoch [80/100], Loss: 2.0959, Valid Loss: 2.0597, Valid MAE: 0.9346
+Epoch [81/100], Loss: 2.0957, Valid Loss: 2.0595, Valid MAE: 0.9343
+Epoch [82/100], Loss: 2.0955, Valid Loss: 2.0594, Valid MAE: 0.9340
+Epoch [83/100], Loss: 2.0954, Valid Loss: 2.0593, Valid MAE: 0.9337
+Epoch [84/100], Loss: 2.0952, Valid Loss: 2.0592, Valid MAE: 0.9334
+Epoch [85/100], Loss: 2.0950, Valid Loss: 2.0591, Valid MAE: 0.9331
+Epoch [86/100], Loss: 2.0949, Valid Loss: 2.0589, Valid MAE: 0.9328
+Epoch [87/100], Loss: 2.0947, Valid Loss: 2.0588, Valid MAE: 0.9325
+Epoch [88/100], Loss: 2.0945, Valid Loss: 2.0587, Valid MAE: 0.9322
+Epoch [89/100], Loss: 2.0944, Valid Loss: 2.0586, Valid MAE: 0.9319
+Epoch [90/100], Loss: 2.0942, Valid Loss: 2.0584, Valid MAE: 0.9316
+Epoch [91/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9316
+Epoch [92/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9316
+Epoch [93/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9316
+Epoch [94/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9315
+Epoch [95/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9315
+Epoch [96/100], Loss: 2.0940, Valid Loss: 2.0584, Valid MAE: 0.9315
+Epoch [97/100], Loss: 2.0939, Valid Loss: 2.0584, Valid MAE: 0.9314
+Epoch [98/100], Loss: 2.0939, Valid Loss: 2.0584, Valid MAE: 0.9314
+Epoch [99/100], Loss: 2.0939, Valid Loss: 2.0583, Valid MAE: 0.9314
+Epoch [100/100], Loss: 2.0939, Valid Loss: 2.0583, Valid MAE: 0.9313
+Final MAE on validation set:  0.9313430786132812
+Final mae on test set:  0.9489842891693114
+
+==================================================:
+===================任务执行结束========================:
+异常类型: ValueError
+异常消息: too many values to unpack (expected 2)
+堆栈跟踪信息:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 165, in <module>
+    run(getattr(sys.modules[__name__], args.agent_type), args)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/run_nl2workflow.py", line 39, in run
+    final_message = agent.run(env)
+  File "/remote-home/cs_acmis_xyt/dsAgent/development/MLAgentBench/agents/dsagent.py", line 52, in run
+    execution_log, diff = env.execute(Action(action, action_input))
+ValueError: too many values to unpack (expected 2)
+==================================================

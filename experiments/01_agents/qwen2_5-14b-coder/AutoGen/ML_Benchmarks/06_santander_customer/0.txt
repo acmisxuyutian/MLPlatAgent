@@ -1,0 +1,160 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# 加载评估数据
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# 查看训练数据的基本信息
+print(train_df.info())
+
+# 查看训练数据的统计摘要
+print(train_df.describe())
+
+# 查看评估数据的基本信息
+print(eval_df.info())
+
+# 查看评估数据的统计摘要
+print(eval_df.describe())
+
+# 检查缺失值
+print(train_df.isnull().sum())
+print(eval_df.isnull().sum())
+
+# 如果有缺失值，可以选择填充或删除
+# 例如，用均值填充缺失值
+train_df.fillna(train_df.mean(), inplace=True)
+eval_df.fillna(eval_df.mean(), inplace=True)
+
+# 检查数据类型
+print(train_df.dtypes)
+print(eval_df.dtypes)
+
+# 如果有需要，可以转换数据类型
+# 例如，将某些列转换为类别类型
+# train_df['column_name'] = train_df['column_name'].astype('category')
+# eval_df['column_name'] = eval_df['column_name'].astype('category')
+
+# 示例：创建一个新的特征
+# train_df['new_feature'] = train_df['feature1'] + train_df['feature2']
+# eval_df['new_feature'] = eval_df['feature1'] + eval_df['feature2']
+
+# 示例：标准化特征
+from sklearn.preprocessing import StandardScaler
+
+features = train_df.columns.drop('target')
+scaler = StandardScaler()
+train_df[features] = scaler.fit_transform(train_df[features])
+eval_df[features] = scaler.transform(eval_df[features])
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
+# 分离特征和目标变量
+X_train = train_df.drop('target', axis=1)
+y_train = train_df['target']
+X_eval = eval_df.drop('target', axis=1)
+y_eval = eval_df['target']
+
+# 划分训练集和验证集
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# 训练模型
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 预测概率
+y_pred_proba = model.predict_proba(X_eval)[:, 1]
+
+# 计算AUC
+auc = roc_auc_score(y_eval, y_pred_proba)
+print(f'AUC on eval data: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_ac421a7edacd47e5f07ecb2254d471930cf2893539d213358a4359e9375a2949.py", line 2, in <module>
+    print(train_df.info())
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv'
+try:
+    train_df = pd.read_csv(train_data_path)
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {train_data_path}")
+except Exception as e:
+    print(f"读取文件时发生错误: {e}")
+
+# 加载评估数据
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv'
+try:
+    eval_df = pd.read_csv(eval_data_path)
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {eval_data_path}")
+except Exception as e:
+    print(f"读取文件时发生错误: {e}")
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功
+
+生成的代码：
+# 查看训练数据的基本信息
+print(train_df.info())
+
+# 查看训练数据的统计摘要
+print(train_df.describe())
+
+# 查看评估数据的基本信息
+print(eval_df.info())
+
+# 查看评估数据的统计摘要
+print(eval_df.describe())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_ac421a7edacd47e5f07ecb2254d471930cf2893539d213358a4359e9375a2949.py", line 2, in <module>
+    print(train_df.info())
+NameError: name 'train_df' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_train.csv'
+try:
+    train_df = pd.read_csv(train_data_path)
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {train_data_path}")
+except Exception as e:
+    print(f"读取文件时发生错误: {e}")
+
+# 加载评估数据
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/06_santander_customer/split_eval.csv'
+try:
+    eval_df = pd.read_csv(eval_data_path)
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {eval_data_path}")
+except Exception as e:
+    print(f"读取文件时发生错误: {e}")
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功

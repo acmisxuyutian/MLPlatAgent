@@ -1,0 +1,233 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_log_error
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data retrieval and preparation
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Identify target variable
+    target = 'Age'
+    X_train = train_df.drop(columns=[target])
+    y_train = train_df[target]
+    X_test = test_df.drop(columns=[target])
+    y_test = test_df[target]
+
+    # Identify categorical and numerical features
+    categorical_features = X_train.select_dtypes(include=['object']).columns
+    numerical_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+
+    # Define preprocessing for numerical data
+    numerical_transformer = StandardScaler()
+
+    # Define preprocessing for categorical data
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    # Fit the pipeline to the training data
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+
+    # Split the training data into training and validation sets
+    X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(
+        X_train_processed, y_train, test_size=0.3, random_state=SEED)
+
+    return X_train_split, X_val_split, X_test_processed, y_train_split, y_val_split, y_test, preprocessor
+
+# Define the model architecture
+class FullyConnectedNetwork(nn.Module):
+    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+        super(FullyConnectedNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(hidden_size2, output_size)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu1(out)
+        out = self.fc2(out)
+        out = self.relu2(out)
+        out = self.fc3(out)
+        return out
+
+# Train the model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs, patience):
+    best_val_loss = float('inf')
+    early_stopping_counter = 0
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.unsqueeze(1))
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        train_loss = running_loss / len(train_loader)
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels.unsqueeze(1))
+                val_loss += loss.item()
+
+        val_loss = val_loss / len(val_loader)
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print(f'Early stopping at epoch {epoch+1}')
+                break
+
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    test_loss = 0.0
+    predictions = []
+    true_labels = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.unsqueeze(1))
+            test_loss += loss.item()
+            predictions.extend(outputs.numpy().flatten())
+            true_labels.extend(labels.numpy())
+
+    test_loss = test_loss / len(test_loader)
+    rmlse = np.sqrt(mean_squared_log_error(true_labels, predictions))
+
+    performance_scores = {
+        'Test Loss': test_loss,
+        'RMLSE': rmlse
+    }
+
+    return performance_scores
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/abalone/test.csv'
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, test_df = load_data(train_path, test_path)
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train_split, X_val_split, X_test_processed, y_train_split, y_val_split, y_test, preprocessor = preprocess_data(train_df, test_df)
+
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train_split, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train_split, dtype=torch.float32)
+    X_val_tensor = torch.tensor(X_val_split, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val_split, dtype=torch.float32)
+    X_test_tensor = torch.tensor(X_test_processed, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
+
+    # Create DataLoader
+    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=32, shuffle=True)
+    val_loader = DataLoader(TensorDataset(X_val_tensor, y_val_tensor), batch_size=32, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=32, shuffle=False)
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_tensor.shape[1]
+    hidden_size1 = 64
+    hidden_size2 = 32
+    output_size = 1
+    model = FullyConnectedNetwork(input_size, hidden_size1, hidden_size2, output_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 100
+    patience = 10
+
+    model = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs, patience)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader, criterion)
+
+    # Save the model
+    model_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/models/abalone_age_prediction/model.pth'
+    torch.save(model.state_dict(), model_save_path)
+
+    # Save the preprocessing pipeline
+    pipeline_save_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/models/abalone_age_prediction/preprocessing_pipeline.pkl'
+    import joblib
+    joblib.dump(preprocessor, pipeline_save_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 205, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 158, in main
+    X_train_split, X_val_split, X_test_processed, y_train_split, y_val_split, y_test, preprocessor = preprocess_data(train_df, test_df)
+                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 33, in preprocess_data
+    X_train = train_df.drop(columns=[target])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['Age'] not found in axis"

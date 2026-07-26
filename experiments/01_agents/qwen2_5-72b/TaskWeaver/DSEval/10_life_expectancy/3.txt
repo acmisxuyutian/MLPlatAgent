@@ -1,0 +1,321 @@
+import pandas as pd
+
+# Load the train and test data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+
+train_df = pd.read_csv(train_data_path)
+test_df = pd.read_csv(test_data_path)
+
+# Perform feature construction to build a new feature named 'GDP_bins'
+def categorize_gdp(gdp):
+    if gdp <= 1000:
+        return 'Low GDP'
+    elif 1000 < gdp <= 10000:
+        return 'Medium GDP'
+    else:
+        return 'High GDP'
+
+train_df['GDP_bins'] = train_df['GDP'].apply(categorize_gdp)
+test_df['GDP_bins'] = test_df['GDP'].apply(categorize_gdp)
+
+# Output the modified train and test DataFrames
+train_df, test_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(        Country      Status  Life expectancy   Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP  Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0         Ghana  Developing              61.2              263             40     1.64              225.221947           91       120   26.1                  58     91               4.81           91        1.3  1574.978653  25121796.0                    6.9                  6.8                            0.554       10.9  Medium GDP
+ 1     Argentina  Developing              74.1              138             12     7.81              470.186915           66         0   55.1                  13     94               8.31           93        0.1  2579.193168   3788937.0                    1.2                  1.0                            0.776       16.3  Medium GDP
+ ...         ...         ...               ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...         ...                    ...                  ...                              ...        ...         ...
+ 1317   Thailand  Developing              73.5              162             11     5.92              609.951163           98      7790   25.7                  13     99               3.92           99        0.3  4378.687460   6654576.0                    8.5                  8.6                            0.700       12.9  Medium GDP
+ 1318   Pakistan  Developing              65.1              172            372     0.04                0.667515           82      4321   21.9                 461     82               3.20           82        0.1    14.142268   1756182.0                    2.2                  2.7                            0.521        7.5     Low GDP
+ 
+ [1319 rows x 22 columns],
+        Country      Status  Life expectancy  Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS          GDP   Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling    GDP_bins
+ 0    Indonesia  Developing             67.5               19            154     0.06              102.633435           76     19456    2.5                 188     77               3.10           73        0.2  1855.939150  232989141.0                    1.8                  1.7                            0.638       11.0  Medium GDP
+ 1       Serbia  Developing             73.8              132              1     9.30              772.870035           99       201   55.1                   1     93               1.20           94        0.1  5458.121718    7381579.0                    2.4                  2.4                            0.743       13.5  Medium GDP
+ ..         ...         ...              ...              ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...          ...                    ...                  ...                              ...        ...         ...
+ 328     Bhutan  Developing             69.1              219              0     0.01               19.790574           97         0   22.7                   1     97               3.83           97        0.6   235.882889     764961.0                   15.9                 16.5                            0.589       12.6     Low GDP
+ 329   Cameroon  Developing             54.8              373             54     5.89                9.042541            8       251   25.4                  85     79               5.70            8        6.3   123.195380   19432541.0                    6.3                  6.3                            0.473        9.2     Low GDP
+ 
+ [330 rows x 22 columns])from sklearn.linear_model import LinearRegression
+
+# Prepare the data
+features = [col for col in train_df.columns if col not in ['Country', 'Status', 'GDP', 'Life expectancy']]
+X_train = train_df[features]
+y_train = train_df['Life expectancy']
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Output the trained model
+model
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[2], line 6
+    y_train = train_df['Life expectancy']
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy'
+
+from sklearn.linear_model import LinearRegression
+
+# Check the exact column names
+print(train_df.columns)
+
+# Prepare the data
+features = [col for col in train_df.columns if col not in ['Country', 'Status', 'GDP', 'Life expectancy']]
+X_train = train_df[features]
+y_train = train_df['Life expectancy']
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Output the trained model
+model
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Life expectancy'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[3], line 9
+    y_train = train_df['Life expectancy']
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:4102 in __getitem__
+    indexer = self.columns.get_loc(key)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Life expectancy'
+
+Index(['Country', 'Status', 'Life expectancy ', 'Adult Mortality',
+       'infant deaths', 'Alcohol', 'percentage expenditure', 'Hepatitis B',
+       'Measles ', ' BMI ', 'under-five deaths ', 'Polio', 'Total expenditure',
+       'Diphtheria ', ' HIV/AIDS', 'GDP', 'Population',
+       ' thinness  1-19 years', ' thinness 5-9 years',
+       'Income composition of resources', 'Schooling', 'GDP_bins'],
+      dtype='object')
+
+from sklearn.linear_model import LinearRegression
+
+# Prepare the data
+features = [col for col in train_df.columns if col not in ['Country', 'Status', 'GDP', 'Life expectancy ']]
+X_train = train_df[features]
+y_train = train_df['Life expectancy ']
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Output the trained model
+model
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 10
+    model.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_base.py:601 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_array_api.py:839 in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:2153 in __array__
+    arr = np.asarray(values, dtype=dtype)
+
+ValueError: could not convert string to float: 'Medium GDP'
+
+from sklearn.linear_model import LinearRegression
+
+# Prepare the data
+features = [col for col in train_df.columns if col not in ['Country', 'Status', 'GDP', 'Life expectancy ', 'GDP_bins']]
+X_train = train_df[features]
+y_train = train_df['Life expectancy ']
+
+# Create and fit the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Output the trained model
+model, X_train, y_train
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LinearRegression(),
+       Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS  Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling
+ 0                 263             40     1.64              225.221947           91       120   26.1                  58     91               4.81           91        1.3  25121796.0                    6.9                  6.8                            0.554       10.9
+ 1                 138             12     7.81              470.186915           66         0   55.1                  13     94               8.31           93        0.1   3788937.0                    1.2                  1.0                            0.776       16.3
+ ...               ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...         ...                    ...                  ...                              ...        ...
+ 1317              162             11     5.92              609.951163           98      7790   25.7                  13     99               3.92           99        0.3   6654576.0                    8.5                  8.6                            0.700       12.9
+ 1318              172            372     0.04                0.667515           82      4321   21.9                 461     82               3.20           82        0.1   1756182.0                    2.2                  2.7                            0.521        7.5
+ 
+ [1319 rows x 17 columns],
+ 0       61.2
+ 1       74.1
+         ... 
+ 1317    73.5
+ 1318    65.1
+ Name: Life expectancy , Length: 1319, dtype: float64)from sklearn.metrics import r2_score
+
+# Prepare the test data
+features_test = [col for col in test_df.columns if col not in ['Country', 'Status', 'GDP', 'Life expectancy', 'GDP_bins']]
+X_test = test_df[features_test]
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Output the predictions
+predictions, X_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(array([71.71647183, 73.06529143, 80.19633475, 54.94266791, 52.19135826,
+        50.58389847, 70.24842521, 75.81564355, 78.25274511, 73.15432199,
+        75.72684297, 74.67204887, 77.17499639, 68.35599712, 66.8337771 ,
+        69.5157176 , 79.0202827 , 80.84019718, 75.88824187, 70.94553768,
+        80.32854388, 70.82027858, 70.62626329, 74.41179278, 65.95537317,
+        71.5159781 , 74.17498165, 76.1470926 , 81.5340264 , 72.7102692 ,
+        65.54942426, 61.16819262, 72.15332498, 80.98998455, 77.28171167,
+        77.60205066, 61.39465994, 47.25988697, 72.24070365, 78.89678257,
+        61.16841002, 75.94986329, 71.9726328 , 71.96463961, 77.20695832,
+        62.28691535, 73.79083051, 58.69814033, 69.46465341, 73.73115779,
+        63.07317487, 66.12164124, 57.08185195, 71.84992276, 75.20863468,
+        56.33320212, 76.87251737, 75.58359219, 72.97153582, 61.63690133,
+        59.20314396, 59.44804215, 69.02089965, 74.09115159, 71.43392552,
+        77.05326944, 60.34931486, 76.3291946 , 78.56969933, 68.91221401,
+        71.18526191, 65.34227002, 55.10829961, 62.61134728, 74.57080932,
+        72.67932449, 66.68270077, 59.06626501, 77.15570782, 81.8375503 ,
+        70.52802619, 72.25003971, 73.86190813, 69.96168589, 63.6444088 ,
+        71.25270932, 70.94893708, 71.47131595, 70.13190159, 67.94871552,
+        76.04783208, 76.87997132, 73.54399227, 70.57285437, 79.59091952,
+        69.37693323, 60.48361568, 71.49991445, 73.26045168, 72.47201806,
+        68.28367781, 74.90694374, 70.40742093, 62.29602049, 76.31902658,
+        74.60178821, 78.50090253, 77.79348489, 59.29773352, 70.10757811,
+        71.23734532, 69.94352819, 76.95242563, 70.81345979, 74.30995914,
+        75.26592677, 55.02445964, 70.95960765, 70.77096168, 67.05040463,
+        72.5759117 , 55.88943167, 56.9216447 , 72.66412202, 71.45388367,
+        80.62606991, 80.34655885, 60.91410372, 69.5421672 , 53.06130573,
+        78.03289397, 71.91210121, 71.90128896, 71.60380844, 72.78709285,
+        78.74031766, 72.80762442, 70.47269844, 72.68462175, 79.01379603,
+        76.46553928, 69.06174678, 71.2122693 , 52.42272763, 68.92439831,
+        65.5578965 , 69.98162481, 79.56706071, 74.00276067, 59.58834883,
+        73.2135812 , 78.65383052, 57.08405045, 70.06846777, 68.97028078,
+        76.31287029, 74.76334559, 71.15564218, 73.82083752, 77.10047429,
+        66.61240219, 75.548787  , 54.51998228, 70.49779669, 72.0850116 ,
+        73.7713178 , 71.72944435, 69.17005892, 72.61168812, 63.33204705,
+        68.96001332, 73.88676962, 72.68253822, 71.52574801, 64.74305124,
+        72.32086379, 73.60976061, 63.90273749, 62.67185577, 67.65717486,
+        68.2385142 , 73.15503586, 74.36128436, 74.46118329, 73.24802639,
+        64.26891489, 75.01044221, 77.42172695, 74.71368225, 61.47489896,
+        51.1632176 , 70.75754719, 57.09466304, 55.90957592, 79.90185737,
+        53.52599435, 59.94220699, 67.06193444, 67.78526675, 73.57875789,
+        60.27885333, 73.82925862, 74.16685666, 72.12231213, 76.63132934,
+        57.02589143, 38.99111138, 75.0316046 , 75.21704376, 59.55879798,
+        69.19045466, 74.25501285, 68.68742562, 73.74200399, 73.42064473,
+        52.57829682, 74.9235707 , 69.38459681, 60.18101419, 72.54792211,
+        61.71451441, 75.91231573, 74.6177825 , 61.32962035, 72.32138337,
+        70.86114303, 79.28891793, 60.24296071, 61.4154744 , 61.62423974,
+        77.02303805, 77.09038214, 70.39567713, 62.57118071, 73.10462814,
+        71.56780819, 71.883415  , 61.3354953 , 69.444912  , 83.16381212,
+        72.64782013, 66.02786078, 81.06977121, 73.37784547, 75.12705683,
+        60.82826307, 76.35159973, 65.51514564, 66.61640591, 76.82041178,
+        69.96616162, 69.9053709 , 69.6987534 , 73.87592324, 67.10768192,
+        75.37126613, 73.8205686 , 69.90166254, 55.12700391, 59.92779719,
+        56.67114821, 66.66461565, 68.64472156, 49.07859227, 73.00082193,
+        71.79470631, 62.86231958, 59.20318259, 69.1334086 , 78.82604725,
+        65.10213408, 67.85510128, 73.3488304 , 63.44815999, 68.07299612,
+        79.89688611, 77.93525629, 66.59096203, 61.82316697, 80.3755459 ,
+        61.67037543, 64.60476525, 75.67888001, 75.04606712, 76.05203026,
+        69.07252579, 78.97630984, 69.7251532 , 77.52588105, 70.85188491,
+        69.84617158, 64.57735373, 71.08039751, 65.04320479, 74.34521373,
+        69.25815003, 77.12151275, 74.56098364, 75.0434554 , 71.80020784,
+        70.45478612, 49.62070573, 70.47280655, 71.05578806, 69.51703688,
+        78.74826162, 73.39962189, 70.92924348, 66.6083455 , 64.17439902,
+        70.6967341 , 79.30098338, 73.85377033, 53.7977394 , 43.20416167,
+        60.51443876, 71.87054912, 71.60368108, 70.47930652, 77.7651791 ,
+        68.99773274, 56.87302782, 80.93367759, 72.69852935, 65.68681406,
+        77.44840845, 76.74618094, 60.78692914, 67.69352484, 57.36602053]),
+      Adult Mortality  infant deaths  Alcohol  percentage expenditure  Hepatitis B  Measles    BMI   under-five deaths   Polio  Total expenditure  Diphtheria    HIV/AIDS   Population   thinness  1-19 years   thinness 5-9 years  Income composition of resources  Schooling
+ 0                 19            154     0.06              102.633435           76     19456    2.5                 188     77               3.10           73        0.2  232989141.0                    1.8                  1.7                            0.638       11.0
+ 1                132              1     9.30              772.870035           99       201   55.1                   1     93               1.20           94        0.1    7381579.0                    2.4                  2.4                            0.743       13.5
+ ..               ...            ...      ...                     ...          ...       ...    ...                 ...    ...                ...          ...        ...          ...                    ...                  ...                              ...        ...
+ 328              219              0     0.01               19.790574           97         0   22.7                   1     97               3.83           97        0.6     764961.0                   15.9                 16.5                            0.589       12.6
+ 329              373             54     5.89                9.042541            8       251   25.4                  85     79               5.70            8        6.3   19432541.0                    6.3                  6.3                            0.473        9.2
+ 
+ [330 rows x 17 columns])from sklearn.metrics import r2_score
+
+# Extract the true values from the test data
+true_values = test_df['Life expectancy']
+
+# Calculate the R-squared score
+r2 = r2_score(true_values, predictions)
+
+# Output the R-squared score
+r2
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+0.809386626758169

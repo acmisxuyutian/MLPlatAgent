@@ -1,0 +1,436 @@
+import pandas as pd
+
+# Load the train data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv'
+train_df = pd.read_csv(train_data_path)
+
+# Load the eval data
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# Display the top 5 rows of both datasets
+train_df.head(), eval_df.head()
+
+# Result variables
+train_df, eval_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     PassengerId  Survived  Pclass                               Name     Sex   Age  SibSp  Parch    Ticket    Fare Cabin Embarked
+ 0            409         0       3  Birkeland, Mr. Hans Martin Monsen    male  21.0      0      0    312992   7.775   NaN        S
+ 1            481         0       3     Goodwin, Master. Harold Victor    male   9.0      5      2   CA 2144  46.900   NaN        S
+ ..           ...       ...     ...                                ...     ...   ...    ...    ...       ...     ...   ...      ...
+ 710          793         0       3            Sage, Miss. Stella Anna  female   NaN      8      2  CA. 2343  69.550   NaN        S
+ 711          521         1       1              Perreault, Miss. Anne  female  30.0      0      0     12749  93.500   B73        S
+ 
+ [712 rows x 12 columns],
+      PassengerId  Survived  Pclass                           Name     Sex   Age  SibSp  Parch      Ticket     Fare Cabin Embarked
+ 0            206         0       3     Strom, Miss. Telma Matilda  female   2.0      0      1      347054  10.4625    G6        S
+ 1             45         1       3  Devaney, Miss. Margaret Delia  female  19.0      0      0      330958   7.8792   NaN        Q
+ ..           ...       ...     ...                            ...     ...   ...    ...    ...         ...      ...   ...      ...
+ 177          784         0       3         Johnston, Mr. Andrew G    male   NaN      1      2  W./C. 6607  23.4500   NaN        S
+ 178          853         0       3        Boulos, Miss. Nourelain  female   9.0      1      1        2678  15.2458   NaN        C
+ 
+ [179 rows x 12 columns])import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv'
+train_df = pd.read_csv(train_data_path)
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# Exploratory Data Analysis (EDA)
+# Check the first few rows of the train data
+print('Train Data Head:\n', train_df.head())
+
+# Check the summary statistics of the train data
+print('Train Data Summary Statistics:\n', train_df.describe())
+
+# Check the distribution of the target variable
+sns.countplot(x='Survived', data=train_df)
+plt.title('Distribution of Survival')
+plt.show()
+
+# Check the correlation matrix
+plt.figure(figsize=(12, 8))
+corr_matrix = train_df.corr()
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Data Preprocessing and Feature Engineering
+# Fill missing values
+train_df['Age'].fillna(train_df['Age'].median(), inplace=True)
+train_df['Fare'].fillna(train_df['Fare'].median(), inplace=True)
+train_df['Embarked'].fillna(train_df['Embarked'].mode()[0], inplace=True)
+
+# Convert categorical variables to numerical
+train_df['Sex'] = train_df['Sex'].map({'male': 0, 'female': 1})
+train_df['Embarked'] = train_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Create new features
+train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+train_df['IsAlone'] = 1
+train_df['IsAlone'].loc[train_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the data for modeling
+X_train = train_df.drop(['Survived', 'PassengerId'], axis=1)
+y_train = train_df['Survived']
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Preprocess the eval data
+# Fill missing values
+eval_df['Age'].fillna(eval_df['Age'].median(), inplace=True)
+eval_df['Fare'].fillna(eval_df['Fare'].median(), inplace=True)
+eval_df['Embarked'].fillna(eval_df['Embarked'].mode()[0], inplace=True)
+
+# Convert categorical variables to numerical
+eval_df['Sex'] = eval_df['Sex'].map({'male': 0, 'female': 1})
+eval_df['Embarked'] = eval_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Create new features
+eval_df['FamilySize'] = eval_df['SibSp'] + eval_df['Parch'] + 1
+eval_df['IsAlone'] = 1
+eval_df['IsAlone'].loc[eval_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+eval_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the eval data for prediction
+X_eval = eval_df.drop(['Survived', 'PassengerId'], axis=1)
+y_eval = eval_df['Survived']
+
+# Predict on the eval data
+y_pred = model.predict(X_eval)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_eval, y_pred)
+print(f'Accuracy on eval data: {accuracy:.4f}')
+
+# Result variables
+train_df, eval_df, X_train, y_train, X_eval, y_eval, model, accuracy
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 29
+    corr_matrix = train_df.corr()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11049 in corr
+    mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:1993 in to_numpy
+    result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1694 in as_array
+    arr = self._interleave(dtype=dtype, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1753 in _interleave
+    result[rl.indexer] = arr
+
+ValueError: could not convert string to float: 'Birkeland, Mr. Hans Martin Monsen'
+
+Train Data Head:
+    PassengerId  Survived  Pclass                               Name     Sex   Age  SibSp  Parch         Ticket      Fare Cabin Embarked
+0          409         0       3  Birkeland, Mr. Hans Martin Monsen    male  21.0      0      0         312992    7.7750   NaN        S
+1          481         0       3     Goodwin, Master. Harold Victor    male   9.0      5      2        CA 2144   46.9000   NaN        S
+2          511         1       3           Daly, Mr. Eugene Patrick    male  29.0      0      0         382651    7.7500   NaN        Q
+3          610         1       1          Shutes, Miss. Elizabeth W  female  40.0      0      0       PC 17582  153.4625  C125        S
+4          548         1       2         Padro y Manent, Mr. Julian    male   NaN      0      0  SC/PARIS 2146   13.8625   NaN        C
+Train Data Summary Statistics:
+        PassengerId  Survived      Pclass         Age       SibSp    Parch       Fare
+count   712.000000   712.000  712.000000  567.000000  712.000000  712.000  712.00000
+mean    451.283708     0.375    2.286517   30.164462    0.533708    0.375   33.27181
+...            ...       ...         ...         ...         ...      ...        ...
+75%     677.250000     1.000    3.000000   39.000000    1.000000    0.000   31.27500
+max     891.000000     1.000    3.000000   74.000000    8.000000    5.000  512.32920
+
+[8 rows x 7 columns]
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv'
+train_df = pd.read_csv(train_data_path)
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# Exploratory Data Analysis (EDA)
+# Check the first few rows of the train data
+print('Train Data Head:\n', train_df.head())
+
+# Check the summary statistics of the train data
+print('Train Data Summary Statistics:\n', train_df.describe())
+
+# Check the distribution of the target variable
+sns.countplot(x='Survived', data=train_df)
+plt.title('Distribution of Survival')
+plt.show()
+
+# Drop non-numeric columns for correlation matrix
+train_df_for_corr = train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1)
+
+# Check the correlation matrix
+plt.figure(figsize=(12, 8))
+corr_matrix = train_df_for_corr.corr()
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Data Preprocessing and Feature Engineering
+# Fill missing values
+train_df['Age'].fillna(train_df['Age'].median(), inplace=True)
+train_df['Fare'].fillna(train_df['Fare'].median(), inplace=True)
+train_df['Embarked'].fillna(train_df['Embarked'].mode()[0], inplace=True)
+
+# Convert categorical variables to numerical
+train_df['Sex'] = train_df['Sex'].map({'male': 0, 'female': 1})
+train_df['Embarked'] = train_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Create new features
+train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+train_df['IsAlone'] = 1
+train_df['IsAlone'].loc[train_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the data for modeling
+X_train = train_df.drop(['Survived', 'PassengerId'], axis=1)
+y_train = train_df['Survived']
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Preprocess the eval data
+# Fill missing values
+eval_df['Age'].fillna(eval_df['Age'].median(), inplace=True)
+eval_df['Fare'].fillna(eval_df['Fare'].median(), inplace=True)
+eval_df['Embarked'].fillna(eval_df['Embarked'].mode()[0], inplace=True)
+
+# Convert categorical variables to numerical
+eval_df['Sex'] = eval_df['Sex'].map({'male': 0, 'female': 1})
+eval_df['Embarked'] = eval_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Create new features
+eval_df['FamilySize'] = eval_df['SibSp'] + eval_df['Parch'] + 1
+eval_df['IsAlone'] = 1
+eval_df['IsAlone'].loc[eval_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+eval_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the eval data for prediction
+X_eval = eval_df.drop(['Survived', 'PassengerId'], axis=1)
+y_eval = eval_df['Survived']
+
+# Predict on the eval data
+y_pred = model.predict(X_eval)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_eval, y_pred)
+print(f'Accuracy on eval data: {accuracy:.4f}')
+
+# Result variables
+train_df, eval_df, X_train, y_train, X_eval, y_eval, model, accuracy
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 32
+    corr_matrix = train_df_for_corr.corr()
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:11049 in corr
+    mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:1993 in to_numpy
+    result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1694 in as_array
+    arr = self._interleave(dtype=dtype, na_value=na_value)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\managers.py:1753 in _interleave
+    result[rl.indexer] = arr
+
+ValueError: could not convert string to float: 'male'
+
+Train Data Head:
+    PassengerId  Survived  Pclass                               Name     Sex   Age  SibSp  Parch         Ticket      Fare Cabin Embarked
+0          409         0       3  Birkeland, Mr. Hans Martin Monsen    male  21.0      0      0         312992    7.7750   NaN        S
+1          481         0       3     Goodwin, Master. Harold Victor    male   9.0      5      2        CA 2144   46.9000   NaN        S
+2          511         1       3           Daly, Mr. Eugene Patrick    male  29.0      0      0         382651    7.7500   NaN        Q
+3          610         1       1          Shutes, Miss. Elizabeth W  female  40.0      0      0       PC 17582  153.4625  C125        S
+4          548         1       2         Padro y Manent, Mr. Julian    male   NaN      0      0  SC/PARIS 2146   13.8625   NaN        C
+Train Data Summary Statistics:
+        PassengerId  Survived      Pclass         Age       SibSp    Parch       Fare
+count   712.000000   712.000  712.000000  567.000000  712.000000  712.000  712.00000
+mean    451.283708     0.375    2.286517   30.164462    0.533708    0.375   33.27181
+...            ...       ...         ...         ...         ...      ...        ...
+75%     677.250000     1.000    3.000000   39.000000    1.000000    0.000   31.27500
+max     891.000000     1.000    3.000000   74.000000    8.000000    5.000  512.32920
+
+[8 rows x 7 columns]
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the train and eval data
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_train.csv'
+train_df = pd.read_csv(train_data_path)
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\04_titanic\\split_eval.csv'
+eval_df = pd.read_csv(eval_data_path)
+
+# Exploratory Data Analysis (EDA)
+# Check the first few rows of the train data
+print('Train Data Head:\n', train_df.head())
+
+# Check the summary statistics of the train data
+print('Train Data Summary Statistics:\n', train_df.describe())
+
+# Check the distribution of the target variable
+sns.countplot(x='Survived', data=train_df)
+plt.title('Distribution of Survival')
+plt.show()
+
+# Convert categorical variables to numerical
+train_df['Sex'] = train_df['Sex'].map({'male': 0, 'female': 1})
+train_df['Embarked'] = train_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Drop non-numeric columns for correlation matrix
+train_df_for_corr = train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1)
+
+# Check the correlation matrix
+plt.figure(figsize=(12, 8))
+corr_matrix = train_df_for_corr.corr()
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Data Preprocessing and Feature Engineering
+# Fill missing values
+train_df['Age'].fillna(train_df['Age'].median(), inplace=True)
+train_df['Fare'].fillna(train_df['Fare'].median(), inplace=True)
+train_df['Embarked'].fillna(train_df['Embarked'].mode()[0], inplace=True)
+
+# Create new features
+train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+train_df['IsAlone'] = 1
+train_df['IsAlone'].loc[train_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+train_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the data for modeling
+X_train = train_df.drop(['Survived', 'PassengerId'], axis=1)
+y_train = train_df['Survived']
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Preprocess the eval data
+# Convert categorical variables to numerical
+eval_df['Sex'] = eval_df['Sex'].map({'male': 0, 'female': 1})
+eval_df['Embarked'] = eval_df['Embarked'].map({'S': 0, 'C': 1, 'Q': 2})
+
+# Fill missing values
+eval_df['Age'].fillna(eval_df['Age'].median(), inplace=True)
+eval_df['Fare'].fillna(eval_df['Fare'].median(), inplace=True)
+eval_df['Embarked'].fillna(eval_df['Embarked'].mode()[0], inplace=True)
+
+# Create new features
+eval_df['FamilySize'] = eval_df['SibSp'] + eval_df['Parch'] + 1
+eval_df['IsAlone'] = 1
+eval_df['IsAlone'].loc[eval_df['FamilySize'] > 1] = 0
+
+# Drop unnecessary columns
+eval_df.drop(['Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+
+# Prepare the eval data for prediction
+X_eval = eval_df.drop(['Survived', 'PassengerId'], axis=1)
+y_eval = eval_df['Survived']
+
+# Predict on the eval data
+y_pred = model.predict(X_eval)
+
+# Calculate the accuracy
+accuracy = accuracy_score(y_eval, y_pred)
+print(f'Accuracy on eval data: {accuracy:.4f}')
+
+# Result variables
+train_df, eval_df, X_train, y_train, X_eval, y_eval, model, accuracy
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(     PassengerId  Survived  Pclass  Sex   Age  SibSp  Parch    Fare  Embarked  FamilySize  IsAlone
+ 0            409         0       3    0  21.0      0      0   7.775       0.0           1        1
+ 1            481         0       3    0   9.0      5      2  46.900       0.0           8        0
+ ..           ...       ...     ...  ...   ...    ...    ...     ...       ...         ...      ...
+ 710          793         0       3    1  29.0      8      2  69.550       0.0          11        0
+ 711          521         1       1    1  30.0      0      0  93.500       0.0           1        1
+ 
+ [712 rows x 11 columns],
+      PassengerId  Survived  Pclass  Sex   Age  SibSp  Parch     Fare  Embarked  FamilySize  IsAlone
+ 0            206         0       3    1   2.0      0      1  10.4625         0           2        0
+ 1             45         1       3    1  19.0      0      0   7.8792         2           1        1
+ ..           ...       ...     ...  ...   ...    ...    ...      ...       ...         ...      ...
+ 177          784         0       3    0  27.0      1      2  23.4500         0           4        0
+ 178          853         0       3    1   9.0      1      1  15.2458         1           3        0
+ 
+ [179 rows x 11 columns],
+      Pclass  Sex   Age  SibSp  Parch    Fare  Embarked  FamilySize  IsAlone
+ 0         3    0  21.0      0      0   7.775       0.0           1        1
+ 1         3    0   9.0      5      2  46.900       0.0           8        0
+ ..      ...  ...   ...    ...    ...     ...       ...         ...      ...
+ 710       3    1  29.0      8      2  69.550       0.0          11        0
+ 711       1    1  30.0      0      0  93.500       0.0           1        1
+ 
+ [712 rows x 9 columns],
+ 0      0
+ 1      0
+       ..
+ 710    0
+ 711    1
+ Name: Survived, Length: 712, dtype: int64,
+      Pclass  Sex   Age  SibSp  Parch     Fare  Embarked  FamilySize  IsAlone
+ 0         3    1   2.0      0      1  10.4625         0           2        0
+ 1         3    1  19.0      0      0   7.8792         2           1        1
+ ..      ...  ...   ...    ...    ...      ...       ...         ...      ...
+ 177       3    0  27.0      1      2  23.4500         0           4        0
+ 178       3    1   9.0      1      1  15.2458         1           3        0
+ 
+ [179 rows x 9 columns],
+ 0      0
+ 1      1
+       ..
+ 177    0
+ 178    0
+ Name: Survived, Length: 179, dtype: int64,
+ RandomForestClassifier(random_state=42),
+ 0.8379888268156425)

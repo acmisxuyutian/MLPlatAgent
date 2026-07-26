@@ -1,0 +1,201 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+# ***无需部署模型***
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Data retrieval and preparation
+def load_data():
+    train_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/train.csv')
+    test_df = pd.read_csv(r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/monster/test.csv')
+    return train_df, test_df
+
+# Data preprocessing and feature engineering
+def preprocess_data(train_df, test_df):
+    # Handle missing values
+    imputer = SimpleImputer(strategy='most_frequent')  # Use 'most_frequent' for categorical data
+    train_df_imputed = pd.DataFrame(imputer.fit_transform(train_df), columns=train_df.columns)
+    test_df_imputed = pd.DataFrame(imputer.transform(test_df), columns=test_df.columns)
+
+    # Split the dataset
+    X_train, X_val, y_train, y_val = train_test_split(train_df_imputed.drop('monster_type', axis=1), train_df_imputed['monster_type'], test_size=0.2, random_state=42)
+
+    # Feature scaling
+    scaler = MinMaxScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_val_scaled = scaler.transform(X_val)
+    X_test_scaled = scaler.transform(test_df_imputed.drop('monster_type', axis=1))
+
+    # Encoding categorical variables
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    y_train_encoded = encoder.fit_transform(y_train.values.reshape(-1, 1))
+    y_val_encoded = encoder.transform(y_val.values.reshape(-1, 1))
+    y_test_encoded = encoder.transform(test_df_imputed['monster_type'].values.reshape(-1, 1))
+
+    return X_train_scaled, X_val_scaled, X_test_scaled, y_train_encoded, y_val_encoded, y_test_encoded
+
+# Define the model architecture
+class MonsterClassifier(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(MonsterClassifier, self).__init__()
+        self.layers = nn.ModuleList([nn.Linear(input_size, hidden_sizes[0])])
+        for i in range(1, len(hidden_sizes)):
+            self.layers.append(nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+        self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        for layer in self.layers[:-1]:
+            x = torch.relu(layer(x))
+            x = self.dropout(x)
+        x = self.layers[-1](x)
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, patience=5, epochs=80):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+    best_val_loss = float('inf')
+    early_stopping_counter = 0
+
+    for epoch in range(epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels.argmax(dim=1))
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+        val_loss = 0.0
+        model.eval()
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels.argmax(dim=1))
+                val_loss += loss.item()
+
+        print(f'Epoch {epoch+1}/{epochs}, Train Loss: {running_loss/len(train_loader)}, Val Loss: {val_loss/len(val_loader)}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+            torch.save(model.state_dict(), './agent_workspace/trained_models/monster_classifier.pth')
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter >= patience:
+                print("Early stopping triggered.")
+                break
+
+    model.load_state_dict(torch.load('./agent_workspace/trained_models/monster_classifier.pth'))
+    return model
+
+# Evaluate the model
+def evaluate_model(model, test_loader):
+    model.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.argmax(dim=1).numpy())
+            y_pred.extend(predicted.numpy())
+
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f'Accuracy: {accuracy}')
+
+    print('Classification Report:')
+    print(classification_report(y_true, y_pred))
+
+    print('Confusion Matrix:')
+    print(confusion_matrix(y_true, y_pred))
+
+    performance_scores = {
+        'ACC': accuracy
+    }
+
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_df, test_df = load_data()
+
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    # Here, the train_loader contains 70% of the `dataset`, the valid_loader contains 20% of the `dataset`, and the test_loader contains 10% of the `dataset`.
+    X_train_scaled, X_val_scaled, X_test_scaled, y_train_encoded, y_val_encoded, y_test_encoded = preprocess_data(train_df, test_df)
+
+    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.tensor(X_train_scaled, dtype=torch.float32), torch.tensor(y_train_encoded, dtype=torch.float32)), batch_size=64, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.tensor(X_val_scaled, dtype=torch.float32), torch.tensor(y_val_encoded, dtype=torch.float32)), batch_size=64, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.tensor(X_test_scaled, dtype=torch.float32), torch.tensor(y_test_encoded, dtype=torch.float32)), batch_size=64, shuffle=False)
+
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # This is already done in the previous step
+
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    input_size = X_train_scaled.shape[1]
+    hidden_sizes = [128, 64, 32]
+    output_size = y_train_encoded.shape[1]
+    model = MonsterClassifier(input_size, hidden_sizes, output_size)
+
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # TODO: on top of the model training, please run hyperparamter optimization based on the suggested hyperparamters and their values before proceeding to the evaluation step to ensure model's optimality
+    model = train_model(model, train_loader, val_loader)
+
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, test_loader)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 173, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 147, in main
+    X_train_scaled, X_val_scaled, X_test_scaled, y_train_encoded, y_val_encoded, y_test_encoded = preprocess_data(train_df, test_df)
+                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in preprocess_data
+    X_train, X_val, y_train, y_val = train_test_split(train_df_imputed.drop('monster_type', axis=1), train_df_imputed['monster_type'], test_size=0.2, random_state=42)
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['monster_type'] not found in axis"

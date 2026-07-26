@@ -1,0 +1,194 @@
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv')
+
+# 读取测试数据
+test_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv')
+
+# 选择需要 one-hot 编码的列
+categorical_features = train_data.columns.difference(['Disease', 'outcome variable'])
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_features, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_features, drop_first=True)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import RFE
+
+# 定义目标变量和特征
+X_train = train_encoded.drop(columns=['outcome variable', 'Disease'])
+y_train = train_encoded['outcome variable']
+
+# 初始化逻辑回归模型
+log_reg = LogisticRegression(max_iter=10000)
+
+# 使用 RFE 选择最重要的 5 个特征
+rfe = RFE(log_reg, n_features_to_select=5)
+rfe.fit(X_train, y_train)
+
+# 获取选中的特征
+selected_features = X_train.columns[rfe.support_]
+print("Selected features:", selected_features)
+
+# 模型1：使用所有特征
+model1 = LogisticRegression(max_iter=10000)
+model1.fit(X_train, y_train)
+
+# 模型2：使用最重要的 5 个特征
+X_train_selected = X_train[selected_features]
+model2 = LogisticRegression(max_iter=10000)
+model2.fit(X_train_selected, y_train)
+
+from sklearn.metrics import accuracy_score, classification_report
+
+# 对测试数据进行相同的预处理
+X_test = test_encoded.drop(columns=['outcome variable', 'Disease'])
+y_test = test_encoded['outcome variable']
+
+# 评估模型1
+y_pred1 = model1.predict(X_test)
+accuracy1 = accuracy_score(y_test, y_pred1)
+report1 = classification_report(y_test, y_pred1)
+
+print("Model 1 - Accuracy:", accuracy1)
+print("Model 1 - Classification Report:\n", report1)
+
+# 评估模型2
+X_test_selected = X_test[selected_features]
+y_pred2 = model2.predict(X_test_selected)
+accuracy2 = accuracy_score(y_test, y_pred2)
+report2 = classification_report(y_test, y_pred2)
+
+print("Model 2 - Accuracy:", accuracy2)
+print("Model 2 - Classification Report:\n", report2)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_52f6c5ade4ad9e6ed14ac62ef88e34ce72e6617c2b61dba4ec820edf0ecc2516.py", line 2, in <module>
+    categorical_features = train_data.columns.difference(['Disease', 'outcome variable'])
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv'
+try:
+    train_data = pd.read_csv(train_data_path)
+    print("Training data loaded successfully.")
+except FileNotFoundError:
+    print(f"Error: The file at {train_data_path} was not found.")
+    exit(1)
+
+# 读取测试数据
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv'
+try:
+    test_data = pd.read_csv(test_data_path)
+    print("Test data loaded successfully.")
+except FileNotFoundError:
+    print(f"Error: The file at {test_data_path} was not found.")
+    exit(1)
+
+
+执行结果：
+Training data loaded successfully.
+Test data loaded successfully.
+
+生成的代码：
+# 选择需要 one-hot 编码的列
+categorical_features = train_data.columns.difference(['Disease', 'outcome variable'])
+
+# 对训练数据进行 one-hot 编码
+train_encoded = pd.get_dummies(train_data, columns=categorical_features, drop_first=True)
+
+# 对测试数据进行 one-hot 编码
+test_encoded = pd.get_dummies(test_data, columns=categorical_features, drop_first=True)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import RFE
+
+# 定义目标变量和特征
+X_train = train_encoded.drop(columns=['outcome variable', 'Disease'])
+y_train = train_encoded['outcome variable']
+
+# 初始化逻辑回归模型
+log_reg = LogisticRegression(max_iter=10000)
+
+# 使用 RFE 选择最重要的 5 个特征
+rfe = RFE(log_reg, n_features_to_select=5)
+rfe.fit(X_train, y_train)
+
+# 获取选中的特征
+selected_features = X_train.columns[rfe.support_]
+print("Selected features:", selected_features)
+
+# 模型1：使用所有特征
+model1 = LogisticRegression(max_iter=10000)
+model1.fit(X_train, y_train)
+
+# 模型2：使用最重要的 5 个特征
+X_train_selected = X_train[selected_features]
+model2 = LogisticRegression(max_iter=10000)
+model2.fit(X_train_selected, y_train)
+
+from sklearn.metrics import accuracy_score, classification_report
+
+# 对测试数据进行相同的预处理
+X_test = test_encoded.drop(columns=['outcome variable', 'Disease'])
+y_test = test_encoded['outcome variable']
+
+# 评估模型1
+y_pred1 = model1.predict(X_test)
+accuracy1 = accuracy_score(y_test, y_pred1)
+report1 = classification_report(y_test, y_pred1)
+
+print("Model 1 - Accuracy:", accuracy1)
+print("Model 1 - Classification Report:\n", report1)
+
+# 评估模型2
+X_test_selected = X_test[selected_features]
+y_pred2 = model2.predict(X_test_selected)
+accuracy2 = accuracy_score(y_test, y_pred2)
+report2 = classification_report(y_test, y_pred2)
+
+print("Model 2 - Accuracy:", accuracy2)
+print("Model 2 - Classification Report:\n", report2)
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_52f6c5ade4ad9e6ed14ac62ef88e34ce72e6617c2b61dba4ec820edf0ecc2516.py", line 2, in <module>
+    categorical_features = train_data.columns.difference(['Disease', 'outcome variable'])
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 读取训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/train.csv'
+try:
+    train_data = pd.read_csv(train_data_path)
+    print("Training data loaded successfully.")
+except FileNotFoundError:
+    print(f"Error: The file at {train_data_path} was not found.")
+    exit(1)
+
+# 读取测试数据
+test_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/05_patient_profile/test.csv'
+try:
+    test_data = pd.read_csv(test_data_path)
+    print("Test data loaded successfully.")
+except FileNotFoundError:
+    print(f"Error: The file at {test_data_path} was not found.")
+    exit(1)
+
+
+执行结果：
+Training data loaded successfully.
+Test data loaded successfully.

@@ -1,0 +1,331 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Separate features and target
+X_train = train_df.drop(columns=['Survival'])
+y_train = train_df['Survival']
+X_test = test_df.drop(columns=['Survival'])
+y_test = test_df['Survival']
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=preprocessor.get_feature_names_out())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[1], line 16
+    X_train = train_df.drop(columns=['Survival'])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:5581 in drop
+    return super().drop(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4788 in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\generic.py:4830 in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:7070 in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+
+KeyError: "['Survival'] not found in axis"
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Columns in train_df:', train_df.columns)
+print('Columns in test_df:', test_df.columns)
+
+# Adjust the target column name if necessary
+if 'Survival' in train_df.columns:
+    target_column = 'Survival'
+elif 'survival' in train_df.columns:
+    target_column = 'survival'
+else:
+    raise ValueError('Target column not found in the dataset')
+
+# Separate features and target
+X_train = train_df.drop(columns=[target_column])
+y_train = train_df[target_column]
+X_test = test_df.drop(columns=[target_column])
+y_test = test_df[target_column]
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=preprocessor.get_feature_names_out())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[2], line 25
+    raise ValueError('Target column not found in the dataset')
+
+ValueError: Target column not found in the dataset
+
+Columns in train_df: Index(['id', 'N_Days', 'Drug', 'Age', 'Sex', 'Ascites', 'Hepatomegaly',
+       'Spiders', 'Edema', 'Bilirubin', 'Cholesterol', 'Albumin', 'Copper',
+       'Alk_Phos', 'SGOT', 'Tryglicerides', 'Platelets', 'Prothrombin',
+       'Stage', 'Status'],
+      dtype='object')
+Columns in test_df: Index(['id', 'N_Days', 'Drug', 'Age', 'Sex', 'Ascites', 'Hepatomegaly',
+       'Spiders', 'Edema', 'Bilirubin', 'Cholesterol', 'Albumin', 'Copper',
+       'Alk_Phos', 'SGOT', 'Tryglicerides', 'Platelets', 'Prothrombin',
+       'Stage', 'Status'],
+      dtype='object')
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the datasets
+train_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\train.csv'
+test_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark\NL2Workflow\datasets\tabular\cirrhosis_patient\test.csv'
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Check the columns of the datasets
+print('Columns in train_df:', train_df.columns)
+print('Columns in test_df:', test_df.columns)
+
+# Adjust the target column name if necessary
+if 'Status' in train_df.columns:
+    target_column = 'Status'
+elif 'status' in train_df.columns:
+    target_column = 'status'
+else:
+    raise ValueError('Target column not found in the dataset')
+
+# Separate features and target
+X_train = train_df.drop(columns=[target_column])
+y_train = train_df[target_column]
+X_test = test_df.drop(columns=[target_column])
+y_test = test_df[target_column]
+
+# Identify categorical and numerical columns
+numeric_features = X_train.select_dtypes(include=[int, float]).columns
+categorical_features = X_train.select_dtypes(include=[object]).columns
+
+# Define preprocessing for numeric and categorical data
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Preprocess the datasets
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# Convert back to DataFrame
+X_train_preprocessed = pd.DataFrame(X_train_preprocessed, columns=preprocessor.get_feature_names_out())
+X_test_preprocessed = pd.DataFrame(X_test_preprocessed, columns=preprocessor.get_feature_names_out())
+
+X_train_preprocessed, y_train, X_test_preprocessed, y_test
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       num__id  num__N_Days  num__Age  num__Bilirubin  num__Cholesterol  num__Albumin  num__Copper  num__Alk_Phos  num__SGOT  num__Tryglicerides  num__Platelets  num__Prothrombin  num__Stage  cat__Drug_D-penicillamine  cat__Drug_Placebo  cat__Sex_F  cat__Sex_M  cat__Ascites_N  cat__Ascites_Y  cat__Hepatomegaly_N  cat__Hepatomegaly_Y  cat__Spiders_N  cat__Spiders_Y  cat__Edema_N  cat__Edema_S  cat__Edema_Y
+ 0     1.200717    -0.800007 -0.969151       -0.309971          0.357032      0.810089    -0.060910      -0.443338  -0.345386           -1.164106       -0.335471         -0.925848   -0.040351                        0.0                1.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 1     0.810032    -0.529820 -0.974053       -0.469944          1.168104     -0.569117    -0.087602      -0.443338   0.038771            1.175167        0.465361         -1.434841   -1.195018                        0.0                1.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ ...        ...          ...       ...             ...               ...           ...          ...            ...        ...                 ...             ...               ...         ...                        ...                ...         ...         ...             ...             ...                  ...                  ...             ...             ...           ...           ...           ...
+ 6322  1.596681     0.462707 -0.181513       -0.389957         -0.484841     -0.023181    -0.554712      -0.361305  -0.825581           -0.416306       -0.838851         -0.162360    1.114316                        1.0                0.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ 6323  1.450175     1.862353 -0.558718       -0.549930         -0.767177      1.097423    -0.554712      -0.608981  -1.241751           -0.493003       -0.358352          0.092136    1.114316                        1.0                0.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 
+ [6324 rows x 26 columns],
+ 0       CL
+ 1        C
+         ..
+ 6322     C
+ 6323     C
+ Name: Status, Length: 6324, dtype: object,
+        num__id  num__N_Days  num__Age  num__Bilirubin  num__Cholesterol  num__Albumin  num__Copper  num__Alk_Phos  num__SGOT  num__Tryglicerides  num__Platelets  num__Prothrombin  num__Stage  cat__Drug_D-penicillamine  cat__Drug_Placebo  cat__Sex_F  cat__Sex_M  cat__Ascites_N  cat__Ascites_Y  cat__Hepatomegaly_N  cat__Hepatomegaly_Y  cat__Spiders_N  cat__Spiders_Y  cat__Edema_N  cat__Edema_S  cat__Edema_Y
+ 0    -0.222994    -0.967266  0.605853       -0.469944         -0.115239     -0.138115    -0.247754      -0.594783  -1.113698            1.865444       -0.003698         -1.053097   -0.040351                        1.0                0.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ 1    -1.543755    -0.196220  0.605853        0.196610          0.054163      0.063019    -0.661480       5.489746  -0.857594           -0.224562        0.865777         -0.035112    1.114316                        1.0                0.0         1.0         0.0             1.0             0.0                  0.0                  1.0             0.0             1.0           1.0           0.0           0.0
+ ...        ...          ...       ...             ...               ...           ...          ...            ...        ...                 ...             ...               ...         ...                        ...                ...         ...         ...             ...             ...                  ...                  ...             ...             ...           ...           ...           ...
+ 1579  1.691713     0.281663 -0.941916       -0.389957         -0.176839     -0.339249    -0.648134      -0.223006   1.447344           -0.857316        0.717051         -0.544104   -0.040351                        1.0                0.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ 1580 -0.678353     0.074887 -1.758968        0.809840         -0.063905      0.436554     0.619737       0.168228   1.458703            1.481956        1.014503          0.346632   -1.195018                        1.0                0.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 
+ [1581 rows x 26 columns],
+ 0       C
+ 1       C
+        ..
+ 1579    C
+ 1580    D
+ Name: Status, Length: 1581, dtype: object)from sklearn.model_selection import train_test_split
+
+# Split the preprocessed training set into training and validation subsets
+X_train_subset, X_val_subset, y_train_subset, y_val_subset = train_test_split(
+    X_train_preprocessed, y_train, test_size=0.2, random_state=42)
+
+X_train_subset, X_val_subset, y_train_subset, y_val_subset
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(       num__id  num__N_Days  num__Age  num__Bilirubin  num__Cholesterol  num__Albumin  num__Copper  num__Alk_Phos  num__SGOT  num__Tryglicerides  num__Platelets  num__Prothrombin  num__Stage  cat__Drug_D-penicillamine  cat__Drug_Placebo  cat__Sex_F  cat__Sex_M  cat__Ascites_N  cat__Ascites_Y  cat__Hepatomegaly_N  cat__Hepatomegaly_Y  cat__Spiders_N  cat__Spiders_Y  cat__Edema_N  cat__Edema_S  cat__Edema_Y
+ 1170 -0.686712     0.363454  0.551111       -0.416619          0.069563     -0.195582    -0.848324      -0.577956   0.422927           -0.531352        0.202231         -0.925848   -0.040351                        0.0                1.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 5437  0.479182     1.458910  0.575078       -0.523268         -0.269240      0.867556    -0.661480      -0.540621  -1.017659           -0.588875        0.431040         -0.035112   -2.349685                        1.0                0.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ ...        ...          ...       ...             ...               ...           ...          ...            ...        ...                 ...             ...               ...         ...                        ...                ...         ...         ...             ...             ...                  ...                  ...             ...             ...           ...           ...           ...
+ 5390 -1.650225    -0.219195  0.681839       -0.389957         -0.685043      0.005552    -0.594750      -0.403373  -0.793568           -0.224562       -0.426995         -0.671352    1.114316                        0.0                1.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 860   0.883506    -0.137404 -1.121667       -0.363295          1.065437      0.723888     0.165973      -0.409683  -0.089282            0.178100       -2.131623         -1.053097   -1.195018                        1.0                0.0         1.0         0.0             1.0             0.0                  0.0                  1.0             0.0             1.0           1.0           0.0           0.0
+ 
+ [5059 rows x 26 columns],
+        num__id  num__N_Days  num__Age  num__Bilirubin  num__Cholesterol  num__Albumin  num__Copper  num__Alk_Phos  num__SGOT  num__Tryglicerides  num__Platelets  num__Prothrombin  num__Stage  cat__Drug_D-penicillamine  cat__Drug_Placebo  cat__Sex_F  cat__Sex_M  cat__Ascites_N  cat__Ascites_Y  cat__Hepatomegaly_N  cat__Hepatomegaly_Y  cat__Spiders_N  cat__Spiders_Y  cat__Edema_N  cat__Edema_S  cat__Edema_Y
+ 3090 -0.319786    -1.028840  1.099898       -0.149998         -0.243573     -1.000118    -0.341176      -0.199343   0.422927            0.293146       -1.250708         -0.798600    1.114316                        1.0                0.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 198   0.962259     0.960808 -0.124319       -0.496606         -0.448908      0.177953    -0.114294      -0.155697  -0.565346           -0.051993        1.792454          1.110121   -0.040351                        0.0                1.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ ...        ...          ...       ...             ...               ...           ...          ...            ...        ...                 ...             ...               ...         ...                        ...                ...         ...         ...             ...             ...                  ...                  ...             ...             ...           ...           ...           ...
+ 2641 -1.089716    -0.742110  0.617292       -0.549930         -0.484841      0.321620    -0.554712      -0.557974  -1.273764           -0.224562        0.522563         -0.544104    1.114316                        0.0                1.0         1.0         0.0             1.0             0.0                  0.0                  1.0             1.0             0.0           1.0           0.0           0.0
+ 1454 -0.875895     0.590449  0.605853       -0.549930         -0.484841      0.637688     0.606391      -0.339219  -0.825581           -0.128690        2.055585         -0.035112   -0.040351                        1.0                0.0         1.0         0.0             1.0             0.0                  1.0                  0.0             1.0             0.0           1.0           0.0           0.0
+ 
+ [1265 rows x 26 columns],
+ 1170     C
+ 5437     C
+         ..
+ 5390     C
+ 860     CL
+ Name: Status, Length: 5059, dtype: object,
+ 3090    D
+ 198     C
+        ..
+ 2641    C
+ 1454    C
+ Name: Status, Length: 1265, dtype: object)from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
+
+# Initialize and train the Random Forest Classifier
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier.fit(X_train_subset, y_train_subset)
+
+# Predict probabilities on the validation set
+y_val_pred_proba = rf_classifier.predict_proba(X_val_subset)
+
+# Calculate log loss
+val_log_loss = log_loss(y_val_subset, y_val_pred_proba)
+
+val_log_loss, y_val_pred_proba
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.6421997827426668,
+ array([[0.12, 0.02, 0.86],
+        [0.89, 0.01, 0.1 ],
+        [0.8 , 0.  , 0.2 ],
+        ...,
+        [0.07, 0.01, 0.92],
+        [0.87, 0.03, 0.1 ],
+        [0.98, 0.  , 0.02]]))from sklearn.metrics import log_loss
+
+# Predict probabilities on the test set
+y_test_pred_proba = rf_classifier.predict_proba(X_test_preprocessed)
+
+# Calculate log loss on the test set
+test_log_loss = log_loss(y_test, y_test_pred_proba)
+
+test_log_loss, y_test_pred_proba
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(0.5151537933121331,
+ array([[0.95, 0.02, 0.03],
+        [0.49, 0.06, 0.45],
+        [0.78, 0.03, 0.19],
+        ...,
+        [0.45, 0.03, 0.52],
+        [0.96, 0.01, 0.03],
+        [0.45, 0.13, 0.42]]))

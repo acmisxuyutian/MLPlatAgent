@@ -1,0 +1,179 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "./data"  # path for saving and loading dataset(s)
+MODEL_PATH = "./agent_workspace/trained_models"  # path for saving trained models
+RESULTS_PATH = "./results"  # path for saving evaluation metrics
+
+# Ensure directories exist
+os.makedirs(DATASET_PATH, exist_ok=True)
+os.makedirs(MODEL_PATH, exist_ok=True)
+os.makedirs(RESULTS_PATH, exist_ok=True)
+
+# Step 1: Data Retrieval and Collection
+def load_dataset():
+    data = load_breast_cancer()
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+    df.to_csv(os.path.join(DATASET_PATH, 'wisconsin_breast_cancer.csv'), index=False)
+    return df, data
+
+# Step 2: Data Preprocessing
+def preprocess_data(df, data):
+    # Check for missing values
+    print("Missing values:\n", df.isnull().sum())
+
+    # Handle missing values (if any)
+    df.fillna(df.mean(), inplace=True)
+
+    # Feature scaling
+    scaler = StandardScaler()
+    X = df.drop('target', axis=1)
+    y = df['target']
+    X_scaled = scaler.fit_transform(X)
+
+    # Data splitting
+    X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+    # Save preprocessed data
+    pd.DataFrame(X_train, columns=data.feature_names).to_csv(os.path.join(DATASET_PATH, 'X_train.csv'), index=False)
+    pd.DataFrame(y_train).to_csv(os.path.join(DATASET_PATH, 'y_train.csv'), index=False)
+    pd.DataFrame(X_val, columns=data.feature_names).to_csv(os.path.join(DATASET_PATH, 'X_val.csv'), index=False)
+    pd.DataFrame(y_val).to_csv(os.path.join(DATASET_PATH, 'y_val.csv'), index=False)
+
+    return X_train, X_val, y_train, y_val
+
+# Step 3: Data Augmentation
+def handle_class_imbalance(X_train, y_train, data):
+    # Check class distribution
+    print("Class distribution:\n", y_train.value_counts())
+
+    # Apply SMOTE if imbalanced
+    if len(y_train.value_counts()) > 1 and y_train.value_counts().min() < y_train.value_counts().max():
+        smote = SMOTE(random_state=42)
+        X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    else:
+        X_train_resampled, y_train_resampled = X_train, y_train
+
+    # Save resampled data
+    pd.DataFrame(X_train_resampled, columns=data.feature_names).to_csv(os.path.join(DATASET_PATH, 'X_train_resampled.csv'), index=False)
+    pd.DataFrame(y_train_resampled).to_csv(os.path.join(DATASET_PATH, 'y_train_resampled.csv'), index=False)
+
+    return X_train_resampled, y_train_resampled
+
+# Step 4: Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    rf = RandomForestClassifier(random_state=42)
+
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    grid_search = GridSearchCV(rf, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_rf = grid_search.best_estimator_
+
+    # Save best model
+    joblib.dump(best_rf, os.path.join(MODEL_PATH, 'best_random_forest_model.pkl'))
+
+    return best_rf
+
+# Step 5: Model Evaluation
+def evaluate_model(model, X_val, y_val):
+    y_val_pred = model.predict(X_val)
+    val_accuracy = accuracy_score(y_val, y_val_pred)
+    print(f'Validation Accuracy: {val_accuracy:.4f}')
+
+    # Save evaluation metrics
+    with open(os.path.join(RESULTS_PATH, 'validation_metrics.txt'), 'w') as f:
+        f.write(f'Validation Accuracy: {val_accuracy:.4f}\n')
+
+    return {'Validation Accuracy': val_accuracy}
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1: Load dataset
+    df, data = load_dataset()
+
+    # Step 2: Preprocess data
+    X_train, X_val, y_train, y_val = preprocess_data(df, data)
+
+    # Step 3: Handle class imbalance
+    X_train_resampled, y_train_resampled = handle_class_imbalance(X_train, y_train, data)
+
+    # Step 4: Train model
+    model = train_model(X_train_resampled, y_train_resampled)
+
+    # Step 5: Evaluate model
+    model_performance = evaluate_model(model, X_val, y_val)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Missing values:
+ mean radius                0
+mean texture               0
+mean perimeter             0
+mean area                  0
+mean smoothness            0
+mean compactness           0
+mean concavity             0
+mean concave points        0
+mean symmetry              0
+mean fractal dimension     0
+radius error               0
+texture error              0
+perimeter error            0
+area error                 0
+smoothness error           0
+compactness error          0
+concavity error            0
+concave points error       0
+symmetry error             0
+fractal dimension error    0
+worst radius               0
+worst texture              0
+worst perimeter            0
+worst area                 0
+worst smoothness           0
+worst compactness          0
+worst concavity            0
+worst concave points       0
+worst symmetry             0
+worst fractal dimension    0
+target                     0
+dtype: int64
+Class distribution:
+ target
+1    286
+0    169
+Name: count, dtype: int64
+Validation Accuracy: 0.9737
+Model Performance on Validation Set: {'Validation Accuracy': 0.9736842105263158}

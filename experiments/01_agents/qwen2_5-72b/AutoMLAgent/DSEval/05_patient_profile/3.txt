@@ -1,0 +1,202 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, roc_auc_score, roc_curve
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import RFE
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import joblib
+from lime import lime_tabular
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df, target_col='outcome variable'):
+    # One-Hot Encoding
+    categorical_features = [col for col in train_df.columns if train_df[col].dtype == 'object' and col != target_col]
+    train_df_encoded = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+    test_df_encoded = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+    
+    # Ensure the same columns in the test dataset as in the training dataset
+    missing_cols = set(train_df_encoded.columns) - set(test_df_encoded.columns)
+    for col in missing_cols:
+        test_df_encoded[col] = 0
+    test_df_encoded = test_df_encoded[train_df_encoded.columns]
+    
+    return train_df_encoded, test_df_encoded
+
+# Feature Selection
+def select_features(train_df_encoded, target_col='outcome variable'):
+    model = LogisticRegression()
+    rfe = RFE(estimator=model, n_features_to_select=5, step=1)
+    rfe.fit(train_df_encoded.drop(columns=[target_col]), train_df_encoded[target_col])
+    selected_features = train_df_encoded.columns[rfe.support_]
+    return selected_features
+
+# Model Training
+def train_model(X_train, y_train, selected_features=None):
+    if selected_features is None:
+        model = LogisticRegression()
+        model.fit(X_train, y_train)
+    else:
+        model = LogisticRegression()
+        model.fit(X_train[selected_features], y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test, selected_features=None):
+    if selected_features is None:
+        y_pred = model.predict(X_test)
+        y_prob = model.predict_proba(X_test)
+    else:
+        y_pred = model.predict(X_test[selected_features])
+        y_prob = model.predict_proba(X_test[selected_features])
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='weighted')
+    recall = recall_score(y_test, y_pred, average='weighted')
+    cm = confusion_matrix(y_test, y_pred)
+    auc = roc_auc_score(y_test, y_prob[:, 1])
+    
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'AUC': auc
+    }
+    
+    return performance_scores, cm, y_prob
+
+# Local Stability Measure
+def local_stability(y_true, y_pred):
+    from sklearn.metrics import pairwise_distances
+    distances = pairwise_distances(y_true.reshape(-1, 1), y_pred.reshape(-1, 1))
+    return distances.mean()
+
+# Feature Importance
+def feature_importance(model, feature_names):
+    feature_importance = pd.Series(model.coef_[0], index=feature_names).sort_values(ascending=False)
+    return feature_importance
+
+# Model Explanation using LIME
+def explain_prediction(model, explainer, data, index, selected_features):
+    exp = explainer.explain_instance(data.iloc[index], model.predict_proba, num_features=5)
+    exp.show_in_notebook(show_table=True)
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv'
+    train_df, test_df = load_data(train_path, test_path)
+    
+    # Step 2: Preprocess the data
+    train_df_encoded, test_df_encoded = preprocess_data(train_df, test_df)
+    
+    # Step 3: Feature selection
+    selected_features = select_features(train_df_encoded)
+    
+    # Step 4: Train the models
+    X_train = train_df_encoded.drop(columns=['outcome variable'])
+    y_train = train_df_encoded['outcome variable']
+    X_test = test_df_encoded.drop(columns=['outcome variable'])
+    y_test = test_df_encoded['outcome variable']
+    
+    model1 = train_model(X_train, y_train)
+    model2 = train_model(X_train, y_train, selected_features)
+    
+    # Step 5: Evaluate the models
+    performance_scores1, cm1, y_prob1 = evaluate_model(model1, X_test, y_test)
+    performance_scores2, cm2, y_prob2 = evaluate_model(model2, X_test, y_test, selected_features)
+    
+    # Step 6: Model reliability
+    stability1 = local_stability(y_test, model1.predict(X_test))
+    stability2 = local_stability(y_test, model2.predict(X_test[selected_features]))
+    
+    # Step 7: Feature importance
+    feature_importance1 = feature_importance(model1, X_train.columns)
+    feature_importance2 = feature_importance(model2, selected_features)
+    
+    # Step 8: Model explanation using LIME
+    explainer = lime.lime_tabular.LimeTabularExplainer(
+        X_train[selected_features].values,
+        feature_names=selected_features,
+        class_names=['0', '1'],
+        discretize_continuous=True
+    )
+    explain_prediction(model2, explainer, X_test[selected_features], 0, selected_features)
+    
+    # Step 9: Save the trained models
+    model_dir = './agent_workspace/trained_models'
+    os.makedirs(model_dir, exist_ok=True)
+    joblib.dump(model1, os.path.join(model_dir, 'logistic_regression_all_features.pkl'))
+    joblib.dump(model2, os.path.join(model_dir, 'logistic_regression_top_5_features.pkl'))
+    
+    # Step 10: Print performance scores
+    print("Model 1 Performance on Test Set:", performance_scores1)
+    print("Model 2 Performance on Test Set:", performance_scores2)
+    
+    # Step 11: Plot ROC-AUC Curve
+    fpr1, tpr1, _ = roc_curve(y_test, y_prob1[:, 1])
+    fpr2, tpr2, _ = roc_curve(y_test, y_prob2[:, 1])
+    
+    plt.figure()
+    plt.plot(fpr1, tpr1, label='Model 1 (AUC = %0.2f)' % performance_scores1['AUC'])
+    plt.plot(fpr2, tpr2, label='Model 2 (AUC = %0.2f)' % performance_scores2['AUC'])
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.show()
+    
+    return performance_scores1, performance_scores2
+
+if __name__ == "__main__":
+    performance_scores1, performance_scores2 = main()
+    print("Model 1 Performance on Test Set:", performance_scores1)
+    print("Model 2 Performance on Test Set:", performance_scores2)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 173, in <module>
+    performance_scores1, performance_scores2 = main()
+                                               ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 112, in main
+    selected_features = select_features(train_df_encoded)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 47, in select_features
+    rfe.fit(train_df_encoded.drop(columns=[target_col]), train_df_encoded[target_col])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 5581, in drop
+    return super().drop(
+           ^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4788, in drop
+    obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/generic.py", line 4830, in _drop_axis
+    new_axis = axis.drop(labels, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 7070, in drop
+    raise KeyError(f"{labels[mask].tolist()} not found in axis")
+KeyError: "['outcome variable'] not found in axis"

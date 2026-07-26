@@ -1,0 +1,137 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.model_selection import GridSearchCV
+import joblib
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Function to load the dataset
+def load_data(train_url, test_url):
+    try:
+        train_data = pd.read_csv(train_url)
+        test_data = pd.read_csv(test_url)
+        return train_data, test_data
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return None, None
+
+# Function to preprocess the data
+def preprocess_data(train_data, test_data):
+    if train_data is None or test_data is None:
+        return None, None
+    
+    # Calculate YearsInCompany
+    train_data['YearsInCompany'] = 2023 - train_data['JoiningYear']
+    test_data['YearsInCompany'] = 2023 - test_data['JoiningYear']
+    
+    # Identify categorical columns
+    categorical_columns = ['Department', 'Education', 'Gender', 'Position']
+    
+    # One-hot encoding
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    train_data_encoded = pd.concat([train_data.drop(categorical_columns, axis=1), pd.DataFrame(encoder.fit_transform(train_data[categorical_columns]), columns=encoder.get_feature_names_out(categorical_columns))], axis=1)
+    test_data_encoded = pd.concat([test_data.drop(categorical_columns, axis=1), pd.DataFrame(encoder.transform(test_data[categorical_columns]), columns=encoder.get_feature_names_out(categorical_columns))], axis=1)
+    
+    return train_data_encoded, test_data_encoded
+
+# Function to train the model
+def train_model(X_train, y_train):
+    # Initialize the RandomForestClassifier
+    model = RandomForestClassifier(random_state=SEED)
+    
+    # Define the parameter grid for hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [10, 20, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    
+    # Perform grid search
+    grid_search = GridSearchCV(model, param_grid, cv=5, scoring='roc_auc')
+    grid_search.fit(X_train, y_train)
+    
+    # Return the best model
+    return grid_search.best_estimator_
+
+# Function to evaluate the model
+def evaluate_model(model, X_val, y_val):
+    # Predict probabilities
+    y_val_pred_proba = model.predict_proba(X_val)[:, 1]
+    
+    # Calculate AUC-ROC
+    auc_roc = roc_auc_score(y_val, y_val_pred_proba)
+    
+    # Predict classes
+    y_val_pred = model.predict(X_val)
+    
+    # Calculate confusion matrix
+    cm = confusion_matrix(y_val, y_val_pred)
+    
+    # Return performance scores
+    performance_scores = {
+        'AUC-ROC': auc_roc,
+        'Confusion Matrix': cm
+    }
+    return performance_scores
+
+# Main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    train_url = 'https://remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/train.csv'
+    test_url = 'https://remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/06_employee/test.csv'
+    train_data, test_data = load_data(train_url, test_url)
+    
+    if train_data is None or test_data is None:
+        print("Failed to load data. Exiting.")
+        return
+    
+    # Step 2. Create a train-valid-test split of the data
+    train_data_encoded, test_data_encoded = preprocess_data(train_data, test_data)
+    
+    if train_data_encoded is None or test_data_encoded is None:
+        print("Failed to preprocess data. Exiting.")
+        return
+    
+    # Split the train_data_encoded into training and validation sets
+    X = train_data_encoded.drop('LeaveOrNot', axis=1)
+    y = train_data_encoded['LeaveOrNot']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    # Step 4. Define required model
+    model = train_model(X_train, y_train)
+    
+    # Step 5. Evaluate the trained model
+    model_performance = evaluate_model(model, X_val, y_val)
+    
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/employee_retention_model.pkl"
+    joblib.dump(model, model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Validation Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error loading data: <urlopen error [Errno -2] Name or service not known>
+Failed to load data. Exiting.

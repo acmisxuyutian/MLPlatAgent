@@ -1,0 +1,146 @@
+######代码######
+
+import os
+import random
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import zscore
+from imblearn.over_sampling import SMOTE
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.feature_selection import SelectFromModel
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
+from sklearn.metrics import median_absolute_error
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(file_path):
+    df = pd.read_csv(file_path)
+    if 'mohs_hardness' not in df.columns:
+        raise KeyError("The dataset does not contain the target variable 'mohs_hardness'.")
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    # Initial Data Inspection
+    print("First few rows of the dataset:")
+    print(df.head())
+    print("Missing values in each column:")
+    print(df.isnull().sum())
+    print("Data types of each column:")
+    print(df.dtypes)
+    print("Summary statistics of the target variable 'mohs_hardness':")
+    print(df['mohs_hardness'].describe())
+
+    # Handling Missing Values
+    numerical_imputer = SimpleImputer(strategy='mean')
+    numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
+    df[numerical_features] = numerical_imputer.fit_transform(df[numerical_features])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    categorical_features = df.select_dtypes(include=[np.object]).columns.tolist()
+    df[categorical_features] = categorical_imputer.fit_transform(df[categorical_features])
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Outlier Detection and Handling
+    df = df[(np.abs(zscore(df[numerical_features])) < 3).all(axis=1)]
+
+    # Data Augmentation
+    X = df.drop('mohs_hardness', axis=1)
+    y = df['mohs_hardness']
+    smote = SMOTE(random_state=SEED)
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    return X_resampled, y_resampled
+
+# Model Training
+def train_model(X_train, y_train):
+    # Model Specification
+    model = lgb.LGBMRegressor(n_estimators=200, max_depth=8, learning_rate=0.05, num_leaves=63, random_state=SEED)
+
+    # Cross-Validation
+    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_median_absolute_error')
+    print(f'Median Absolute Error (MedAE) during cross-validation: {-scores.mean()}')
+
+    # Hyperparameter Tuning
+    param_dist = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [-1, 10, 20],
+        'learning_rate': [0.01, 0.05, 0.1],
+        'num_leaves': [31, 50, 100],
+        'subsample': [0.8, 1.0],
+        'colsample_bytree': [0.8, 1.0]
+    }
+    random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=10, cv=5, scoring='neg_median_absolute_error', n_jobs=-1, random_state=SEED)
+    random_search.fit(X_train, y_train)
+    best_model = random_search.best_estimator_
+    print(f'Best Parameters: {random_search.best_params_}')
+    print(f'Best Median Absolute Error (MedAE): {-random_search.best_score_}')
+
+    # Train the final model with the best hyperparameters
+    best_model.fit(X_train, y_train)
+
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    medae = median_absolute_error(y_test, y_pred)
+    print(f'Test Median Absolute Error (MedAE): {medae}')
+    performance_scores = {
+        'MedAE': medae
+    }
+    return performance_scores
+
+# Main Function to Orchestrate the Entire Pipeline
+def main():
+    # Step 1. Retrieve or load a dataset from user's local storage
+    file_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    df = load_dataset(file_path)
+
+    # Step 2. Create a train-valid-test split of the data
+    X, y = preprocess_data(df)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=SEED)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.22, random_state=SEED)  # 20% of 80% is 16% of the original dataset
+
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4. Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 5. Save the model
+    model_dir = './agent_workspace/trained_models'
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, 'lightgbm_mohs_hardness_model.pkl')
+    joblib.dump(model, model_path)
+    print(f'Model saved to {model_path}')
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 130, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 107, in main
+    df = load_dataset(file_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 25, in load_dataset
+    raise KeyError("The dataset does not contain the target variable 'mohs_hardness'.")
+KeyError: "The dataset does not contain the target variable 'mohs_hardness'."

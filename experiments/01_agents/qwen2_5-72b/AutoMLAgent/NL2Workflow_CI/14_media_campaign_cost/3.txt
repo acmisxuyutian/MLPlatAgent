@@ -1,0 +1,164 @@
+######代码######
+
+import os
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.metrics import mean_squared_log_error
+import xgboost as xgb
+import joblib
+
+SEED = 42
+np.random.seed(SEED)
+
+# Step 1: Data Retrieval and Collection
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Step 2: Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Check for missing values
+    print("Missing values in training set:\n", train_df.isnull().sum())
+    print("Missing values in test set:\n", test_df.isnull().sum())
+
+    # Impute missing values
+    train_df.fillna(train_df.mean(), inplace=True)
+    test_df.fillna(test_df.mean(), inplace=True)
+
+    # Ensure the target column is present
+    if 'media_campaign_cost' not in train_df.columns:
+        raise ValueError("Target column 'media_campaign_cost' not found in the training dataset.")
+    if 'media_campaign_cost' not in test_df.columns:
+        raise ValueError("Target column 'media_campaign_cost' not found in the test dataset.")
+
+    # Identify categorical and numerical columns
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.difference(['media_campaign_cost'])
+
+    # Define preprocessing for numerical and categorical data
+    numerical_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(drop='first')
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
+
+    # Apply preprocessing to the datasets
+    X_train = train_df.drop(columns=['media_campaign_cost'])
+    y_train = train_df['media_campaign_cost']
+    X_test = test_df.drop(columns=['media_campaign_cost'])
+
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+
+    # Perform feature selection
+    k = 10  # Number of top features to select
+    selector = SelectKBest(f_regression, k=k)
+    X_train_selected = selector.fit_transform(X_train_processed, y_train)
+    X_test_selected = selector.transform(X_test_processed)
+
+    # Get the selected feature names
+    selected_features = preprocessor.get_feature_names_out()[selector.get_support()]
+    print("Selected Features:", selected_features)
+
+    return X_train_selected, y_train, X_test_selected
+
+# Step 3: Model Training and Optimization
+def train_model(X_train, y_train):
+    # Define the parameter grid
+    param_grid = {
+        'learning_rate': [0.01, 0.05, 0.1],
+        'n_estimators': [100, 300, 500],
+        'max_depth': [3, 6, 9],
+        'subsample': [0.5, 0.8, 1.0],
+        'colsample_bytree': [0.5, 0.8, 1.0],
+        'reg_alpha': [0, 0.1, 0.5],
+        'reg_lambda': [0, 0.1, 0.5]
+    }
+
+    # Initialize the XGBoost model
+    xgb_model = xgb.XGBRegressor(random_state=42)
+
+    # Perform grid search with 5-fold cross-validation
+    grid_search = GridSearchCV(estimator=xgb_model, param_grid=param_grid, cv=5, scoring='neg_mean_squared_log_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best hyperparameters
+    best_params = grid_search.best_params_
+    print("Best parameters found: ", best_params)
+
+    # Train the final model with the best hyperparameters
+    best_xgb_model = xgb.XGBRegressor(**best_params, random_state=42)
+    best_xgb_model.fit(X_train, y_train)
+
+    return best_xgb_model
+
+# Step 4: Model Evaluation and Prediction
+def evaluate_model(model, X_test, y_test):
+    # Make predictions on the test set
+    y_pred = model.predict(X_test)
+
+    # Calculate RMLSE
+    rmlse = mean_squared_log_error(y_test, y_pred, squared=False)
+    print("RMLSE on the test set: ", rmlse)
+
+    # Create a DataFrame for the predictions
+    predictions_df = pd.DataFrame({'media_campaign_cost': y_pred})
+
+    # Save the predictions to a CSV file
+    predictions_path = r'./agent_workspace/predictions.csv'
+    predictions_df.to_csv(predictions_path, index=False)
+
+    return rmlse
+
+# Step 5: Model Saving and Deployment
+def save_model(model, model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# The Main Function to Orchestrate the Entire Pipeline
+def main():
+    # Step 1. Load the datasets
+    train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/train.csv'
+    test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/media_campaign_cost/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+
+    # Step 2. Preprocess the datasets
+    X_train, y_train, X_test = preprocess_data(train_df, test_df)
+
+    # Step 3. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 4. Evaluate the model
+    rmlse = evaluate_model(model, X_test, test_df['media_campaign_cost'])
+
+    # Step 5. Save the model
+    model_path = r'./agent_workspace/trained_models/xgboost_media_campaign_cost_model.pkl'
+    save_model(model, model_path)
+
+    return rmlse
+
+if __name__ == "__main__":
+    rmlse = main()
+    print("Model Performance on Test Set (RMLSE):", rmlse)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 148, in <module>
+    rmlse = main()
+            ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 133, in main
+    X_train, y_train, X_test = preprocess_data(train_df, test_df)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 34, in preprocess_data
+    raise ValueError("Target column 'media_campaign_cost' not found in the training dataset.")
+ValueError: Target column 'media_campaign_cost' not found in the training dataset.

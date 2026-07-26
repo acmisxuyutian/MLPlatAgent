@@ -1,0 +1,318 @@
+
+生成的代码：
+import pandas as pd
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# Drop rows with missing values and duplicates
+train_data = train_data.dropna().drop_duplicates()
+test_data = test_data.dropna().drop_duplicates()
+
+# Define a function to categorize BMI
+def categorize_bmi(bmi):
+    if bmi < 18.5:
+        return 'Underweight'
+    elif 18.5 <= bmi < 25:
+        return 'Normal weight'
+    elif 25 <= bmi < 30:
+        return 'Overweight'
+    else:
+        return 'Obesity'
+
+# Apply the function to create the BMI_Category feature
+train_data['BMI_Category'] = train_data['BMI'].apply(categorize_bmi).astype('category')
+test_data['BMI_Category'] = test_data['BMI'].apply(categorize_bmi).astype('category')
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Define features and target variable
+X_train = train_data.drop(columns=['Heart_Disease'])
+y_train = train_data['Heart_Disease']
+
+# Initialize and fit the logistic regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Define features for the test set
+X_test = test_data.drop(columns=['Heart_Disease'])
+
+# Make predictions
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Define the true labels for the test set
+y_test = test_data['Heart_Disease']
+
+# Compute AUC
+auc = roc_auc_score(y_test, y_pred_proba)
+print(f'Area Under ROC Curve: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_45415f28ef15872a6f893e339beb49ed1c99dd0e395956794f79aeab0c4a1162.py", line 13, in <module>
+    train_data['BMI_Category'] = train_data['BMI'].apply(categorize_bmi).astype('category')
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# Drop rows with missing values and duplicates
+train_data = train_data.dropna().drop_duplicates()
+test_data = test_data.dropna().drop_duplicates()
+
+# Define a function to categorize BMI
+def categorize_bmi(bmi):
+    if bmi < 18.5:
+        return 'Underweight'
+    elif 18.5 <= bmi < 25:
+        return 'Normal weight'
+    elif 25 <= bmi < 30:
+        return 'Overweight'
+    else:
+        return 'Obesity'
+
+# Apply the function to create the BMI_Category feature
+train_data['BMI_Category'] = train_data['BMI'].apply(categorize_bmi).astype('category')
+test_data['BMI_Category'] = test_data['BMI'].apply(categorize_bmi).astype('category')
+
+# Define features and target variable
+X_train = train_data.drop(columns=['Heart_Disease'])
+y_train = train_data['Heart_Disease']
+
+# Initialize and fit the logistic regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Define features for the test set
+X_test = test_data.drop(columns=['Heart_Disease'])
+
+# Make predictions
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Define the true labels for the test set
+y_test = test_data['Heart_Disease']
+
+# Compute AUC
+auc = roc_auc_score(y_test, y_pred_proba)
+print(f'Area Under ROC Curve: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_f56e5ffd75eccf6a05bbc100bec56c3cb90299074dc943b3517c021dbfc2cb3a.py", line 38, in <module>
+    model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\linear_model\_logistic.py", line 1222, in fit
+    X, y = validate_data(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Good'
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# Drop rows with missing values and duplicates
+train_data = train_data.dropna().drop_duplicates()
+test_data = test_data.dropna().drop_duplicates()
+
+# Inspect the dataset for non-numeric values
+print(train_data.dtypes)
+print(train_data.describe(include='all'))
+
+# Define a function to categorize BMI
+def categorize_bmi(bmi):
+    if bmi < 18.5:
+        return 'Underweight'
+    elif 18.5 <= bmi < 25:
+        return 'Normal weight'
+    elif 25 <= bmi < 30:
+        return 'Overweight'
+    else:
+        return 'Obesity'
+
+# Apply the function to create the BMI_Category feature
+train_data['BMI_Category'] = train_data['BMI'].apply(categorize_bmi).astype('category')
+test_data['BMI_Category'] = test_data['BMI'].apply(categorize_bmi).astype('category')
+
+# Define features and target variable
+X_train = train_data.drop(columns=['Heart_Disease'])
+y_train = train_data['Heart_Disease']
+
+# Initialize and fit the logistic regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Define features for the test set
+X_test = test_data.drop(columns=['Heart_Disease'])
+
+# Make predictions
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Define the true labels for the test set
+y_test = test_data['Heart_Disease']
+
+# Compute AUC
+auc = roc_auc_score(y_test, y_pred_proba)
+print(f'Area Under ROC Curve: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_ea554f5745ababdaaef704c4b2f3ce01b0ea6758b7313f3b60d8cb07efc3ba97.py", line 42, in <module>
+    model.fit(X_train, y_train)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\linear_model\_logistic.py", line 1222, in fit
+    X, y = validate_data(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 2961, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1370, in check_X_y
+    X = check_array(
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\autogen\lib\site-packages\pandas\core\generic.py", line 2153, in __array__
+    arr = np.asarray(values, dtype=dtype)
+ValueError: could not convert string to float: 'Good'
+General_Health                   object
+Checkup                          object
+Exercise                         object
+Heart_Disease                    object
+Skin_Cancer                      object
+Other_Cancer                     object
+Depression                       object
+Diabetes                         object
+Arthritis                        object
+Sex                              object
+Age_Category                     object
+Height_(cm)                     float64
+Weight_(kg)                     float64
+BMI                             float64
+Smoking_History                  object
+Alcohol_Consumption             float64
+Fruit_Consumption               float64
+Green_Vegetables_Consumption    float64
+FriedPotato_Consumption         float64
+dtype: object
+       General_Health  ... FriedPotato_Consumption
+count           49415  ...            49415.000000
+unique              5  ...                     NaN
+top         Very Good  ...                     NaN
+freq            17664  ...                     NaN
+mean              NaN  ...                6.309198
+std               NaN  ...                8.764727
+min               NaN  ...                0.000000
+25%               NaN  ...                2.000000
+50%               NaN  ...                4.000000
+75%               NaN  ...                8.000000
+max               NaN  ...              124.000000
+
+[11 rows x 19 columns]
+
+生成的代码：
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import OneHotEncoder
+
+# Load the datasets
+train_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/train.csv'
+test_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/DSEval/datasets/02_cardiovascular_diseases/test.csv'
+
+train_data = pd.read_csv(train_path)
+test_data = pd.read_csv(test_path)
+
+# Drop rows with missing values and duplicates
+train_data = train_data.dropna().drop_duplicates()
+test_data = test_data.dropna().drop_duplicates()
+
+# Define a function to categorize BMI
+def categorize_bmi(bmi):
+    if bmi < 18.5:
+        return 'Underweight'
+    elif 18.5 <= bmi < 25:
+        return 'Normal weight'
+    elif 25 <= bmi < 30:
+        return 'Overweight'
+    else:
+        return 'Obesity'
+
+# Apply the function to create the BMI_Category feature
+train_data['BMI_Category'] = train_data['BMI'].apply(categorize_bmi).astype('category')
+test_data['BMI_Category'] = test_data['BMI'].apply(categorize_bmi).astype('category')
+
+# One-hot encode categorical variables
+categorical_cols = ['General_Health', 'Checkup', 'Exercise', 'Heart_Disease', 'Skin_Cancer', 'Other_Cancer', 'Depression', 'Diabetes', 'Arthritis', 'Sex', 'Age_Category', 'Smoking_History']
+encoder = OneHotEncoder(sparse=False, drop='first')
+
+# Fit and transform the encoder on the training data
+X_train_encoded = encoder.fit_transform(train_data[categorical_cols])
+X_test_encoded = encoder.transform(test_data[categorical_cols])
+
+# Create DataFrames from the encoded data
+X_train_encoded_df = pd.DataFrame(X_train_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+X_test_encoded_df = pd.DataFrame(X_test_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+
+# Concatenate the encoded data with the numeric data
+X_train = pd.concat([train_data.drop(columns=['Heart_Disease'] + categorical_cols), X_train_encoded_df], axis=1)
+X_test = pd.concat([test_data.drop(columns=['Heart_Disease'] + categorical_cols), X_test_encoded_df], axis=1)
+
+# Define target variable
+y_train = train_data['Heart_Disease']
+y_test = test_data['Heart_Disease']
+
+# Initialize and fit the logistic regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+# Compute AUC
+auc = roc_auc_score(y_test, y_pred_proba)
+print(f'Area Under ROC Curve: {auc}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_7ae4efe7a48ac1e08ae88f3dd9a5fda2e85fb5424c5c9b260c227fcfd9b977d0.py", line 35, in <module>
+    encoder = OneHotEncoder(sparse=False, drop='first')
+TypeError: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'

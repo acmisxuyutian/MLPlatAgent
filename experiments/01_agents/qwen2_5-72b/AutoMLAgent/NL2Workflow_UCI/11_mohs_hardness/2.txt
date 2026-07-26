@@ -1,0 +1,202 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import median_absolute_error
+from imblearn.over_sampling import SMOTE
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Collection
+def load_data(file_path):
+    df = pd.read_csv(file_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    print(df.info())
+    print(df.describe())
+    print(df.head())
+
+    # Ensure the target column exists
+    if 'mohs_hardness' not in df.columns:
+        raise KeyError("The column 'mohs_hardness' is not found in the dataset.")
+
+    # Handle Missing Values
+    df.fillna(df.mean(), inplace=True)
+
+    # Handle Outliers
+    Q1 = df.quantile(0.25)
+    Q3 = df.quantile(0.75)
+    IQR = Q3 - Q1
+    df = df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    # Data Splitting
+    X = df.drop(columns=['mohs_hardness'])
+    y = df['mohs_hardness']
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Feature Engineering
+def feature_engineering(X_train, X_val, X_test, y_train):
+    # Feature Scaling
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+    X_test = scaler.transform(X_test)
+
+    # Feature Selection
+    model = RandomForestRegressor()
+    rfe = RFE(model, n_features_to_select=10)
+    X_train = rfe.fit_transform(X_train, y_train)
+    X_val = rfe.transform(X_val)
+    X_test = rfe.transform(X_test)
+
+    # Feature Interaction
+    poly = PolynomialFeatures(degree=2)
+    X_train = poly.fit_transform(X_train)
+    X_val = poly.transform(X_val)
+    X_test = poly.transform(X_test)
+
+    return X_train, X_val, X_test, scaler, rfe, poly
+
+# Data Augmentation
+def data_augmentation(X_train, y_train):
+    # Synthetic Data Generation
+    smote = SMOTE()
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    # Feature Perturbation
+    def perturb_data(X, noise_level=0.01):
+        noise = np.random.normal(0, noise_level, X.shape)
+        return X + noise
+
+    X_train = perturb_data(X_train)
+
+    return X_train, y_train
+
+# Model Initialization and Cross-Validation
+def initialize_model():
+    gbm = GradientBoostingRegressor()
+    return gbm
+
+def cross_validation(model, X_train, y_train):
+    scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_median_absolute_error')
+    print("Cross-Validation MedAE:", -np.mean(scores))
+
+# Hyperparameter Tuning
+def hyperparameter_tuning(model, X_train, y_train):
+    param_distributions = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'learning_rate': [0.01, 0.1, 0.2, 0.3],
+        'max_depth': [3, 5, 7, 9],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+
+    random_search = RandomizedSearchCV(model, param_distributions, n_iter=100, scoring='neg_median_absolute_error', cv=5, random_state=42)
+    random_search.fit(X_train, y_train)
+
+    best_params = random_search.best_params_
+    best_model = random_search.best_estimator_
+
+    print("Best Hyperparameters:", best_params)
+    print("Best Model MedAE:", -random_search.best_score_)
+
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_val, y_val, X_test, y_test):
+    y_val_pred = model.predict(X_val)
+    val_medae = median_absolute_error(y_val, y_val_pred)
+    print("Validation MedAE:", val_medae)
+
+    y_test_pred = model.predict(X_test)
+    test_medae = median_absolute_error(y_test, y_test_pred)
+    print("Test MedAE:", test_medae)
+
+    performance_scores = {
+        'Validation MedAE': val_medae,
+        'Test MedAE': test_medae
+    }
+
+    return performance_scores
+
+# Model Saving and Deployment
+def save_model(best_model, scaler, rfe, poly):
+    model_path = os.path.join("./agent_workspace/trained_models", "mohs_hardness_gbm_model.pkl")
+    joblib.dump(best_model, model_path)
+
+    scaler_path = os.path.join("./agent_workspace/trained_models", "mohs_hardness_scaler.pkl")
+    joblib.dump(scaler, scaler_path)
+
+    rfe_path = os.path.join("./agent_workspace/trained_models", "mohs_hardness_rfe.pkl")
+    joblib.dump(rfe, rfe_path)
+
+    poly_path = os.path.join("./agent_workspace/trained_models", "mohs_hardness_poly.pkl")
+    joblib.dump(poly, poly_path)
+
+# Main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular regression pipeline.
+    """
+    # Step 1. Retrieve or load a dataset from user's local storage
+    file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/mohs_hardness/train.csv'
+    df = load_data(file_path)
+
+    # Step 2. Preprocess the data
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+
+    # Step 3. Feature Engineering
+    X_train, X_val, X_test, scaler, rfe, poly = feature_engineering(X_train, X_val, X_test, y_train)
+
+    # Step 4. Data Augmentation
+    X_train, y_train = data_augmentation(X_train, y_train)
+
+    # Step 5. Initialize and Cross-Validate the Model
+    model = initialize_model()
+    cross_validation(model, X_train, y_train)
+
+    # Step 6. Hyperparameter Tuning
+    best_model = hyperparameter_tuning(model, X_train, y_train)
+
+    # Step 7. Evaluate the Model
+    performance_scores = evaluate_model(best_model, X_val, y_val, X_test, y_test)
+
+    # Step 8. Save the Model
+    save_model(best_model, scaler, rfe, poly)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 186, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 162, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(df)
+                                                     ^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 33, in preprocess_data
+    raise KeyError("The column 'mohs_hardness' is not found in the dataset.")
+KeyError: "The column 'mohs_hardness' is not found in the dataset."

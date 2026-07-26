@@ -1,0 +1,162 @@
+######代码######
+
+import os
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import joblib
+import random
+
+# Constants
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_data(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Initial Data Inspection
+def inspect_data(df):
+    print("Missing values:\n", df.isnull().sum())
+    print("Data types:\n", df.dtypes)
+
+# Data Preprocessing
+def preprocess_data(train_df, test_df):
+    # Handle Missing Values
+    numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_features = train_df.select_dtypes(include=['object']).columns.tolist()
+
+    numerical_imputer = SimpleImputer(strategy='mean')
+    train_df[numerical_features] = numerical_imputer.fit_transform(train_df[numerical_features])
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+
+    categorical_imputer = SimpleImputer(strategy='most_frequent')
+    train_df[categorical_features] = categorical_imputer.fit_transform(train_df[categorical_features])
+    test_df[categorical_features] = categorical_imputer.transform(test_df[categorical_features])
+
+    # Feature Engineering: GDP Categorization
+    bins = [0, 1000, 10000, float('inf')]
+    labels = ['Low GDP', 'Medium GDP', 'High GDP']
+    train_df['GDP_bins'] = pd.cut(train_df['GDP'], bins=bins, labels=labels, right=False)
+    test_df['GDP_bins'] = pd.cut(test_df['GDP'], bins=bins, labels=labels, right=False)
+
+    # One-Hot Encoding
+    train_df = pd.get_dummies(train_df, columns=['GDP_bins'], drop_first=True)
+    test_df = pd.get_dummies(test_df, columns=['GDP_bins'], drop_first=True)
+
+    # Ensure consistent one-hot encoding
+    missing_cols = set(train_df.columns) - set(test_df.columns)
+    for col in missing_cols:
+        test_df[col] = 0
+
+    missing_cols = set(test_df.columns) - set(train_df.columns)
+    for col in missing_cols:
+        train_df[col] = 0
+
+    train_df = train_df[train_df.columns]
+    test_df = test_df[train_df.columns]
+
+    return train_df, test_df
+
+# Feature Selection and Engineering
+def select_features(train_df, test_df):
+    features = [col for col in train_df.columns if col != 'Life expectancy']
+    target = 'Life expectancy'
+
+    X_train = train_df[features]
+    y_train = train_df[target]
+
+    X_test = test_df[features]
+    y_test = test_df[target]
+
+    return X_train, y_train, X_test, y_test
+
+# Feature Scaling
+def scale_features(X_train, X_test):
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+    return X_train, X_test, scaler
+
+# Model Training
+def train_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    return r2
+
+# Model Saving
+def save_model(model, scaler, model_path, scaler_path):
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
+
+# Main Function to Orchestrate the Entire Pipeline
+def main():
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/10_life_expectancy/test.csv'
+
+    # Load data
+    train_df, test_df = load_data(train_path, test_path)
+    inspect_data(train_df)
+    inspect_data(test_df)
+
+    # Preprocess data
+    train_df, test_df = preprocess_data(train_df, test_df)
+
+    # Select and engineer features
+    X_train, y_train, X_test, y_test = select_features(train_df, test_df)
+
+    # Scale features
+    X_train, X_test, scaler = scale_features(X_train, X_test)
+
+    # Train model
+    model = train_model(X_train, y_train)
+
+    # Evaluate model
+    r2 = evaluate_model(model, X_test, y_test)
+
+    # Save model and scaler
+    model_path = './agent_workspace/trained_models/life_expectancy_model.pkl'
+    scaler_path = './agent_workspace/trained_models/scaler.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+    save_model(model, scaler, model_path, scaler_path)
+
+    return r2
+
+if __name__ == "__main__":
+    r2 = main()
+    print(f"Model Performance on Test Set: R-squared score: {r2}")
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 138, in <module>
+    r2 = main()
+         ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 114, in main
+    train_df, test_df = preprocess_data(train_df, test_df)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 36, in preprocess_data
+    test_df[numerical_features] = numerical_imputer.transform(test_df[numerical_features])
+                                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/root/miniconda3/envs/AutomlAgent/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['Life expectancy '] not in index"

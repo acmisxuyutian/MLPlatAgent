@@ -1,0 +1,179 @@
+######代码######
+
+import os, random, time, json
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import accuracy_score, f1_score
+import torch.utils.data as data
+
+# Set random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Data paths
+train_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/train.csv'
+test_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/cirrhosis_patient/test.csv'
+
+# Load the dataset
+def load_data():
+    try:
+        train_df = pd.read_csv(train_path)
+        test_df = pd.read_csv(test_path)
+        return train_df, test_df
+    except pd.errors.ParserError as e:
+        print(f"Error loading data: {e}")
+        return None, None
+
+# Exploratory Data Analysis (EDA)
+def eda(df):
+    print("Missing values:\n", df.isnull().sum())
+    print("Target variable distribution:\n", df['survival_status'].value_counts())
+
+# Handle missing values
+def handle_missing_values(df):
+    return df.fillna(df.mean())
+
+# Encode categorical variables
+def encode_categorical(df):
+    df = pd.get_dummies(df)
+    return df
+
+# Scale numerical features
+def scale_features(df):
+    scaler = MinMaxScaler()
+    numerical_features = df.select_dtypes(include=[np.number]).columns
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+    return df
+
+# Split the dataset
+def split_dataset(df):
+    X = df.drop('survival_status', axis=1)
+    y = df['survival_status']
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, stratify=y, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, stratify=y_temp, random_state=SEED)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Define the Logical Neural Network (LNN) Architecture
+class LNN(nn.Module):
+    def __init__(self, input_size):
+        super(LNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+# Train the model
+def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs):
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_loss = 0
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                val_loss += criterion(outputs, labels).item()
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Validation Loss: {val_loss/len(val_loader):.4f}')
+
+# Evaluate the model
+def evaluate_model(model, test_loader, criterion):
+    model.eval()
+    with torch.no_grad():
+        test_loss = 0
+        y_true = []
+        y_pred = []
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            test_loss += criterion(outputs, labels).item()
+            y_true.extend(labels.numpy())
+            y_pred.extend((outputs > 0.5).numpy())
+
+    performance_scores = {
+        'ACC': accuracy_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred)
+    }
+    print(f'Test Logloss: {test_loss/len(test_loader):.4f}')
+    return performance_scores
+
+# Preprocess data
+def preprocess_data(train_df, test_df):
+    eda(train_df)
+    eda(test_df)
+    
+    train_df = handle_missing_values(train_df)
+    test_df = handle_missing_values(test_df)
+    
+    train_df = encode_categorical(train_df)
+    test_df = encode_categorical(test_df)
+    
+    train_df = scale_features(train_df)
+    test_df = scale_features(test_df)
+    
+    return train_df, test_df
+
+# Main function
+def main():
+    train_df, test_df = load_data()
+    if train_df is None or test_df is None:
+        print("Failed to load data. Exiting.")
+        return
+    
+    train_df, test_df = preprocess_data(train_df, test_df)
+    
+    X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(train_df)
+    
+    train_dataset = data.TensorDataset(torch.tensor(X_train.values, dtype=torch.float32), torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1))
+    train_loader = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+    
+    val_dataset = data.TensorDataset(torch.tensor(X_val.values, dtype=torch.float32), torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1))
+    val_loader = data.DataLoader(val_dataset, batch_size=32, shuffle=False)
+    
+    test_dataset = data.TensorDataset(torch.tensor(X_test.values, dtype=torch.float32), torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1))
+    test_loader = data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+    
+    input_size = X_train.shape[1]
+    model = LNN(input_size)
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=100)
+    model_performance = evaluate_model(model, test_loader, criterion)
+    
+    # Save the trained model
+    model_save_path = "./agent_workspace/trained_models/cirrhosis_patient_model.pth"
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    if model_performance:
+        print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Error loading data: Error tokenizing data. C error: Expected 1 fields in line 8, saw 2
+
+Failed to load data. Exiting.

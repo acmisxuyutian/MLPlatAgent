@@ -1,0 +1,204 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix, precision_recall_curve, auc
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+from scipy.stats import zscore
+import shap
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval
+def load_dataset(file_path):
+    """
+    Load the dataset from the specified file path.
+    """
+    return pd.read_csv(file_path)
+
+# Data Preprocessing
+def preprocess_data(df, target_col):
+    """
+    Preprocess the dataset by handling missing values, removing outliers, and scaling features.
+    """
+    # Handle Missing Values
+    mean_imputer = SimpleImputer(strategy='mean')
+    median_imputer = SimpleImputer(strategy='median')
+    knn_imputer = KNNImputer(n_neighbors=5)
+
+    # Impute missing values
+    for col in df.columns:
+        if df[col].isnull().sum() > 0:
+            df[col + '_mean'] = mean_imputer.fit_transform(df[[col]])
+            df[col + '_median'] = median_imputer.fit_transform(df[[col]])
+            df[col + '_knn'] = knn_imputer.fit_transform(df[[col]])
+
+    # Remove Outliers using Z-Score
+    z_scores = zscore(df)
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df = df[filtered_entries]
+
+    # Remove Outliers using IQR
+    Q1 = df.quantile(0.25)
+    Q3 = df.quantile(0.75)
+    IQR = Q3 - Q1
+    df = df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    # Data Consistency
+    df = df.drop_duplicates()
+    df = df.apply(pd.to_numeric, errors='coerce')
+
+    # Feature Engineering
+    if 'weight' in df.columns and 'height' in df.columns:
+        df['BMI'] = df['weight'] / (df['height'] / 100) ** 2
+    if 'age' in df.columns:
+        df['age_squared'] = df['age'] ** 2
+
+    # Feature Scaling
+    scaler = StandardScaler()
+    df[df.columns.difference([target_col])] = scaler.fit_transform(df[df.columns.difference([target_col])])
+
+    return df
+
+# Data Splitting
+def split_data(df, target_col):
+    """
+    Split the dataset into training, validation, and test sets.
+    """
+    if target_col not in df.columns:
+        raise ValueError(f"Target column '{target_col}' not found in the dataset.")
+
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, stratify=y, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, stratify=y_temp, random_state=SEED)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Data Augmentation
+def augment_data(X_train, y_train):
+    """
+    Augment the training data using SMOTE and feature perturbation.
+    """
+    smote = SMOTE(random_state=SEED)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    # Feature Perturbation
+    noise = np.random.normal(0, 0.1, X_train_resampled.shape)
+    X_train_resampled += noise
+
+    return X_train_resampled, y_train_resampled
+
+# Model Training
+def train_model(X_train, y_train):
+    """
+    Train the XGBoost model with hyperparameter tuning.
+    """
+    model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=SEED)
+
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.01, 0.1, 0.3],
+        'subsample': [0.5, 0.7, 1.0],
+        'colsample_bytree': [0.5, 0.7, 1.0]
+    }
+
+    kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
+    grid_search = GridSearchCV(model, param_grid, scoring='roc_auc', cv=kfold, n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+
+    return best_model
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluate the model's performance on the test set.
+    """
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    performance_scores = {
+        'AUC-ROC': roc_auc_score(y_test, y_pred_proba),
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'F1-Score': f1_score(y_test, y_pred),
+        'Confusion Matrix': confusion_matrix(y_test, y_pred).tolist(),
+        'Precision-Recall Curve': precision_recall_curve(y_test, y_pred_proba)
+    }
+
+    return performance_scores
+
+# Model Interpretability
+def explain_model(model, X_test):
+    """
+    Use SHAP to explain the model's predictions.
+    """
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_test)
+    shap.summary_plot(shap_values, X_test, plot_type="bar")
+
+# Main function to orchestrate the pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    file_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+    dataset = load_dataset(file_path)
+
+    # Data Preprocessing
+    target_col = 'has_kidney_stone'
+    processed_data = preprocess_data(dataset, target_col)
+
+    # Data Splitting
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(processed_data, target_col)
+
+    # Data Augmentation
+    X_train_resampled, y_train_resampled = augment_data(X_train, y_train)
+
+    # Model Training
+    model = train_model(X_train_resampled, y_train_resampled)
+
+    # Model Evaluation
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Model Interpretability
+    explain_model(model, X_test)
+
+    # Save the model
+    model_path = r'./agent_workspace/trained_models/kidney_stone_xgboost_model.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save_model(model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 188, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 166, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(processed_data, target_col)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 79, in split_data
+    raise ValueError(f"Target column '{target_col}' not found in the dataset.")
+ValueError: Target column 'has_kidney_stone' not found in the dataset.

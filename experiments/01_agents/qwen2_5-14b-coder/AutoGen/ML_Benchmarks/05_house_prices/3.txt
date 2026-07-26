@@ -1,0 +1,357 @@
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_train.csv')
+
+# 加载评估数据
+eval_data = pd.read_csv('D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_eval.csv')
+
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+# 处理缺失值
+train_data.fillna(train_data.mean(), inplace=True)
+eval_data.fillna(eval_data.mean(), inplace=True)
+
+# 检查数据类型
+print(train_data.dtypes)
+print(eval_data.dtypes)
+
+# 将 SalePrice 转换为对数形式
+train_data['SalePrice'] = train_data['SalePrice'].apply(lambda x: np.log1p(x))
+
+# 示例：创建一个新的特征
+train_data['TotalSF'] = train_data['TotalBsmtSF'] + train_data['1stFlrSF'] + train_data['2ndFlrSF']
+eval_data['TotalSF'] = eval_data['TotalBsmtSF'] + eval_data['1stFlrSF'] + eval_data['2ndFlrSF']
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# 分离特征和目标变量
+X_train = train_data.drop('SalePrice', axis=1)
+y_train = train_data['SalePrice']
+
+# 分离评估数据的特征和目标变量
+X_eval = eval_data.drop('SalePrice', axis=1)
+y_eval = eval_data['SalePrice']
+
+# 训练随机森林回归模型
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 预测评估数据
+y_pred = model.predict(X_eval)
+
+# 计算对数预测值和对数真实值的RMSE
+rmse = np.sqrt(mean_squared_error(np.log1p(y_eval), np.log1p(y_pred)))
+print(f'RMSE: {rmse}')
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b8929d5db3f6bbac58885cbd09c221079389246918eb04ee1db116ed3800ed42.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_train.csv'
+try:
+    train_data = pd.read_csv(train_data_path)
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {train_data_path}")
+except Exception as e:
+    print(f"加载训练数据时出错: {e}")
+
+# 加载评估数据
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_eval.csv'
+try:
+    eval_data = pd.read_csv(eval_data_path)
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {eval_data_path}")
+except Exception as e:
+    print(f"加载评估数据时出错: {e}")
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功
+
+生成的代码：
+# 查看训练数据的基本信息
+print(train_data.info())
+
+# 查看训练数据的统计摘要
+print(train_data.describe())
+
+# 查看评估数据的基本信息
+print(eval_data.info())
+
+# 查看评估数据的统计摘要
+print(eval_data.describe())
+
+
+执行结果：
+Traceback (most recent call last):
+  File "D:\LLM-Driven_AI-Studio\MLAgent\experiments\AutoGen\coding\tmp_code_b8929d5db3f6bbac58885cbd09c221079389246918eb04ee1db116ed3800ed42.py", line 2, in <module>
+    print(train_data.info())
+NameError: name 'train_data' is not defined
+
+生成的代码：
+import pandas as pd
+
+# 加载训练数据
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_train.csv'
+try:
+    train_data = pd.read_csv(train_data_path)
+    print("训练数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {train_data_path}")
+except Exception as e:
+    print(f"加载训练数据时出错: {e}")
+
+# 加载评估数据
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark/ml_benchmark/05_house_prices/split_eval.csv'
+try:
+    eval_data = pd.read_csv(eval_data_path)
+    print("评估数据加载成功")
+except FileNotFoundError:
+    print(f"文件未找到: {eval_data_path}")
+except Exception as e:
+    print(f"加载评估数据时出错: {e}")
+
+# 数据分析
+if 'train_data' in locals() and 'eval_data' in locals():
+    # 查看训练数据的基本信息
+    print(train_data.info())
+
+    # 查看训练数据的统计摘要
+    print(train_data.describe())
+
+    # 查看评估数据的基本信息
+    print(eval_data.info())
+
+    # 查看评估数据的统计摘要
+    print(eval_data.describe())
+
+
+执行结果：
+训练数据加载成功
+评估数据加载成功
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 1168 entries, 0 to 1167
+Data columns (total 81 columns):
+ #   Column         Non-Null Count  Dtype  
+---  ------         --------------  -----  
+ 0   Id             1168 non-null   int64  
+ 1   MSSubClass     1168 non-null   int64  
+ 2   MSZoning       1168 non-null   object 
+ 3   LotFrontage    968 non-null    float64
+ 4   LotArea        1168 non-null   int64  
+ 5   Street         1168 non-null   object 
+ 6   Alley          73 non-null     object 
+ 7   LotShape       1168 non-null   object 
+ 8   LandContour    1168 non-null   object 
+ 9   Utilities      1168 non-null   object 
+ 10  LotConfig      1168 non-null   object 
+ 11  LandSlope      1168 non-null   object 
+ 12  Neighborhood   1168 non-null   object 
+ 13  Condition1     1168 non-null   object 
+ 14  Condition2     1168 non-null   object 
+ 15  BldgType       1168 non-null   object 
+ 16  HouseStyle     1168 non-null   object 
+ 17  OverallQual    1168 non-null   int64  
+ 18  OverallCond    1168 non-null   int64  
+ 19  YearBuilt      1168 non-null   int64  
+ 20  YearRemodAdd   1168 non-null   int64  
+ 21  RoofStyle      1168 non-null   object 
+ 22  RoofMatl       1168 non-null   object 
+ 23  Exterior1st    1168 non-null   object 
+ 24  Exterior2nd    1168 non-null   object 
+ 25  MasVnrType     472 non-null    object 
+ 26  MasVnrArea     1162 non-null   float64
+ 27  ExterQual      1168 non-null   object 
+ 28  ExterCond      1168 non-null   object 
+ 29  Foundation     1168 non-null   object 
+ 30  BsmtQual       1137 non-null   object 
+ 31  BsmtCond       1137 non-null   object 
+ 32  BsmtExposure   1136 non-null   object 
+ 33  BsmtFinType1   1137 non-null   object 
+ 34  BsmtFinSF1     1168 non-null   int64  
+ 35  BsmtFinType2   1136 non-null   object 
+ 36  BsmtFinSF2     1168 non-null   int64  
+ 37  BsmtUnfSF      1168 non-null   int64  
+ 38  TotalBsmtSF    1168 non-null   int64  
+ 39  Heating        1168 non-null   object 
+ 40  HeatingQC      1168 non-null   object 
+ 41  CentralAir     1168 non-null   object 
+ 42  Electrical     1167 non-null   object 
+ 43  1stFlrSF       1168 non-null   int64  
+ 44  2ndFlrSF       1168 non-null   int64  
+ 45  LowQualFinSF   1168 non-null   int64  
+ 46  GrLivArea      1168 non-null   int64  
+ 47  BsmtFullBath   1168 non-null   int64  
+ 48  BsmtHalfBath   1168 non-null   int64  
+ 49  FullBath       1168 non-null   int64  
+ 50  HalfBath       1168 non-null   int64  
+ 51  BedroomAbvGr   1168 non-null   int64  
+ 52  KitchenAbvGr   1168 non-null   int64  
+ 53  KitchenQual    1168 non-null   object 
+ 54  TotRmsAbvGrd   1168 non-null   int64  
+ 55  Functional     1168 non-null   object 
+ 56  Fireplaces     1168 non-null   int64  
+ 57  FireplaceQu    615 non-null    object 
+ 58  GarageType     1103 non-null   object 
+ 59  GarageYrBlt    1103 non-null   float64
+ 60  GarageFinish   1103 non-null   object 
+ 61  GarageCars     1168 non-null   int64  
+ 62  GarageArea     1168 non-null   int64  
+ 63  GarageQual     1103 non-null   object 
+ 64  GarageCond     1103 non-null   object 
+ 65  PavedDrive     1168 non-null   object 
+ 66  WoodDeckSF     1168 non-null   int64  
+ 67  OpenPorchSF    1168 non-null   int64  
+ 68  EnclosedPorch  1168 non-null   int64  
+ 69  3SsnPorch      1168 non-null   int64  
+ 70  ScreenPorch    1168 non-null   int64  
+ 71  PoolArea       1168 non-null   int64  
+ 72  PoolQC         4 non-null      object 
+ 73  Fence          218 non-null    object 
+ 74  MiscFeature    43 non-null     object 
+ 75  MiscVal        1168 non-null   int64  
+ 76  MoSold         1168 non-null   int64  
+ 77  YrSold         1168 non-null   int64  
+ 78  SaleType       1168 non-null   object 
+ 79  SaleCondition  1168 non-null   object 
+ 80  SalePrice      1168 non-null   int64  
+dtypes: float64(3), int64(35), object(43)
+memory usage: 739.2+ KB
+None
+                Id   MSSubClass  ...       YrSold      SalePrice
+count  1168.000000  1168.000000  ...  1168.000000    1168.000000
+mean    731.243151    57.380137  ...  2007.805651  180622.219178
+std     424.021368    42.565874  ...     1.332117   79253.668338
+min       1.000000    20.000000  ...  2006.000000   34900.000000
+25%     367.750000    20.000000  ...  2007.000000  129375.000000
+50%     729.500000    50.000000  ...  2008.000000  161250.000000
+75%    1102.250000    70.000000  ...  2009.000000  215000.000000
+max    1460.000000   190.000000  ...  2010.000000  755000.000000
+
+[8 rows x 38 columns]
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 292 entries, 0 to 291
+Data columns (total 81 columns):
+ #   Column         Non-Null Count  Dtype  
+---  ------         --------------  -----  
+ 0   Id             292 non-null    int64  
+ 1   MSSubClass     292 non-null    int64  
+ 2   MSZoning       292 non-null    object 
+ 3   LotFrontage    233 non-null    float64
+ 4   LotArea        292 non-null    int64  
+ 5   Street         292 non-null    object 
+ 6   Alley          18 non-null     object 
+ 7   LotShape       292 non-null    object 
+ 8   LandContour    292 non-null    object 
+ 9   Utilities      292 non-null    object 
+ 10  LotConfig      292 non-null    object 
+ 11  LandSlope      292 non-null    object 
+ 12  Neighborhood   292 non-null    object 
+ 13  Condition1     292 non-null    object 
+ 14  Condition2     292 non-null    object 
+ 15  BldgType       292 non-null    object 
+ 16  HouseStyle     292 non-null    object 
+ 17  OverallQual    292 non-null    int64  
+ 18  OverallCond    292 non-null    int64  
+ 19  YearBuilt      292 non-null    int64  
+ 20  YearRemodAdd   292 non-null    int64  
+ 21  RoofStyle      292 non-null    object 
+ 22  RoofMatl       292 non-null    object 
+ 23  Exterior1st    292 non-null    object 
+ 24  Exterior2nd    292 non-null    object 
+ 25  MasVnrType     116 non-null    object 
+ 26  MasVnrArea     290 non-null    float64
+ 27  ExterQual      292 non-null    object 
+ 28  ExterCond      292 non-null    object 
+ 29  Foundation     292 non-null    object 
+ 30  BsmtQual       286 non-null    object 
+ 31  BsmtCond       286 non-null    object 
+ 32  BsmtExposure   286 non-null    object 
+ 33  BsmtFinType1   286 non-null    object 
+ 34  BsmtFinSF1     292 non-null    int64  
+ 35  BsmtFinType2   286 non-null    object 
+ 36  BsmtFinSF2     292 non-null    int64  
+ 37  BsmtUnfSF      292 non-null    int64  
+ 38  TotalBsmtSF    292 non-null    int64  
+ 39  Heating        292 non-null    object 
+ 40  HeatingQC      292 non-null    object 
+ 41  CentralAir     292 non-null    object 
+ 42  Electrical     292 non-null    object 
+ 43  1stFlrSF       292 non-null    int64  
+ 44  2ndFlrSF       292 non-null    int64  
+ 45  LowQualFinSF   292 non-null    int64  
+ 46  GrLivArea      292 non-null    int64  
+ 47  BsmtFullBath   292 non-null    int64  
+ 48  BsmtHalfBath   292 non-null    int64  
+ 49  FullBath       292 non-null    int64  
+ 50  HalfBath       292 non-null    int64  
+ 51  BedroomAbvGr   292 non-null    int64  
+ 52  KitchenAbvGr   292 non-null    int64  
+ 53  KitchenQual    292 non-null    object 
+ 54  TotRmsAbvGrd   292 non-null    int64  
+ 55  Functional     292 non-null    object 
+ 56  Fireplaces     292 non-null    int64  
+ 57  FireplaceQu    155 non-null    object 
+ 58  GarageType     276 non-null    object 
+ 59  GarageYrBlt    276 non-null    float64
+ 60  GarageFinish   276 non-null    object 
+ 61  GarageCars     292 non-null    int64  
+ 62  GarageArea     292 non-null    int64  
+ 63  GarageQual     276 non-null    object 
+ 64  GarageCond     276 non-null    object 
+ 65  PavedDrive     292 non-null    object 
+ 66  WoodDeckSF     292 non-null    int64  
+ 67  OpenPorchSF    292 non-null    int64  
+ 68  EnclosedPorch  292 non-null    int64  
+ 69  3SsnPorch      292 non-null    int64  
+ 70  ScreenPorch    292 non-null    int64  
+ 71  PoolArea       292 non-null    int64  
+ 72  PoolQC         3 non-null      object 
+ 73  Fence          63 non-null     object 
+ 74  MiscFeature    11 non-null     object 
+ 75  MiscVal        292 non-null    int64  
+ 76  MoSold         292 non-null    int64  
+ 77  YrSold         292 non-null    int64  
+ 78  SaleType       292 non-null    object 
+ 79  SaleCondition  292 non-null    object 
+ 80  SalePrice      292 non-null    int64  
+dtypes: float64(3), int64(35), object(43)
+memory usage: 184.9+ KB
+None
+                Id  MSSubClass  ...       YrSold      SalePrice
+count   292.000000  292.000000  ...   292.000000     292.000000
+mean    727.527397   54.965753  ...  2007.856164  182117.102740
+std     412.525458   41.237292  ...     1.313371   80319.258372
+min      13.000000   20.000000  ...  2006.000000   37900.000000
+25%     356.500000   20.000000  ...  2007.000000  134600.000000
+50%     734.500000   50.000000  ...  2008.000000  168500.000000
+75%    1053.750000   60.000000  ...  2009.000000  210000.000000
+max    1458.000000  190.000000  ...  2010.000000  556581.000000
+
+[8 rows x 38 columns]

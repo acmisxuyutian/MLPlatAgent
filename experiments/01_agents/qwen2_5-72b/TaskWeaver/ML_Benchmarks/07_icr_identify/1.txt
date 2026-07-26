@@ -1,0 +1,1686 @@
+import pandas as pd
+
+# Load the train and eval datasets
+train_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\LLM-Driven_AI-Studio\\MLAgent\\data\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Check basic information of the datasets
+train_shape = train_df.shape
+train_head = train_df.head()
+train_tail = train_df.tail()
+eval_shape = eval_df.shape
+eval_head = eval_df.head()
+eval_tail = eval_df.tail()
+
+# Store the results in variables
+(train_shape, train_head, train_tail, eval_shape, eval_head, eval_tail)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+((493, 58),
+              Id        AB          AF          AH          AM        AR        AX        AY         AZ      BC          BD        BN          BP          BQ           BR          BZ          CB        CC         CD         CF        CH        CL        CR         CS        CU        CW         DA          DE        DF        DH          DI         DL         DN        DU       DV         DY        EB        EE            EG        EH EJ          EL         EP         EU         FC       FD             FE         FI         FL       FR        FS         GB          GE            GF         GH         GI         GL  Class
+ 0  434b3925094e  0.354659  3315.29836  100.689104   51.823650  8.138688  4.642116  0.025578  12.121897  1.2299  4450.633745  21.8922  173.822315  145.489250   753.826380  257.432377  160.010715  0.637269  115.011496  2.852458  0.022089  1.050225  0.915037  38.189624  0.993060  37.289992  81.00664  169.561138  0.238680  0.367588  144.730365  102.30696  24.433332  0.579348  1.74307  14.125094  6.841824  4.585262    433.209550  0.170352  B   33.986882  78.526968  49.768992  28.028784  4.832718   9791.994926  10.088790   6.322717  1.71912  0.751803  16.980801  111.052214   9790.822836  34.947632  20.810052   0.198000      0
+ 1  80ee5615ebdf  0.166647  3158.40492   85.200147   17.937824  8.138688  3.118368  0.058160   9.503416  1.2299  3456.426060  20.4798  169.343811   77.199175   691.134544  257.432377   53.804114  1.144881   78.772608  3.836222  0.021094  1.050225  0.810375  23.612220  1.533726  18.398896  30.13596  137.458390  0.238680  0.306096  121.790220  117.65152  32.175160  0.641421  1.74307   9.981224  8.036316  4.176116   1403.749688  0.066924  B   76.545612  96.443945  41.177916  29.393952  2.885382   4859.185058   7.249595  10.110737  1.19509  0.067730   6.297454  274.293492  12687.832390  15.628200  26.514748   0.070258      0
+ 2  65de682cc48c  0.183739  2315.68106   98.019795   12.031845  8.138688  6.936597  0.025578  10.669286  1.2299  4121.249990  20.1267  173.858346   59.849875   976.471923  257.432377   21.608041  0.873067   63.606344  8.907089  0.017910  1.215715  0.760650  31.794466  1.495107  38.391784  50.87456  157.234055  0.238680  0.371688  129.741900   65.97652  19.851016  0.005518  1.74307  30.689344  5.901780  3.333637    957.185725  0.003042  A   38.187864  78.526968  11.277528  30.827664  0.296850   6065.538986   9.515438   0.173229  0.49706  0.128687  17.292418  252.824663  15889.416680  31.267563  57.792840  21.978000      0
+ 3  043ac50845d5  0.252107  3819.65177  120.201618   77.112203  8.138688  3.685344  0.025578  11.053708  1.2299  4169.677380  23.6577  237.282264   11.050410   661.518640  257.432377   15.201914  0.717882   88.159360  2.347652  0.029054  1.400300  0.636075  41.116960  0.722727  21.530392  47.27586  196.607985  0.238680  0.292431  139.824570   71.57120  24.354856  2.655345  1.74307  52.003884  7.386060  3.813326  15691.552180  0.614484  B   31.674357  78.526968  31.323372  59.301984  7.884336  10965.766040  14.852022   6.122162  0.49706  0.284466  18.529584   82.416803   2094.262452  39.948656  90.493248   0.155829      0
+ 4  89a5ed9b71a8  0.615312  4438.40947  188.889501  140.597606  8.453328  8.292024  0.025578   8.570720  1.2299  4746.563370  24.3639  142.273557   50.388515  1786.786890  257.432377   12.665198  0.429630   79.359280  5.333914  0.026268  1.050225  0.425550  34.341720  0.937890  39.329540  23.68934  257.292090  0.951561  0.412683  196.762665   65.02040  21.024744  0.006897  1.74307  58.198352  4.926396  0.286201    953.227300  0.006084  B  109.125159  78.526968  17.134044  17.484432  1.365510  18188.105380   7.437037   5.457900  0.49706  1.225913  23.031752   72.611063   9756.985572  34.225758  48.713680   0.594000      1,
+                Id        AB          AF         AH         AM         AR        AX        AY         AZ       BC         BD        BN          BP          BQ           BR          BZ          CB        CC         CD          CF        CH        CL        CR         CS        CU        CW         DA          DE        DF        DH          DI         DL         DN        DU       DV          DY         EB        EE           EG        EH EJ          EL          EP         EU          FC       FD             FE         FI        FL       FR        FS         GB          GE             GF         GH          GI         GL  Class
+ 488  ee48d4f9dc81  0.405935  1830.51462  85.200147  44.915791  11.049108  7.140354  0.025578  12.774154  1.22990  4026.34477  20.4798  273.568104   51.394045   741.002500  257.432377  112.580559  0.595133   68.585128   9.074344  0.036616  1.132970  0.531375  37.826976  0.915822  37.267360  43.52584  297.517540  0.238680  0.319761  149.282250   93.16128  31.226624  0.005518  1.74307   13.480492  11.542044  2.333949  2787.869925  0.003042  A  109.125159   78.526968   3.828384   91.220640  0.296850   3992.673072  10.358927  0.173229  1.48074  0.067730  25.840956   72.611063  117580.052800  15.777040  102.458192  21.978000      0
+ 489  1426f76716de  0.329021  1999.78636  85.200147  84.235303   8.138688  6.511365  0.025578   9.509718  1.22990  5468.36399  19.7736  218.232198   44.032315  1379.002628  257.432377   94.557008  0.785973  116.708088  10.600926  0.026268  1.050225  0.781875  37.052862  1.114434  38.218088  65.47112  193.246255  0.238680  0.295164  147.185145   74.34840  28.701744  0.005518  1.74307    6.145056   8.425056  2.213019  2092.042675  0.003042  A  109.125159   78.526968  51.804720   25.943904  0.296850   8581.074538   9.101963  0.173229  0.49706  0.067730  27.654846   72.611063   52174.616020  26.687012   95.930456  21.978000      0
+ 490  8a3e1acd2ff2  0.320475  2595.83962  85.200147  16.333578   8.138688  7.397265  0.095004   3.396778  1.22990  7842.53656  19.4205  269.443557   37.459900   522.397689  257.432377   12.499760  0.650562  114.416896  12.486346  0.032636  1.196620  0.533325  46.621190  1.583379  36.306144  59.63172  434.736440  0.238680  0.467343  150.050310   84.77032  19.994320  0.005518  1.74307   29.858324  12.821352  3.688365  1794.082325  0.003042  A  109.125159  211.509311  30.064968  138.093312  0.296850   9630.125148  11.759229  0.173229  1.35720  0.365742  31.180304  109.391422   54393.638080  27.773544   46.936428  21.978000      0
+ 491  1ce075e25399  0.572582  4889.85805  98.106885  15.822573   8.138688  4.930034  0.025578  11.293184  8.36332  5613.31058  24.7170  195.362793  128.150370   418.388158  257.432377   12.830636  0.502372   95.778168   5.712518  0.023084  1.954055  0.432075  27.672832  0.799965  38.802380  22.19360  145.605485  1.007721  0.396285   77.645595   49.09920  31.990912  0.062073  1.74307  103.518140   5.926518  1.918756  1116.480700  0.006084  B  109.125159   99.229280  31.781664   38.013360  0.296850  40682.562200   8.156484  3.559500  0.49706  0.223509  21.934116   78.419418    1345.814190  27.155858   17.210538   0.066000      1
+ 492  d1fa22631c9c  0.183739  7820.05334  85.200147   7.922126   8.138688  3.685344  0.041412  12.553584  1.22990  4092.29423  19.0674  189.326457  135.582435    51.216883  257.432377   69.281758  0.552201   58.690984   6.495576  0.018706  1.050225  0.744900  31.860719  1.550277   7.030640  33.60468  155.353615  0.238680  0.358023  140.490975  116.39648  24.341208  0.234498  1.74307   17.702972   6.163296  2.587902  1721.999225  0.152100  B  109.125159  103.571806   3.828384   13.268976  3.039744   8068.418286  11.081130  2.833787  0.49706  0.392834  19.227234   72.611063    1401.381486  26.590266   76.470704   0.436765      0,
+ (124, 58),
+              Id        AB          AF          AH         AM        AR        AX        AY         AZ       BC         BD        BN          BP         BQ          BR          BZ          CB        CC         CD          CF        CH        CL        CR         CS        CU        CW         DA          DE       DF        DH          DI         DL         DN        DU       DV         DY         EB        EE           EG        EH EJ          EL          EP          EU         FC       FD            FE         FI        FL       FR        FS         GB          GE            GF         GH          GI       GL  Class
+ 0  661b3a326a9d  0.264926  5443.22372   85.200147  19.709308  8.138688  4.907886  0.025578  11.438130  1.22990  3500.30714  21.8922  156.338559   14.35355  472.807987  257.432377   19.448156  0.791968   79.581264  17.452299  0.033034  1.050225  0.930900  27.784416  1.362699   7.030640  55.76336  164.267965  0.23868  0.347091  107.257320  113.55992  19.775952  0.413820  1.74307  26.996920  11.280528  2.245267  1119.547425  0.109512  B   10.506210   78.526968    3.828384  33.192432  3.544389  3422.973500   9.063372  6.096424  1.60602  0.067730  10.939152   72.611063   9654.918282  15.829134   28.099100   0.1782      0
+ 1  e15ae7d5194f  0.410208  4348.61053   85.200147  21.880305  8.138688  4.553526  0.025578   3.396778  5.83324  5379.66700  22.9515  160.959069  109.47252  365.916108  257.432377  123.288074  0.658169   83.140936   4.004997  0.031044  1.343015  0.734700  33.452534  1.296495  21.467740  68.06490  381.188250  0.23868  0.204975   60.232470  102.87088  46.450968  0.006897  1.74307  22.693584   7.997442  5.784485  2196.519188  0.066924  B   24.567972   78.526968    6.071736  23.219280  2.048265  5531.019871  10.899201  0.744259  0.98832  0.372515  35.301090   72.611063  28717.761630  25.998627   71.254688   6.5340      0
+ 2  68729b79859b  1.102434  5059.94533   85.200147  20.102627  8.138688  6.794853  0.025578  14.633244  1.22990  4162.13482  24.0108  172.391652  173.85770  568.630196  257.432377   42.554330  0.579919   95.009152  20.075162  0.029850  1.050225  1.081725  43.788002  1.759923  35.526444  58.07390  209.784370  0.23868  0.426348  101.199435  103.74856  24.491336  0.006897  1.74307  17.393024   8.654766  2.930537  1821.411725  0.030420  B  109.125159   94.052543   19.891392  30.936192  0.296850  3520.669543  11.070104  0.237300  0.83259  0.067730  14.111134   72.611063  18633.673030  46.516221   31.329532   2.9700      1
+ 3  bcc36efe8096  0.764867  3369.64672   85.200147  79.880921  8.138688  4.234602  0.025578  14.923136  1.22990  7240.99343  19.7736  190.670220   27.99854  810.795862  257.432377   34.291621  0.881372  157.814768   2.700408  0.036616  1.145700  0.796500  34.472482  1.401318   7.030640  29.74020  198.537210  0.23868  0.278766  210.599040   96.96244  45.181704  0.005518  1.74307   7.137788  13.577628  6.187585  1073.076600  0.003042  A  109.125159   78.526968  289.929192  38.504592  0.296850  6114.183014   7.927694  0.173229  1.44478  0.067730   4.874248  209.564565   7968.137670  53.548911  145.230552  21.9780      0
+ 4  78f3ccd568c6  0.329021  1927.49370  114.923964  13.679449  8.138688  5.395131  0.025578  10.253354  1.22990  6883.40897  19.4205  185.206149  127.67105  336.257861  257.432377   46.000955  0.696548   53.529856   7.365302  0.033432  1.050225  0.752550  36.418228  1.406835  40.335192  48.56596  411.248680  0.23868  0.442746  139.523370   84.78728  25.965320  0.005518  1.74307  91.259472   6.573240  3.910070   946.714275  0.003042  A  109.125159  129.534275    5.302008  20.454672  0.296850  6051.457820  13.628136  0.173229  0.49706  0.596024  27.022310   72.611063  11236.110530  52.600056   78.332832  21.9780      0,
+                Id        AB          AF          AH          AM        AR        AX        AY         AZ        BC         BD        BN          BP         BQ          BR           BZ          CB        CC         CD          CF        CH        CL        CR         CS        CU        CW         DA          DE        DF        DH          DI         DL         DN        DU       DV         DY         EB        EE           EG        EH EJ          EL          EP         EU          FC      FD             FE         FI        FL       FR        FS         GB         GE            GF         GH         GI      GL  Class
+ 119  6f5908450956  0.756321  6958.02514  229.752129  161.796571  8.138688  6.785994  0.025578   8.999256  1.229900  4150.39751  20.1267  325.635741  33.911890  723.974565   257.432377   12.499760  0.470022  141.994444  13.669295  0.042188  1.050225  0.487350  22.763136  1.020645   7.030640  17.59580   178.02977  1.181466  0.240504  338.251365   56.05704  20.676720  0.005518  1.74307  20.822666   9.266148  1.096432  2462.375325  0.003042  A  109.125159   78.526968  12.680256   28.531440  0.29685  15786.469310   7.340560  0.173229  0.49706  0.521521  17.422646  72.611063  12353.929970  14.396549  35.894832  21.978      1
+ 120  3db179cf1a7d  0.166647   192.59328   85.200147   32.484433  8.138688  3.853665  0.025578  12.585094  1.229900  5407.91964  19.7736  173.413251  59.297615  321.510399   257.432377   35.293440  1.096493   56.590064   5.160577  0.029452  1.050225  0.896700  29.974252  1.224774  38.933296  61.62992  2103.40519  0.238680  0.358023   92.675475   72.51672  27.036688  0.005518  1.74307  68.080752   4.926396  3.813326  1075.920400  0.003042  A  109.125159   78.526968  10.725552   71.331456  0.29685   4214.445822   9.487873  0.173229  0.49706  0.223509  24.910756  72.611063  10242.718270  44.611069  23.011684  21.978      0
+ 121  809087be105e  0.931514  2919.81954   85.200147   35.757962  8.269788  4.571244  0.157731  11.885572  5.446700  4777.46869  22.2453  246.040038  10.990495  799.472134  1390.406217  147.092764  0.680813   64.621128   9.127562  0.056118  1.234810  0.690825  50.805590  0.237231  36.189488  39.26948   249.06073  0.677430  0.043728  121.933290  128.58224  19.714536  0.005518  1.74307  16.701256  11.937852  0.354728  2796.443500  0.003042  A   15.904746  224.643484   6.537624  174.587280  0.29685   6855.349416  10.662142  0.173229  0.49706  0.101595  12.055392  72.611063   8899.349148  15.910996  20.789476  21.978      0
+ 122  44c7768642a7  0.256380  1520.08186   95.311296   25.029954  8.138688  5.997543  0.025578  16.284368  4.062184  8886.49398  20.8329  212.259447  75.221980  584.200322   257.432377   42.940352  0.842250   57.184664  15.664191  0.032238  1.069320  0.746475  34.057529  1.671651  37.072320  44.91488   652.29093  0.238680  0.634056  115.758690   75.33632  31.963616  0.005518  1.74307  37.377932   4.926396  4.583247  1186.274300  0.003042  A  109.125159   78.526968   3.828384   44.416512  0.29685   5391.873846  18.203926  0.173229  0.49706  0.467337  24.250314  72.611063   2665.900512  52.931225  46.380876  21.978      0
+ 123  ed4a24c7ec54  0.217923  2497.85382   85.200147   19.127072  8.138688  3.561318  0.109620   7.745158  3.542112  3972.90765  16.9488  106.576938   2.370550  385.091438   257.432377   12.499760  0.463816   78.344496   2.872225  0.038208  1.050225  1.021050  44.835846  1.307529  37.090168  53.99408    91.39648  0.238680  0.256902  146.183655   89.14600  18.117720  0.005518  1.74307  57.268508   8.368512  1.576121   874.251600  0.003042  A  109.125159  162.698757  12.472632   38.938704  0.29685  11312.918060  10.976383  0.173229  0.49706  0.067730  11.618198  72.611063  11234.645240  35.650901  26.247260  21.978      0)import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Check for missing values
+missing_values_train = train_df.isnull().sum()
+missing_values_eval = eval_df.isnull().sum()
+
+# Analyze the distribution of the target variable
+train_target_distribution = train_df['Class'].value_counts(normalize=True)
+eval_target_distribution = eval_df['Class'].value_counts(normalize=True)
+
+# Plot the distribution of the target variable
+plt.figure(figsize=(10, 5))
+sns.countplot(x='Class', data=train_df)
+plt.title('Distribution of Target Variable in Training Data')
+plt.show()
+
+# Select a few features for distribution analysis
+selected_features = ['AB', 'AF', 'AH', 'AM', 'AR']
+
+# Plot histograms for selected features
+train_df[selected_features].hist(bins=20, figsize=(15, 10))
+plt.suptitle('Histograms of Selected Features in Training Data')
+plt.show()
+
+# Identify potential outliers using box plots
+plt.figure(figsize=(15, 10))
+sns.boxplot(data=train_df[selected_features])
+plt.title('Box Plots of Selected Features in Training Data')
+plt.show()
+
+# Store the results in variables
+(missing_values_train, missing_values_eval, train_target_distribution, eval_target_distribution)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(Id       0
+ AB       0
+         ..
+ GL       1
+ Class    0
+ Length: 58, dtype: int64,
+ Id       0
+ AB       0
+         ..
+ GL       0
+ Class    0
+ Length: 58, dtype: int64,
+ Class
+ 0    0.831643
+ 1    0.168357
+ Name: proportion, dtype: float64,
+ Class
+ 0    0.798387
+ 1    0.201613
+ Name: proportion, dtype: float64)from sklearn.preprocessing import StandardScaler
+
+# Since there are no missing values, we skip handling missing values
+
+# Since there are no categorical variables, we skip encoding
+
+# Scale numerical variables
+scaler = StandardScaler()
+train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df.drop(columns=['Id', 'Class'])), columns=train_df.columns[1:-1])
+eval_df_scaled = pd.DataFrame(scaler.transform(eval_df.drop(columns=['Id', 'Class'])), columns=eval_df.columns[1:-1])
+
+# Add back the 'Id' and 'Class' columns
+train_df_processed = pd.concat([train_df[['Id']], train_df_scaled, train_df[['Class']]], axis=1)
+eval_df_processed = pd.concat([eval_df[['Id']], eval_df_scaled, eval_df[['Class']]], axis=1)
+
+# Split the datasets into features (X) and target (y)
+X_train = train_df_processed.drop(columns=['Id', 'Class'])
+y_train = train_df_processed['Class']
+X_eval = eval_df_processed.drop(columns=['Id', 'Class'])
+y_eval = eval_df_processed['Class']
+
+(X_train, y_train, X_eval, y_eval)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 9
+    train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df.drop(columns=['Id', 'Class'])), columns=train_df.columns[1:-1])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:894 in fit
+    return self.partial_fit(X, y, sample_weight)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:930 in partial_fit
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeave
+from sklearn.preprocessing import StandardScaler
+
+# Drop the 'Id' column before scaling
+train_df_no_id = train_df.drop(columns=['Id'])
+eval_df_no_id = eval_df.drop(columns=['Id'])
+
+# Scale numerical variables
+scaler = StandardScaler()
+train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df_no_id.drop(columns=['Class'])), columns=train_df_no_id.columns[:-1])
+eval_df_scaled = pd.DataFrame(scaler.transform(eval_df_no_id.drop(columns=['Class'])), columns=eval_df_no_id.columns[:-1])
+
+# Add back the 'Id' and 'Class' columns
+train_df_processed = pd.concat([train_df[['Id']], train_df_scaled, train_df_no_id[['Class']]], axis=1)
+eval_df_processed = pd.concat([eval_df[['Id']], eval_df_scaled, eval_df_no_id[['Class']]], axis=1)
+
+# Split the datasets into features (X) and target (y)
+X_train = train_df_processed.drop(columns=['Id', 'Class'])
+y_train = train_df_processed['Class']
+X_eval = eval_df_processed.drop(columns=['Id', 'Class'])
+y_eval = eval_df_processed['Class']
+
+(X_train, y_train, X_eval, y_eval)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 9
+    train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df_no_id.drop(columns=['Class'])), columns=train_df_no_id.columns[:-1])
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:918 in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:894 in fit
+    return self.partial_fit(X, y, sample_weight)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\preprocessing\_data.py:930 in partial_fit
+    X = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2944 in validate_data
+    out = check_array(X, input_name="X", **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1055 in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\Task
+from sklearn.preprocessing import StandardScaler
+
+# Ensure that only numeric columns are passed to the scaler
+numeric_columns = [col for col in train_df.columns if train_df[col].dtype != 'O' and col not in ['Id', 'Class']]
+
+# Drop the 'Id' column before scaling
+train_df_no_id = train_df.drop(columns=['Id'])
+eval_df_no_id = eval_df.drop(columns=['Id'])
+
+# Convert columns to numeric types
+train_df_numeric = train_df_no_id[numeric_columns].apply(pd.to_numeric, errors='coerce')
+eval_df_numeric = eval_df_no_id[numeric_columns].apply(pd.to_numeric, errors='coerce')
+
+# Scale numerical variables
+scaler = StandardScaler()
+train_df_scaled = pd.DataFrame(scaler.fit_transform(train_df_numeric), columns=numeric_columns)
+eval_df_scaled = pd.DataFrame(scaler.transform(eval_df_numeric), columns=numeric_columns)
+
+# Add back the 'Id' and 'Class' columns
+train_df_processed = pd.concat([train_df[['Id']], train_df_scaled, train_df_no_id[['Class']]], axis=1)
+eval_df_processed = pd.concat([eval_df[['Id']], eval_df_scaled, eval_df_no_id[['Class']]], axis=1)
+
+# Split the datasets into features (X) and target (y)
+X_train = train_df_processed.drop(columns=['Id', 'Class'])
+y_train = train_df_processed['Class']
+X_eval = eval_df_processed.drop(columns=['Id', 'Class'])
+y_eval = eval_df_processed['Class']
+
+(X_train, y_train, X_eval, y_eval)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL        EP        EU        FC       FD         FE        FI        FL        FR        FS        GB        GE        GF        GH        GI        GL
+ 0   -0.278927 -0.054248 -0.121374  0.214849 -0.208052 -0.352891 -0.083406  0.343020 -0.154899 -0.318756  0.107622 -0.303921  0.491788 -0.077636 -0.375705  0.511917 -0.192728  0.548495 -0.703096 -0.606532 -0.194117  0.558735  0.095047 -0.759731  0.668236  1.438360 -0.722627 -0.205852  0.007676 -0.036858  0.254409 -0.255808 -0.139364 -0.112167 -0.647389 -0.399566  0.731734 -0.705478 -0.081022 -0.917284 -0.418843 -0.061463 -0.260630 -0.041189 -0.055490 -0.007027  0.060698 -0.040229  0.214106 -0.400363 -0.160130 -0.280261  0.351502 -0.831634 -0.803114
+ 1   -0.758954 -0.124942 -0.274020 -0.300746 -0.208052 -0.933243 -0.013327 -0.237500 -0.154899 -0.717393 -0.298172 -0.327247 -0.214819 -0.101003 -0.375705 -0.149349  2.086399 -0.223033 -0.618051 -0.682073 -0.194117  0.204670 -0.831621  0.300344 -0.630691 -1.003278 -0.825101 -0.205852 -0.532925 -0.293780  0.787222  0.743839 -0.133170 -0.112167 -0.873631 -0.176083  0.536261 -0.175756 -0.131271  0.183843 -0.129617 -0.081230 -0.252725 -0.068117 -0.530356 -0.966544  0.371591 -0.049583 -0.258061 -1.564930  0.885693 -0.137388 -1.604284 -0.675185 -0.815528
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 491  0.277467  0.655231 -0.146822 -0.332931 -0.208052 -0.243232 -0.083406  0.159293  0.071876  0.147430  0.919210 -0.191726  0.312380 -0.202664 -0.375705 -0.404459 -0.798404  0.139016 -0.455848 -0.530991  0.399344 -1.075090 -0.573493 -1.138329  0.772226 -1.384487 -0.799095  0.179175  0.259956 -0.788185 -1.593136  0.720048 -0.190986 -0.112167  4.233170 -0.570815 -0.542214 -0.332548 -0.160829  1.026777 -0.084655 -0.102849 -0.202811 -0.103912  2.918251 -0.660058 -0.166087 -0.062043 -0.150538  0.139587 -0.369195 -0.696744 -0.437292 -0.930349 -0.815942
+ 492 -0.715315  1.975545 -0.274020 -0.453142 -0.208052 -0.717298 -0.049349  0.438725 -0.154899 -0.462435 -0.703967 -0.223167  0.389280 -0.339520 -0.375705 -0.052981 -0.574676 -0.650571 -0.388155 -0.863371 -0.194117 -0.016827 -0.307274  0.332796 -1.412358 -0.836790 -0.767979 -0.205852 -0.076418 -0.084338  0.743643 -0.267703 -0.173779 -0.112167 -0.452049 -0.526515 -0.222523 -0.002055 -0.089889  1.026777 -0.014555 -0.167165 -0.346102 -0.065983 -0.221413  0.328338 -0.225648 -0.062043 -0.033665 -0.155484 -0.406407 -0.694003 -0.494549  0.694838 -0.779911
+ 
+ [493 rows x 55 columns],
+ 0      0
+ 1      0
+       ..
+ 491    1
+ 492    0
+ Name: Class, Length: 493, dtype: int64,
+            AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL        EP        EU        FC       FD         FE        FI        FL        FR        FS        GB        GE        GF        GH        GI        GL
+ 0   -0.508031  0.904572 -0.274020 -0.273792 -0.208052 -0.251667 -0.083406  0.191428 -0.154899 -0.699798  0.107622 -0.394986 -0.865092 -0.182380 -0.375705 -0.363257  0.501853 -0.205816  0.559035  0.224416 -0.194117  0.612397 -0.566400 -0.034986 -1.412358  0.226759 -0.739523 -0.205852 -0.172525 -0.456544  0.645148 -0.857182 -0.155883 -0.112167  0.055369  0.430893 -0.386220 -0.330874 -0.110580 -1.524803 -0.418843 -0.167165 -0.230728 -0.059004 -0.668616 -0.353571  0.042125 -0.042248 -0.258061 -1.058949 -0.406407 -0.286963 -1.583943 -0.631734 -0.805038
+ 1   -0.137101  0.411351 -0.274020 -0.240759 -0.208052 -0.386633 -0.083406 -1.591348 -0.008557  0.053749  0.411968 -0.370920  0.119118 -0.222222 -0.375705  0.283274 -0.098890 -0.130031 -0.603461  0.073334 -0.001869 -0.051333 -0.206084 -0.164791 -0.419681  0.817196 -0.047100 -0.205852 -1.421914 -0.983206  0.273990  2.587171 -0.196493 -0.112167 -0.179579 -0.183356  1.304674  0.256939 -0.131271 -1.160981 -0.418843 -0.162003 -0.288481 -0.079693 -0.465681  0.266854 -0.397142 -0.053274 -0.047690  1.596691 -0.406407  0.653161 -0.554443  0.551791 -0.187377
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 122 -0.529850 -0.863153 -0.174373 -0.192835 -0.208052  0.163351 -0.083406  1.265843 -0.064859  1.459844 -0.196724 -0.103719 -0.235277 -0.140861 -0.375705 -0.216989  0.727614 -0.682641  0.404456  0.163983 -0.181580 -0.011499 -0.167625  0.570772  0.653269 -0.293935  0.818278 -0.205852  2.350281 -0.361331 -0.682098  0.716524 -0.196630 -0.112167  0.622137 -0.757933  0.730771 -0.294454 -0.162307  1.026777 -0.418843 -0.167165 -0.165731 -0.103912 -0.479076  2.735513 -0.444007 -0.062043  0.017759  0.392071 -0.406407 -0.631641  2.172055 -0.130364  1.313481
+ 123 -0.628037 -0.422579 -0.274020 -0.282651 -0.208052 -0.764536  0.097357 -0.627308 -0.081392 -0.510305 -1.312658 -0.654172 -0.989081 -0.215075 -0.375705 -0.406519 -0.971517 -0.232147 -0.701387  0.617227 -0.194117  0.917367  0.517539 -0.143156  0.654496  0.141839 -0.972134 -0.205852 -0.965406 -0.020582 -0.202582 -1.071297 -0.196630 -0.112167  1.708096 -0.113931 -0.705911 -0.464757 -0.162307  1.026777  0.939904 -0.147276 -0.197453 -0.103912  0.090925  0.292938 -0.444007 -0.062043 -0.258061 -0.984928 -0.406407 -0.209055  0.422697 -0.682520  1.313481
+ 
+ [124 rows x 55 columns],
+ 0      0
+ 1      0
+       ..
+ 122    0
+ 123    0
+ Name: Class, Length: 124, dtype: int64)from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+(X_train_rfe, X_eval_rfe, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 11
+    selector.fit(X_train, y_train)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\feature_selection\_rfe.py:276 in fit
+    return self._fit(X, y, **routed_params.estimator.fit)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\feature_selection\_rfe.py:332 in _fit
+    estimator.fit(X[:, features], y, **fit_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args, **kwargs)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1222 in fit
+    X, y = validate_data(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:2961 in validate_data
+    X, y = check_X_y(X, y, **check_params)
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1370 in check_X_y
+    X = check_array(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments\TaskWeaver\venv\Lib\site-packages\sklearn\utils\validation.py:1107 in check_array
+    _assert_all_finite(
+
+  File D:\LLM-Driven_AI-Studio\MLAgent\experiments
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+# Check for infinite or NaN values
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = np.nan_to_num(X_train)
+    X_train = np.clip(X_train, -np.inf, np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = np.nan_to_num(X_eval)
+    X_eval = np.clip(X_eval, -np.inf, np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+(X_train_rfe, X_eval_rfe, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 28
+    selected_features = X_train.columns[selector.support_]
+
+AttributeError: 'numpy.ndarray' object has no attribute 'columns'
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+# Check for infinite or NaN values and handle them
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = X_train.fillna(0)
+    X_train = X_train.clip(lower=-np.inf, upper=np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = X_eval.fillna(0)
+    X_eval = X_eval.clip(lower=-np.inf, upper=np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+(X_train_rfe, X_eval_rfe, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 28
+    selected_features = X_train.columns[selector.support_]
+
+AttributeError: 'numpy.ndarray' object has no attribute 'columns'
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+# Check for infinite or NaN values and handle them
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = X_train.fillna(0)
+    X_train = X_train.clip(lower=-np.inf, upper=np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = X_eval.fillna(0)
+    X_eval = X_eval.clip(lower=-np.inf, upper=np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = pd.DataFrame(selector.transform(X_train), columns=X_train.columns[selector.support_])
+X_eval_rfe = pd.DataFrame(selector.transform(X_eval), columns=X_eval.columns[selector.support_])
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+(X_train_rfe, X_eval_rfe, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 24
+    X_train_rfe = pd.DataFrame(selector.transform(X_train), columns=X_train.columns[selector.support_])
+
+AttributeError: 'numpy.ndarray' object has no attribute 'columns'
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+# Check for infinite or NaN values and handle them
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = X_train.fillna(0)
+    X_train = X_train.clip(lower=-np.inf, upper=np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = X_eval.fillna(0)
+    X_eval = X_eval.clip(lower=-np.inf, upper=np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+# Create DataFrames for the transformed data with the selected feature names
+X_train_rfe_df = pd.DataFrame(X_train_rfe, columns=selected_features)
+X_eval_rfe_df = pd.DataFrame(X_eval_rfe, columns=selected_features)
+
+(X_train_rfe_df, X_eval_rfe_df, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[10], line 28
+    selected_features = X_train.columns[selector.support_]
+
+AttributeError: 'numpy.ndarray' object has no attribute 'columns'
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+import pandas as pd
+
+# Check for infinite or NaN values and handle them
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = X_train.fillna(0)
+    X_train = X_train.clip(lower=-np.inf, upper=np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = X_eval.fillna(0)
+    X_eval = X_eval.clip(lower=-np.inf, upper=np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+# Create DataFrames for the transformed data with the selected feature names
+X_train_rfe_df = pd.DataFrame(X_train_rfe, columns=selected_features)
+X_eval_rfe_df = pd.DataFrame(X_eval_rfe, columns=selected_features)
+
+(X_train_rfe_df, X_eval_rfe_df, selected_features)
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[11], line 29
+    selected_features = X_train.columns[selector.support_]
+
+AttributeError: 'numpy.ndarray' object has no attribute 'columns'
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+import pandas as pd
+
+# Ensure X_train and X_eval are DataFrames
+X_train = pd.DataFrame(X_train)
+X_eval = pd.DataFrame(X_eval)
+
+# Check for infinite or NaN values and handle them
+if np.any(np.isnan(X_train)) or np.any(np.isinf(X_train)):
+    X_train = X_train.fillna(0)
+    X_train = X_train.clip(lower=-np.inf, upper=np.inf)
+
+if np.any(np.isnan(X_eval)) or np.any(np.isinf(X_eval)):
+    X_eval = X_eval.fillna(0)
+    X_eval = X_eval.clip(lower=-np.inf, upper=np.inf)
+
+# Initialize the logistic regression model
+estimator = LogisticRegression(max_iter=1000)
+
+# Initialize RFE with the logistic regression model
+selector = RFE(estimator, n_features_to_select=20, step=1)
+
+# Fit RFE on the training data
+selector.fit(X_train, y_train)
+
+# Transform the training and evaluation data
+X_train_rfe = selector.transform(X_train)
+X_eval_rfe = selector.transform(X_eval)
+
+# Get the names of the selected features
+selected_features = X_train.columns[selector.support_]
+
+# Create DataFrames for the transformed data with the selected feature names
+X_train_rfe_df = pd.DataFrame(X_train_rfe, columns=selected_features)
+X_eval_rfe_df = pd.DataFrame(X_eval_rfe, columns=selected_features)
+
+(X_train_rfe_df, X_eval_rfe_df, selected_features)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           0         1         2         4         8         10        12        16        17        19        21        27        31        32        36        38        40        45        46        52
+ 0   -0.278927 -0.054248 -0.121374 -0.208052 -0.154899  0.107622  0.491788 -0.192728  0.548495 -0.606532  0.558735 -0.205852 -0.255808 -0.139364  0.731734 -0.081022 -0.418843 -0.007027  0.060698  0.351502
+ 1   -0.758954 -0.124942 -0.274020 -0.208052 -0.154899 -0.298172 -0.214819  2.086399 -0.223033 -0.682073  0.204670 -0.205852  0.743839 -0.133170  0.536261 -0.131271 -0.129617 -0.966544  0.371591 -1.604284
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 491  0.277467  0.655231 -0.146822 -0.208052  0.071876  0.919210  0.312380 -0.798404  0.139016 -0.530991 -1.075090  0.179175  0.720048 -0.190986 -0.542214 -0.160829 -0.084655 -0.660058 -0.166087 -0.437292
+ 492 -0.715315  1.975545 -0.274020 -0.208052 -0.154899 -0.703967  0.389280 -0.574676 -0.650571 -0.863371 -0.016827 -0.205852 -0.267703 -0.173779 -0.222523 -0.089889 -0.014555  0.328338 -0.225648 -0.494549
+ 
+ [493 rows x 20 columns],
+            0         1         2         4         8         10        12        16        17        19        21        27        31        32        36        38        40        45        46        52
+ 0   -0.508031  0.904572 -0.274020 -0.208052 -0.154899  0.107622 -0.865092  0.501853 -0.205816  0.224416  0.612397 -0.205852 -0.857182 -0.155883 -0.386220 -0.110580 -0.418843 -0.353571  0.042125 -1.583943
+ 1   -0.137101  0.411351 -0.274020 -0.208052 -0.008557  0.411968  0.119118 -0.098890 -0.130031  0.073334 -0.051333 -0.205852  2.587171 -0.196493  1.304674 -0.131271 -0.418843  0.266854 -0.397142 -0.554443
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
+ 122 -0.529850 -0.863153 -0.174373 -0.208052 -0.064859 -0.196724 -0.235277  0.727614 -0.682641  0.163983 -0.011499 -0.205852  0.716524 -0.196630  0.730771 -0.162307 -0.418843  2.735513 -0.444007  2.172055
+ 123 -0.628037 -0.422579 -0.274020 -0.208052 -0.081392 -1.312658 -0.989081 -0.971517 -0.232147  0.617227  0.917367 -0.205852 -1.071297 -0.196630 -0.705911 -0.162307  0.939904  0.292938 -0.444007  0.422697
+ 
+ [124 rows x 20 columns],
+ Index([0, 1, 2, 4, 8, 10, 12, 16, 17, 19, 21, 27, 31, 32, 36, 38, 40, 45, 46,
+        52],
+       dtype='int64'))from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
+
+# Initialize the logistic regression model
+model = LogisticRegression(max_iter=1000)
+
+# Train the model using the training data
+model.fit(X_train_rfe_df, y_train)
+
+# Make predictions on the evaluation data
+y_pred = model.predict(X_eval_rfe_df)
+
+# Evaluate the model using the F1 score
+f1 = f1_score(y_eval, y_pred)
+
+(model, y_pred, f1)
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(LogisticRegression(max_iter=1000),
+ array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int64),
+ 0.6)import pandas as pd
+
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+print('First few rows of the train dataset:\n', train_df.head())
+print('\nFirst few rows of the eval dataset:\n', eval_df.head())
+
+train_df, eval_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(               Id        AB          AF          AH         AM        AR        AX        AY         AZ       BC          BD        BN          BP          BQ          BR          BZ          CB        CC         CD         CF        CH        CL        CR         CS        CU        CW         DA          DE        DF        DH          DI         DL         DN        DU       DV          DY        EB        EE           EG        EH EJ          EL          EP         EU         FC       FD             FE         FI         FL       FR        FS         GB          GE            GF         GH         GI        GL  Class
+ 0    434b3925094e  0.354659  3315.29836  100.689104  51.823650  8.138688  4.642116  0.025578  12.121897  1.22990  4450.633745  21.8922  173.822315  145.489250  753.826380  257.432377  160.010715  0.637269  115.011496  2.852458  0.022089  1.050225  0.915037  38.189624  0.993060  37.289992  81.00664  169.561138  0.238680  0.367588  144.730365  102.30696  24.433332  0.579348  1.74307   14.125094  6.841824  4.585262   433.209550  0.170352  B   33.986882   78.526968  49.768992  28.028784  4.832718   9791.994926  10.088790   6.322717  1.71912  0.751803  16.980801  111.052214   9790.822836  34.947632  20.810052  0.198000      0
+ 1    80ee5615ebdf  0.166647  3158.40492   85.200147  17.937824  8.138688  3.118368  0.058160   9.503416  1.22990  3456.426060  20.4798  169.343811   77.199175  691.134544  257.432377   53.804114  1.144881   78.772608  3.836222  0.021094  1.050225  0.810375  23.612220  1.533726  18.398896  30.13596  137.458390  0.238680  0.306096  121.790220  117.65152  32.175160  0.641421  1.74307    9.981224  8.036316  4.176116  1403.749688  0.066924  B   76.545612   96.443945  41.177916  29.393952  2.885382   4859.185058   7.249595  10.110737  1.19509  0.067730   6.297454  274.293492  12687.832390  15.628200  26.514748  0.070258      0
+ ..            ...       ...         ...         ...        ...       ...       ...       ...        ...      ...          ...      ...         ...         ...         ...         ...         ...       ...         ...       ...       ...       ...       ...        ...       ...        ...       ...         ...       ...       ...         ...        ...        ...       ...      ...         ...       ...       ...          ...       ... ..         ...         ...        ...        ...       ...           ...        ...        ...      ...       ...        ...         ...           ...        ...        ...       ...    ...
+ 491  1ce075e25399  0.572582  4889.85805   98.106885  15.822573  8.138688  4.930034  0.025578  11.293184  8.36332  5613.310580  24.7170  195.362793  128.150370  418.388158  257.432377   12.830636  0.502372   95.778168  5.712518  0.023084  1.954055  0.432075  27.672832  0.799965  38.802380  22.19360  145.605485  1.007721  0.396285   77.645595   49.09920  31.990912  0.062073  1.74307  103.518140  5.926518  1.918756  1116.480700  0.006084  B  109.125159   99.229280  31.781664  38.013360  0.296850  40682.562200   8.156484   3.559500  0.49706  0.223509  21.934116   78.419418   1345.814190  27.155858  17.210538  0.066000      1
+ 492  d1fa22631c9c  0.183739  7820.05334   85.200147   7.922126  8.138688  3.685344  0.041412  12.553584  1.22990  4092.294230  19.0674  189.326457  135.582435   51.216883  257.432377   69.281758  0.552201   58.690984  6.495576  0.018706  1.050225  0.744900  31.860719  1.550277   7.030640  33.60468  155.353615  0.238680  0.358023  140.490975  116.39648  24.341208  0.234498  1.74307   17.702972  6.163296  2.587902  1721.999225  0.152100  B  109.125159  103.571806   3.828384  13.268976  3.039744   8068.418286  11.081130   2.833787  0.49706  0.392834  19.227234   72.611063   1401.381486  26.590266  76.470704  0.436765      0
+ 
+ [493 rows x 58 columns],
+                Id        AB          AF         AH         AM        AR        AX        AY         AZ        BC         BD        BN          BP         BQ          BR          BZ          CB        CC        CD          CF        CH        CL        CR         CS        CU        CW         DA          DE       DF        DH          DI         DL         DN        DU       DV         DY         EB        EE           EG        EH EJ          EL          EP         EU         FC       FD             FE         FI        FL       FR        FS         GB         GE            GF         GH         GI       GL  Class
+ 0    661b3a326a9d  0.264926  5443.22372  85.200147  19.709308  8.138688  4.907886  0.025578  11.438130  1.229900  3500.30714  21.8922  156.338559   14.35355  472.807987  257.432377   19.448156  0.791968  79.581264  17.452299  0.033034  1.050225  0.930900  27.784416  1.362699   7.030640  55.76336  164.267965  0.23868  0.347091  107.257320  113.55992  19.775952  0.413820  1.74307  26.996920  11.280528  2.245267  1119.547425  0.109512  B   10.506210   78.526968   3.828384  33.192432  3.544389   3422.973500   9.063372  6.096424  1.60602  0.067730  10.939152  72.611063   9654.918282  15.829134  28.099100   0.1782      0
+ 1    e15ae7d5194f  0.410208  4348.61053  85.200147  21.880305  8.138688  4.553526  0.025578   3.396778  5.833240  5379.66700  22.9515  160.959069  109.47252  365.916108  257.432377  123.288074  0.658169  83.140936   4.004997  0.031044  1.343015  0.734700  33.452534  1.296495  21.467740  68.06490  381.188250  0.23868  0.204975   60.232470  102.87088  46.450968  0.006897  1.74307  22.693584   7.997442  5.784485  2196.519188  0.066924  B   24.567972   78.526968   6.071736  23.219280  2.048265   5531.019871  10.899201  0.744259  0.98832  0.372515  35.301090  72.611063  28717.761630  25.998627  71.254688   6.5340      0
+ ..            ...       ...         ...        ...        ...       ...       ...       ...        ...       ...         ...      ...         ...        ...         ...         ...         ...       ...        ...        ...       ...       ...       ...        ...       ...        ...       ...         ...      ...       ...         ...        ...        ...       ...      ...        ...        ...       ...          ...       ... ..         ...         ...        ...        ...       ...           ...        ...       ...      ...       ...        ...        ...           ...        ...        ...      ...    ...
+ 122  44c7768642a7  0.256380  1520.08186  95.311296  25.029954  8.138688  5.997543  0.025578  16.284368  4.062184  8886.49398  20.8329  212.259447   75.22198  584.200322  257.432377   42.940352  0.842250  57.184664  15.664191  0.032238  1.069320  0.746475  34.057529  1.671651  37.072320  44.91488  652.290930  0.23868  0.634056  115.758690   75.33632  31.963616  0.005518  1.74307  37.377932   4.926396  4.583247  1186.274300  0.003042  A  109.125159   78.526968   3.828384  44.416512  0.296850   5391.873846  18.203926  0.173229  0.49706  0.467337  24.250314  72.611063   2665.900512  52.931225  46.380876  21.9780      0
+ 123  ed4a24c7ec54  0.217923  2497.85382  85.200147  19.127072  8.138688  3.561318  0.109620   7.745158  3.542112  3972.90765  16.9488  106.576938    2.37055  385.091438  257.432377   12.499760  0.463816  78.344496   2.872225  0.038208  1.050225  1.021050  44.835846  1.307529  37.090168  53.99408   91.396480  0.23868  0.256902  146.183655   89.14600  18.117720  0.005518  1.74307  57.268508   8.368512  1.576121   874.251600  0.003042  A  109.125159  162.698757  12.472632  38.938704  0.296850  11312.918060  10.976383  0.173229  0.49706  0.067730  11.618198  72.611063  11234.645240  35.650901  26.247260  21.9780      0
+ 
+ [124 rows x 58 columns])import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import norm
+
+# Check the distribution of the data
+for col in train_df.columns:
+    if train_df[col].dtype != 'O':  # Exclude non-numeric columns
+        plt.figure(figsize=(10, 4))
+        sns.histplot(train_df[col], kde=True, stat="density", linewidth=0)
+        plt.title(f'Distribution of {col}')
+        plt.show()
+
+# Identify outliers
+for col in train_df.columns:
+    if train_df[col].dtype != 'O':  # Exclude non-numeric columns
+        plt.figure(figsize=(10, 4))
+        sns.boxplot(x=train_df[col])
+        plt.title(f'Boxplot of {col}')
+        plt.show()
+
+# Check for missing values
+missing_values_train = train_df.isnull().sum()
+missing_values_eval = eval_df.isnull().sum()
+
+# Display the results
+print('Missing values in train dataset:\n', missing_values_train)
+print('\nMissing values in eval dataset:\n', missing_values_eval)
+
+missing_values_train, missing_values_eval
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(Id       0
+ AB       0
+         ..
+ GL       1
+ Class    0
+ Length: 58, dtype: int64,
+ Id       0
+ AB       0
+         ..
+ GL       0
+ Class    0
+ Length: 58, dtype: int64)import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df)
+eval_preprocessed = preprocessor.transform(eval_df)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=numerical_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features))
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=numerical_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features))
+
+# Ensure the target column is included in the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[3], line 44
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=numerical_features + preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features))
+
+ValueError: operands could not be broadcast together with shapes (56,) (495,) 
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df)
+eval_preprocessed = preprocessor.transform(eval_df)
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Ensure the target column is included in the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[4], line 50
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 551)
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3805 in get_loc
+    return self._engine.get_loc(casted_key)
+
+  File index.pyx:167 in pandas._libs.index.IndexEngine.get_loc
+
+  File index.pyx:196 in pandas._libs.index.IndexEngine.get_loc
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7081 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+  File pandas\\_libs\\hashtable_class_helper.pxi:7089 in pandas._libs.hashtable.PyObjectHashTable.get_item
+
+KeyError: 'Class'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_indexing.py:364 in _get_column_indices
+    col_idx = all_columns.get_loc(col)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\indexes\base.py:3812 in get_loc
+    raise KeyError(key) from err
+
+KeyError: 'Class'
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+
+  Cell In[5], line 40
+    train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\sklearn\utils\_set_output.py:319 in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\sklearn\base.py:1389 in wrapper
+    return fit_method(estimator, *args,
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns
+numerical_features = train_df.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df)
+eval_preprocessed = preprocessor.transform(eval_df)
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[6], line 50
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 551)
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[7], line 50
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[8], line 50
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Debugging: Print the shapes of the preprocessed data and feature names
+print('Shape of train_preprocessed:', train_preprocessed.shape)
+print('Shape of feature_names:', len(feature_names))
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[9], line 54
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+Shape of train_preprocessed: (493, 550)
+Shape of feature_names: 550
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Debugging: Print the shapes of the preprocessed data and feature names
+print('Shape of train_preprocessed:', train_preprocessed.shape)
+print('Shape of feature_names:', len(feature_names))
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[10], line 54
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+Shape of train_preprocessed: (493, 550)
+Shape of feature_names: 550
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Debugging: Print the shapes of the preprocessed data and feature names
+print('Shape of train_preprocessed:', train_preprocessed.shape)
+print('Shape of feature_names:', len(feature_names))
+
+# Ensure the shapes match
+if train_preprocessed.shape[1] != len(feature_names):
+    raise ValueError('The number of columns in the preprocessed data does not match the number of feature names.')
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[11], line 58
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+Shape of train_preprocessed: (493, 550)
+Shape of feature_names: 550
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Debugging: Print the shapes of the preprocessed data and feature names
+print('Shape of train_preprocessed:', train_preprocessed.shape)
+print('Shape of feature_names:', len(feature_names))
+
+# Debugging: Print the first few rows of the preprocessed data and feature names
+print('First few rows of train_preprocessed:\n', train_preprocessed[:5])
+print('First few feature names:\n', feature_names[:5])
+
+# Ensure the shapes match
+if train_preprocessed.shape[1] != len(feature_names):
+    raise ValueError('The number of columns in the preprocessed data does not match the number of feature names.')
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has failed
+
+During execution, the following messages were logged:
+Traceback (most recent call last):
+
+  Cell In[12], line 62
+    train_preprocessed_df = pd.DataFrame(train_preprocessed, columns=feature_names)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\frame.py:867 in __init__
+    mgr = ndarray_to_mgr(
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:336 in ndarray_to_mgr
+    _check_values_indices_shape_match(values, index, columns)
+
+  File D:\PythonCodes\TaskWeaver\TaskWeaver\venv\Lib\site-packages\pandas\core\internals\construction.py:420 in _check_values_indices_shape_match
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+
+ValueError: Shape of passed values is (493, 1), indices imply (493, 550)
+
+Shape of train_preprocessed: (493, 550)
+Shape of feature_names: 550
+First few rows of train_preprocessed:
+ <Compressed Sparse Row sparse matrix of dtype 'float64'
+	with 285 stored elements and shape (5, 550)>
+  Coords	Values
+  (0, 0)	-0.2789273312434842
+  (0, 1)	-0.0542478607684699
+  (0, 2)	-0.1213742171352911
+  (0, 3)	0.21484874721343694
+  (0, 4)	-0.20805197301656944
+  (0, 5)	-0.35289148898825357
+  (0, 6)	-0.08340559323301383
+  (0, 7)	0.34301964244247674
+  (0, 8)	-0.1548985731755187
+  (0, 9)	-0.3187558577054135
+  (0, 10)	0.10762189015243767
+  (0, 11)	-0.3039209302857143
+  (0, 12)	0.5141771820660894
+  (0, 13)	-0.07763596908535782
+  (0, 14)	-0.37570485546384524
+  (0, 15)	0.5124374493520144
+  (0, 16)	-0.19292420002749858
+  (0, 17)	0.5484945421378392
+  (0, 18)	-0.7030956019303369
+  (0, 19)	-0.606532219405485
+  (0, 20)	-0.19411748659865694
+  (0, 21)	0.5587353027410278
+  (0, 22)	0.09504678173048327
+  (0, 23)	-0.7597308620712819
+  (0, 24)	0.6682359543316327
+  :	:
+  (4, 32)	-0.19669231527239325
+  (4, 33)	-0.11216654822697508
+  (4, 34)	1.758862045099372
+  (4, 35)	-0.757933084679987
+  (4, 36)	-1.3221820676328682
+  (4, 37)	-0.421651781474584
+  (4, 38)	-0.1608292852516907
+  (4, 39)	1.0723351855058298
+  (4, 40)	-0.41884256907953804
+  (4, 41)	-0.13655094716774738
+  (4, 42)	-0.32169078141101315
+  (4, 43)	-0.08913429372074169
+  (4, 44)	0.752778238830168
+  (4, 45)	-0.9031972167323424
+  (4, 46)	-0.010290679495919847
+  (4, 47)	-0.06204337666374134
+  (4, 48)	0.5419000596650138
+  (4, 49)	0.25923
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load the train and eval datasets
+train_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_train.csv'
+eval_data_path = 'D:\\PythonCodes\\benchmark\\ml_benchmark\\07_icr_identify\\split_eval.csv'
+
+train_df = pd.read_csv(train_data_path)
+eval_df = pd.read_csv(eval_data_path)
+
+# Identify numerical and categorical columns, excluding the 'Class' column
+numerical_features = train_df.select_dtypes(include=[np.number]).drop(columns=['Class']).columns.tolist()
+categorical_features = train_df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# Define preprocessing for numerical data
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with mean
+    ('scaler', StandardScaler())  # Scale the numerical features
+])
+
+# Define preprocessing for categorical data
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Impute missing values with 'missing'
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))  # One-hot encode the categorical features
+])
+
+# Combine preprocessing steps
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+# Apply preprocessing to the train and eval datasets
+train_preprocessed = preprocessor.fit_transform(train_df.drop(columns=['Class']))
+eval_preprocessed = preprocessor.transform(eval_df.drop(columns=['Class']))
+
+# Get the feature names after preprocessing
+feature_names = (
+    numerical_features +
+    preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features).tolist()
+)
+
+# Debugging: Print the shapes of the preprocessed data and feature names
+print('Shape of train_preprocessed:', train_preprocessed.shape)
+print('Shape of feature_names:', len(feature_names))
+
+# Convert the sparse matrix to a dense array
+train_preprocessed_dense = train_preprocessed.toarray()
+eval_preprocessed_dense = eval_preprocessed.toarray()
+
+# Convert the preprocessed data back to DataFrames
+train_preprocessed_df = pd.DataFrame(train_preprocessed_dense, columns=feature_names)
+eval_preprocessed_df = pd.DataFrame(eval_preprocessed_dense, columns=feature_names)
+
+# Add the target column back to the preprocessed DataFrames
+train_preprocessed_df['Class'] = train_df['Class']
+eval_preprocessed_df['Class'] = eval_df['Class']
+
+train_preprocessed_df, eval_preprocessed_df
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL  ...  Id_e999bb1c01d7  Id_e9c343dc7736  Id_ea50b3c5bd63  Id_eb9c2a590373  Id_ecf1ac3d6dfc  Id_ee48d4f9dc81  Id_efcba7fac353  Id_f003d68995be  Id_f03b541de10c  Id_f0d7d98bfe21  Id_f16b095a433f  Id_f1a68746ca6e  Id_f206becd4ffd  Id_f26ee0cee841  Id_f3eb9ac222f9  Id_f3f2071d2453  Id_f404680da866  Id_f405c0b5836f  Id_f44978084805  Id_f46e39a96ee9  Id_f62ef7cc0a22  Id_f7a862a414de  Id_f82b07dfd7fb  Id_f8eb43047d69  Id_f944d35cb6c4  Id_f955c0ed8895  Id_f9a7ea889307  Id_fb27f6e58eaa  Id_fb7584f887fd  Id_fb786fb02a65  Id_fbd12c4ae88b  Id_fd1dd68d51b4  Id_fd3dafe738fd  Id_fd895603f071  Id_fd8ef6377f76  Id_fe1942975e40  Id_ffcca4ded3bb  EJ_A  EJ_B  Class
+ 0   -0.278927 -0.054248 -0.121374  0.214849 -0.208052 -0.352891 -0.083406  0.343020 -0.154899 -0.318756  0.107622 -0.303921  0.514177 -0.077636 -0.375705  0.512437 -0.192924  0.548495 -0.703096 -0.606532 -0.194117  0.558735  0.095047 -0.759731  0.668236  1.438360 -0.722627 -0.205852  0.007676 -0.036858  0.254409 -0.255808 -0.139506 -0.112167 -0.647389 -0.399566  0.731734 -0.705478 -0.081022 -0.957984  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      0
+ 1   -0.758954 -0.124942 -0.274020 -0.300746 -0.208052 -0.933243 -0.013327 -0.237500 -0.154899 -0.717393 -0.298172 -0.327247 -0.224599 -0.101003 -0.375705 -0.149500  2.088518 -0.223033 -0.618051 -0.682073 -0.194117  0.204670 -0.831621  0.300344 -0.630691 -1.003278 -0.825101 -0.205852 -0.532925 -0.293780  0.787222  0.743839 -0.133305 -0.112167 -0.873631 -0.176083  0.536261 -0.175756 -0.131271  0.192000  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      0
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...  ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...   ...   ...    ...
+ 491  0.277467  0.655231 -0.146822 -0.332931 -0.208052 -0.243232 -0.083406  0.159293  0.071876  0.147430  0.919210 -0.191726  0.326602 -0.202664 -0.375705 -0.404870 -0.799215  0.139016 -0.455848 -0.530991  0.399344 -1.075090 -0.573493 -1.138329  0.772226 -1.384487 -0.799095  0.179175  0.259956 -0.788185 -1.593136  0.720048 -0.191180 -0.112167  4.233170 -0.570815 -0.542214 -0.332548 -0.160829  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      1
+ 492 -0.715315  1.975545 -0.274020 -0.453142 -0.208052 -0.717298 -0.049349  0.438725 -0.154899 -0.462435 -0.703967 -0.223167  0.407003 -0.339520 -0.375705 -0.053035 -0.575260 -0.650571 -0.388155 -0.863371 -0.194117 -0.016827 -0.307274  0.332796 -1.412358 -0.836790 -0.767979 -0.205852 -0.076418 -0.084338  0.743643 -0.267703 -0.173956 -0.112167 -0.452049 -0.526515 -0.222523 -0.002055 -0.089889  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      0
+ 
+ [493 rows x 551 columns],
+            AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL  ...  Id_e999bb1c01d7  Id_e9c343dc7736  Id_ea50b3c5bd63  Id_eb9c2a590373  Id_ecf1ac3d6dfc  Id_ee48d4f9dc81  Id_efcba7fac353  Id_f003d68995be  Id_f03b541de10c  Id_f0d7d98bfe21  Id_f16b095a433f  Id_f1a68746ca6e  Id_f206becd4ffd  Id_f26ee0cee841  Id_f3eb9ac222f9  Id_f3f2071d2453  Id_f404680da866  Id_f405c0b5836f  Id_f44978084805  Id_f46e39a96ee9  Id_f62ef7cc0a22  Id_f7a862a414de  Id_f82b07dfd7fb  Id_f8eb43047d69  Id_f944d35cb6c4  Id_f955c0ed8895  Id_f9a7ea889307  Id_fb27f6e58eaa  Id_fb7584f887fd  Id_fb786fb02a65  Id_fbd12c4ae88b  Id_fd1dd68d51b4  Id_fd3dafe738fd  Id_fd895603f071  Id_fd8ef6377f76  Id_fe1942975e40  Id_ffcca4ded3bb  EJ_A  EJ_B  Class
+ 0   -0.508031  0.904572 -0.274020 -0.273792 -0.208052 -0.251667 -0.083406  0.191428 -0.154899 -0.699798  0.107622 -0.394986 -0.904476 -0.182380 -0.375705 -0.363626  0.502362 -0.205816  0.559035  0.224416 -0.194117  0.612397 -0.566400 -0.034986 -1.412358  0.226759 -0.739523 -0.205852 -0.172525 -0.456544  0.645148 -0.857182 -0.156042 -0.112167  0.055369  0.430893 -0.386220 -0.330874 -0.110580 -1.592458  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      0
+ 1   -0.137101  0.411351 -0.274020 -0.240759 -0.208052 -0.386633 -0.083406 -1.591348 -0.008557  0.053749  0.411968 -0.370920  0.124541 -0.222222 -0.375705  0.283562 -0.098991 -0.130031 -0.603461  0.073334 -0.001869 -0.051333 -0.206084 -0.164791 -0.419681  0.817196 -0.047100 -0.205852 -1.421914 -0.983206  0.273990  2.587171 -0.196692 -0.112167 -0.179579 -0.183356  1.304674  0.256939 -0.131271 -1.212493  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0      0
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...  ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...   ...   ...    ...
+ 122 -0.529850 -0.863153 -0.174373 -0.192835 -0.208052  0.163351 -0.083406  1.265843 -0.064859  1.459844 -0.196724 -0.103719 -0.245989 -0.140861 -0.375705 -0.217209  0.728353 -0.682641  0.404456  0.163983 -0.181580 -0.011499 -0.167625  0.570772  0.653269 -0.293935  0.818278 -0.205852  2.350281 -0.361331 -0.682098  0.716524 -0.196830 -0.112167  0.622137 -0.757933  0.730771 -0.294454 -0.162307  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   1.0   0.0      0
+ 123 -0.628037 -0.422579 -0.274020 -0.282651 -0.208052 -0.764536  0.097357 -0.627308 -0.081392 -0.510305 -1.312658 -0.654172 -1.034111 -0.215075 -0.375705 -0.406932 -0.972503 -0.232147 -0.701387  0.617227 -0.194117  0.917367  0.517539 -0.143156  0.654496  0.141839 -0.972134 -0.205852 -0.965406 -0.020582 -0.202582 -1.071297 -0.196830 -0.112167  1.708096 -0.113931 -0.705911 -0.464757 -0.162307  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   1.0   0.0      0
+ 
+ [124 rows x 551 columns])from sklearn.model_selection import train_test_split
+
+# Split the preprocessed train and eval datasets into feature and target columns
+X_train = train_preprocessed_df.drop(columns=['Class'])
+y_train = train_preprocessed_df['Class']
+
+X_eval = eval_preprocessed_df.drop(columns=['Class'])
+y_eval = eval_preprocessed_df['Class']
+
+# Further split the training data into training and validation sets
+X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+X_train, X_val_split, y_train, y_val_split, X_eval, y_eval
+result os execution:The execution of the generated python code above has succeeded
+
+The result of above Python code after execution is:
+(           AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL  ...  Id_e9417cc82b93  Id_e999bb1c01d7  Id_e9c343dc7736  Id_ea50b3c5bd63  Id_eb9c2a590373  Id_ecf1ac3d6dfc  Id_ee48d4f9dc81  Id_efcba7fac353  Id_f003d68995be  Id_f03b541de10c  Id_f0d7d98bfe21  Id_f16b095a433f  Id_f1a68746ca6e  Id_f206becd4ffd  Id_f26ee0cee841  Id_f3eb9ac222f9  Id_f3f2071d2453  Id_f404680da866  Id_f405c0b5836f  Id_f44978084805  Id_f46e39a96ee9  Id_f62ef7cc0a22  Id_f7a862a414de  Id_f82b07dfd7fb  Id_f8eb43047d69  Id_f944d35cb6c4  Id_f955c0ed8895  Id_f9a7ea889307  Id_fb27f6e58eaa  Id_fb7584f887fd  Id_fb786fb02a65  Id_fbd12c4ae88b  Id_fd1dd68d51b4  Id_fd3dafe738fd  Id_fd895603f071  Id_fd8ef6377f76  Id_fe1942975e40  Id_ffcca4ded3bb  EJ_A  EJ_B
+ 0   -0.278927 -0.054248 -0.121374  0.214849 -0.208052 -0.352891 -0.083406  0.343020 -0.154899 -0.318756  0.107622 -0.303921  0.514177 -0.077636 -0.375705  0.512437 -0.192924  0.548495 -0.703096 -0.606532 -0.194117  0.558735  0.095047 -0.759731  0.668236  1.438360 -0.722627 -0.205852  0.007676 -0.036858  0.254409 -0.255808 -0.139506 -0.112167 -0.647389 -0.399566  0.731734 -0.705478 -0.081022 -0.957984  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 1   -0.758954 -0.124942 -0.274020 -0.300746 -0.208052 -0.933243 -0.013327 -0.237500 -0.154899 -0.717393 -0.298172 -0.327247 -0.224599 -0.101003 -0.375705 -0.149500  2.088518 -0.223033 -0.618051 -0.682073 -0.194117  0.204670 -0.831621  0.300344 -0.630691 -1.003278 -0.825101 -0.205852 -0.532925 -0.293780  0.787222  0.743839 -0.133305 -0.112167 -0.873631 -0.176083  0.536261 -0.175756 -0.131271  0.192000  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...  ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...   ...   ...
+ 491  0.277467  0.655231 -0.146822 -0.332931 -0.208052 -0.243232 -0.083406  0.159293  0.071876  0.147430  0.919210 -0.191726  0.326602 -0.202664 -0.375705 -0.404870 -0.799215  0.139016 -0.455848 -0.530991  0.399344 -1.075090 -0.573493 -1.138329  0.772226 -1.384487 -0.799095  0.179175  0.259956 -0.788185 -1.593136  0.720048 -0.191180 -0.112167  4.233170 -0.570815 -0.542214 -0.332548 -0.160829  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 492 -0.715315  1.975545 -0.274020 -0.453142 -0.208052 -0.717298 -0.049349  0.438725 -0.154899 -0.462435 -0.703967 -0.223167  0.407003 -0.339520 -0.375705 -0.053035 -0.575260 -0.650571 -0.388155 -0.863371 -0.194117 -0.016827 -0.307274  0.332796 -1.412358 -0.836790 -0.767979 -0.205852 -0.076418 -0.084338  0.743643 -0.267703 -0.173956 -0.112167 -0.452049 -0.526515 -0.222523 -0.002055 -0.089889  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 
+ [493 rows x 550 columns],
+            AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL  ...  Id_e9417cc82b93  Id_e999bb1c01d7  Id_e9c343dc7736  Id_ea50b3c5bd63  Id_eb9c2a590373  Id_ecf1ac3d6dfc  Id_ee48d4f9dc81  Id_efcba7fac353  Id_f003d68995be  Id_f03b541de10c  Id_f0d7d98bfe21  Id_f16b095a433f  Id_f1a68746ca6e  Id_f206becd4ffd  Id_f26ee0cee841  Id_f3eb9ac222f9  Id_f3f2071d2453  Id_f404680da866  Id_f405c0b5836f  Id_f44978084805  Id_f46e39a96ee9  Id_f62ef7cc0a22  Id_f7a862a414de  Id_f82b07dfd7fb  Id_f8eb43047d69  Id_f944d35cb6c4  Id_f955c0ed8895  Id_f9a7ea889307  Id_fb27f6e58eaa  Id_fb7584f887fd  Id_fb786fb02a65  Id_fbd12c4ae88b  Id_fd1dd68d51b4  Id_fd3dafe738fd  Id_fd895603f071  Id_fd8ef6377f76  Id_fe1942975e40  Id_ffcca4ded3bb  EJ_A  EJ_B
+ 454 -0.038914  0.036463 -0.034988  0.288196 -0.208052  0.112739 -0.076856  0.134144 -0.154899 -0.141656  0.411968 -0.245643  2.668676 -0.001236 -0.375705  0.481132  0.675679  0.342911 -0.119613  0.647444 -0.194117  0.048633 -0.122849 -2.122685 -0.789785  0.975024 -0.522032 -0.205852 -0.580979 -0.963072 -1.069083  0.544703 -0.132616 -0.112167 -0.352969  0.379320 -0.108898  1.662296 -0.054419 -1.101604  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 73  -0.775318 -0.621559 -0.200208 -0.135486 -0.208052 -0.174062 -0.083406  1.538988 -0.154899 -0.257861 -2.124246 -0.356016 -0.017015 -0.145729 -0.375705  0.097248  0.012781 -0.076694  0.260918 -0.107963 -0.133517  0.662126 -0.092038 -0.062028  0.576917  0.191934  0.816169 -0.205852  0.536264 -0.196375  0.486696  0.259656 -0.171889  0.109213 -0.714710 -0.757933 -0.370813 -0.410856 -0.057375  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...  ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...   ...   ...
+ 19   0.397473  1.228493 -0.274020  0.082457 -0.208052  0.743703 -0.083406  1.303567 -0.154899  0.246914 -0.298172  0.318874 -0.829880  0.282876  0.846521 -0.400287 -0.242023  0.000779 -0.327690  0.043118 -0.194117  0.046349  0.169526  2.485398 -0.085584  1.144492 -0.438861 -0.205852  0.764518 -0.325574  1.427878  0.379931 -0.014798 -0.112167  0.026430  0.180962 -0.376591  0.328205  0.022433  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 442 -0.180740 -0.509714 -0.274020 -0.219365  0.326234  0.460275  0.134034 -0.535095  0.171299 -0.438591  1.325004 -0.248823 -0.586618 -0.153848  2.034645 -0.073084 -0.854227 -1.402182  1.104266 -0.047531 -0.194117  0.187417  1.356760 -0.099888  0.679445  0.050773  0.643781 -0.205852  0.163850 -0.032937  0.722663  0.262740 -0.196830 -0.112167 -1.374672  1.361854 -0.775241 -0.241273 -0.162307 -0.303340  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   1.0   0.0
+ 
+ [99 rows x 550 columns],
+ 0      0
+ 1      0
+       ..
+ 491    1
+ 492    0
+ Name: Class, Length: 493, dtype: int64,
+ 454    0
+ 73     0
+       ..
+ 19     0
+ 442    0
+ Name: Class, Length: 99, dtype: int64,
+            AB        AF        AH        AM        AR        AX        AY        AZ        BC       BD         BN        BP        BQ        BR        BZ        CB        CC       CD         CF        CH        CL        CR        CS        CU       CW         DA        DE        DF        DH        DI        DL        DN        DU        DV        DY        EB        EE        EG        EH        EL  ...  Id_e9417cc82b93  Id_e999bb1c01d7  Id_e9c343dc7736  Id_ea50b3c5bd63  Id_eb9c2a590373  Id_ecf1ac3d6dfc  Id_ee48d4f9dc81  Id_efcba7fac353  Id_f003d68995be  Id_f03b541de10c  Id_f0d7d98bfe21  Id_f16b095a433f  Id_f1a68746ca6e  Id_f206becd4ffd  Id_f26ee0cee841  Id_f3eb9ac222f9  Id_f3f2071d2453  Id_f404680da866  Id_f405c0b5836f  Id_f44978084805  Id_f46e39a96ee9  Id_f62ef7cc0a22  Id_f7a862a414de  Id_f82b07dfd7fb  Id_f8eb43047d69  Id_f944d35cb6c4  Id_f955c0ed8895  Id_f9a7ea889307  Id_fb27f6e58eaa  Id_fb7584f887fd  Id_fb786fb02a65  Id_fbd12c4ae88b  Id_fd1dd68d51b4  Id_fd3dafe738fd  Id_fd895603f071  Id_fd8ef6377f76  Id_fe1942975e40  Id_ffcca4ded3bb  EJ_A  EJ_B
+ 0   -0.508031  0.904572 -0.274020 -0.273792 -0.208052 -0.251667 -0.083406  0.191428 -0.154899 -0.699798  0.107622 -0.394986 -0.904476 -0.182380 -0.375705 -0.363626  0.502362 -0.205816  0.559035  0.224416 -0.194117  0.612397 -0.566400 -0.034986 -1.412358  0.226759 -0.739523 -0.205852 -0.172525 -0.456544  0.645148 -0.857182 -0.156042 -0.112167  0.055369  0.430893 -0.386220 -0.330874 -0.110580 -1.592458  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ 1   -0.137101  0.411351 -0.274020 -0.240759 -0.208052 -0.386633 -0.083406 -1.591348 -0.008557  0.053749  0.411968 -0.370920  0.124541 -0.222222 -0.375705  0.283562 -0.098991 -0.130031 -0.603461  0.073334 -0.001869 -0.051333 -0.206084 -0.164791 -0.419681  0.817196 -0.047100 -0.205852 -1.421914 -0.983206  0.273990  2.587171 -0.196692 -0.112167 -0.179579 -0.183356  1.304674  0.256939 -0.131271 -1.212493  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   0.0   1.0
+ ..        ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...  ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...              ...   ...   ...
+ 122 -0.529850 -0.863153 -0.174373 -0.192835 -0.208052  0.163351 -0.083406  1.265843 -0.064859  1.459844 -0.196724 -0.103719 -0.245989 -0.140861 -0.375705 -0.217209  0.728353 -0.682641  0.404456  0.163983 -0.181580 -0.011499 -0.167625  0.570772  0.653269 -0.293935  0.818278 -0.205852  2.350281 -0.361331 -0.682098  0.716524 -0.196830 -0.112167  0.622137 -0.757933  0.730771 -0.294454 -0.162307  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   1.0   0.0
+ 123 -0.628037 -0.422579 -0.274020 -0.282651 -0.208052 -0.764536  0.097357 -0.627308 -0.081392 -0.510305 -1.312658 -0.654172 -1.034111 -0.215075 -0.375705 -0.406932 -0.972503 -0.232147 -0.701387  0.617227 -0.194117  0.917367  0.517539 -0.143156  0.654496  0.141839 -0.972134 -0.205852 -0.965406 -0.020582 -0.202582 -1.071297 -0.196830 -0.112167  1.708096 -0.113931 -0.705911 -0.464757 -0.162307  1.072335  ...              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0              0.0   1.0   0.0
+ 
+ [124 rows x 550 columns],
+ 0      0
+ 1      0
+       ..
+ 122    0
+ 123    0
+ Name: Class, Length: 124, dtype: int64)

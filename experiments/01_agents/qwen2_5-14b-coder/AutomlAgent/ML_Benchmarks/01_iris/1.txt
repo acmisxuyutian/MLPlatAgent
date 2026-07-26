@@ -1,0 +1,122 @@
+######代码######
+
+# The following code is for "tabular classification" task.
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import train_test_split
+from joblib import dump
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data preprocessing and feature engineering
+def preprocess_data(X, y):
+    # Convert to DataFrame
+    df = pd.DataFrame(data=X, columns=['sepal_length', 'sepal_width', 'petal_length', 'petal_width'])
+    df['target'] = y
+    
+    # Calculate summary statistics
+    print("Summary Statistics:")
+    print(df.describe())
+    
+    # Check for missing values
+    print("Missing Values:")
+    print(df.isnull().sum())
+    
+    # Split the dataset into training (70%), validation (20%), and test (10%) sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=SEED)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=SEED)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+def train_model(X_train, y_train):
+    # Instantiate the Logistic Regression Model
+    model = LogisticRegression(C=1.0, solver='liblinear', random_state=SEED)
+    
+    # Train the Model
+    model.fit(X_train, y_train)
+    
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    # Predict the labels
+    y_pred = model.predict(X_test)
+    
+    # Calculate Evaluation Metrics
+    performance_scores = {
+        'ACC': accuracy_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred, average='weighted'),
+        'Recall': recall_score(y_test, y_pred, average='weighted'),
+        'F1': f1_score(y_test, y_pred, average='weighted')
+    }
+    
+    return performance_scores
+
+# The main function to orchestrate the data loading, data preprocessing, feature engineering, model training, model preparation, and model evaluation
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    
+    # Step 1. Retrieve or load a dataset from hub (if available) or user's local storage (if given)
+    dataset = load_iris()
+    X, y = dataset.data, dataset.target
+    
+    # Step 2. Create a train-valid-test split of the data by splitting the `dataset` into train_loader, valid_loader, and test_loader.
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(X, y)
+    
+    # Step 3. With the split dataset, run data preprocessing and feature engineering (if applicable) using the "preprocess_data" function you defined
+    # Preprocessing is already done in the preprocess_data function
+    
+    # Step 4. Define required model. You may retrieve model from available hub or library along with pretrained weights (if any).
+    # If pretrained or predefined model is not available, please create the model according to the given user's requirements below using PyTorch and relevant libraries.
+    model = train_model(X_train, y_train)
+    
+    # Step 5. train the retrieved/loaded model using the defined "train_model" function
+    # Model training is already done in the train_model function
+    
+    # Step 6. evaluate the trained model using the defined "evaluate_model" function
+    model_performance = evaluate_model(model, X_test, y_test)
+    
+    # Save the model
+    model_save_path = "./agent_workspace/trained_models/logistic_regression_model.joblib"
+    dump(model, model_save_path)
+    print(f"Model saved to {model_save_path}")
+    
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Summary Statistics:
+       sepal_length  sepal_width  petal_length  petal_width      target
+count    150.000000   150.000000    150.000000   150.000000  150.000000
+mean       5.843333     3.057333      3.758000     1.199333    1.000000
+std        0.828066     0.435866      1.765298     0.762238    0.819232
+min        4.300000     2.000000      1.000000     0.100000    0.000000
+25%        5.100000     2.800000      1.600000     0.300000    0.000000
+50%        5.800000     3.000000      4.350000     1.300000    1.000000
+75%        6.400000     3.300000      5.100000     1.800000    2.000000
+max        7.900000     4.400000      6.900000     2.500000    2.000000
+Missing Values:
+sepal_length    0
+sepal_width     0
+petal_length    0
+petal_width     0
+target          0
+dtype: int64
+Model saved to ./agent_workspace/trained_models/logistic_regression_model.joblib
+Model Performance on Test Set: {'ACC': 0.9333333333333333, 'Precision': 0.9444444444444445, 'Recall': 0.9333333333333333, 'F1': 0.9337995337995337}

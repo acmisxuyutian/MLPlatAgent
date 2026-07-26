@@ -1,0 +1,125 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+import joblib
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Step 1: Load datasets
+def load_datasets(train_path, test_path):
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    return train_df, test_df
+
+# Step 2: Preprocess data
+def preprocess_data(train_df, test_df):
+    # Identify categorical features
+    categorical_features = [col for col in train_df.columns if train_df[col].dtype == 'object' and col != 'Disease']
+
+    # One-hot encoding
+    train_df_encoded = pd.get_dummies(train_df, columns=categorical_features, drop_first=True)
+    test_df_encoded = pd.get_dummies(test_df, columns=categorical_features, drop_first=True)
+
+    # Align columns to ensure consistency
+    train_df_encoded, test_df_encoded = train_df_encoded.align(test_df_encoded, join='inner', axis=1)
+    return train_df_encoded, test_df_encoded
+
+# Step 3: Feature selection
+def select_top_features(train_df_encoded):
+    # Define the logistic regression model
+    model = LogisticRegression(solver='liblinear', multi_class='auto')
+
+    # Apply RFE to select the top 5 features
+    rfe = RFE(estimator=model, n_features_to_select=5, step=1)
+    rfe.fit(train_df_encoded.drop(columns=['Disease']), train_df_encoded['Disease'])
+
+    # Get the top 5 features
+    top_features = train_df_encoded.drop(columns=['Disease']).columns[rfe.support_]
+    print("Top 5 features:", top_features)
+    return top_features
+
+# Step 4: Train the model
+def train_model(train_df_encoded, top_features):
+    # Define the logistic regression model with the best hyperparameters found during tuning
+    best_model = LogisticRegression(C=1, solver='saga', multi_class='auto')
+
+    # Train the model using the top 5 selected features
+    best_model.fit(train_df_encoded[top_features], train_df_encoded['Disease'])
+    return best_model
+
+# Step 5: Evaluate the model
+def evaluate_model(model, test_df_encoded, top_features):
+    # Predict on the test dataset
+    test_predictions = model.predict(test_df_encoded[top_features])
+
+    # Evaluate the model
+    accuracy = accuracy_score(test_df_encoded['Disease'], test_predictions)
+    precision = precision_score(test_df_encoded['Disease'], test_predictions, average='weighted')
+    recall = recall_score(test_df_encoded['Disease'], test_predictions, average='weighted')
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall
+    }
+
+    print(f"Accuracy: {accuracy:.2f}")
+    print(f"Precision: {precision:.2f}")
+    print(f"Recall: {recall:.2f}")
+    return performance_scores
+
+# Step 6: Save the model
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
+# The main function to orchestrate the pipeline
+def main():
+    # Step 1: Load datasets
+    train_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/train.csv'
+    test_path = '/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/DSEval/datasets/05_patient_profile/test.csv'
+    train_df, test_df = load_datasets(train_path, test_path)
+    
+    # Step 2: Preprocess data
+    train_df_encoded, test_df_encoded = preprocess_data(train_df, test_df)
+    
+    # Step 3: Feature selection
+    top_features = select_top_features(train_df_encoded)
+    
+    # Step 4: Train the model
+    model = train_model(train_df_encoded, top_features)
+    
+    # Step 5: Evaluate the model
+    performance_scores = evaluate_model(model, test_df_encoded, top_features)
+    
+    # Step 6: Save the model
+    model_path = './agent_workspace/trained_models/logistic_regression_top5_features.pkl'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    save_model(model, model_path)
+    
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Top 5 features: Index(['Fever_Yes', 'Cough_Yes', 'Fatigue_Yes', 'Gender_Male',
+       'Outcome Variable_Positive'],
+      dtype='object')
+Accuracy: 0.09
+Precision: 0.02
+Recall: 0.09
+Model Performance on Test Set: {'Accuracy': 0.08571428571428572, 'Precision': 0.02267080745341615, 'Recall': 0.08571428571428572}

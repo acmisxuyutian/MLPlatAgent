@@ -1,0 +1,34 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Load the training dataset
+train_file_path = r'D:\LLM-Driven_AI-Studio\MLAgent\data\benchmark/NL2Workflow/datasets/tabular/kidney_stone/train.csv'
+train_df = pd.read_csv(train_file_path)
+
+# Display the first few rows of the dataset
+print(train_df.head())
+
+# Check for missing values
+print(train_df.isnull().sum())
+
+# Handle missing values (if any)
+train_df.fillna(train_df.mean(), inplace=True)
+
+# Encode categorical variables (if any)
+# Assuming all columns are numerical, no encoding is needed
+
+# Feature selection
+X = train_df.drop(columns=['Target'])
+y = train_df['Target']
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+
+# Put all the result variables in the last line
+X_train_scaled, X_val_scaled, y_train, y_val

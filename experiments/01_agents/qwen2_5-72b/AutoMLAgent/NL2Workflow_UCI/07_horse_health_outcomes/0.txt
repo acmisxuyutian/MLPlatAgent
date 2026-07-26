@@ -1,0 +1,195 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Set the random seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+# Data Retrieval and Loading
+def load_dataset(dataset_path):
+    """
+    Load the dataset from the specified path into a pandas DataFrame.
+    """
+    df = pd.read_csv(dataset_path)
+    return df
+
+# Data Preprocessing
+def preprocess_data(df):
+    """
+    Handle missing values and standardize numerical features.
+    """
+    # Identify missing values
+    missing_values = df.isnull().sum()
+    print("Missing values before imputation:\n", missing_values)
+
+    # Impute missing values
+    numerical_features = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_features = df.select_dtypes(include=['object']).columns
+
+    # Mean imputation for numerical features
+    for feature in numerical_features:
+        df[feature] = df[feature].fillna(df[feature].mean())
+
+    # Mode imputation for categorical features
+    for feature in categorical_features:
+        df[feature] = df[feature].fillna(df[feature].mode().iloc[0])
+
+    # Standardize numerical features
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    return df
+
+# Data Splitting
+def split_data(df):
+    """
+    Split the dataset into training, validation, and test sets.
+    """
+    target_column = 'health_status'
+    if target_column not in df.columns:
+        raise ValueError(f"The dataset does not contain the '{target_column}' column.")
+
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+
+    # Split the data into training, validation, and test sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Model Training and Hyperparameter Tuning
+def train_model(X_train, y_train):
+    """
+    Train the Random Forest model and perform hyperparameter tuning.
+    """
+    # Define the hyperparameters to be tuned
+    param_grid = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'max_depth': [None, 10, 20, 30, 40, 50],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['auto', 'sqrt', 'log2']
+    }
+
+    # Initialize the Random Forest classifier
+    rf = RandomForestClassifier(random_state=42)
+
+    # Perform grid search with cross-validation
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=5, scoring='f1', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_rf = grid_search.best_estimator_
+
+    return best_rf
+
+# Model Evaluation
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluate the model on the test set and report the F1 score.
+    """
+    # Predict the target variable for the test set
+    y_pred = model.predict(X_test)
+
+    # Evaluate the model
+    f1 = f1_score(y_test, y_pred, average='weighted')
+    print(f'F1 Score: {f1}')
+
+    # Print the classification report
+    print(classification_report(y_test, y_pred))
+
+    # Save the performance scores
+    performance_scores = {
+        'F1': f1
+    }
+
+    return performance_scores
+
+# Model Interpretability
+def plot_feature_importances(model, X_train):
+    """
+    Visualize the feature importances.
+    """
+    # Extract feature importances
+    feature_importances = model.feature_importances_
+
+    # Create a DataFrame for feature importances
+    importance_df = pd.DataFrame({'Feature': X_train.columns, 'Importance': feature_importances})
+    importance_df = importance_df.sort_values(by='Importance', ascending=False)
+
+    # Plot feature importances
+    plt.figure(figsize=(10, 8))
+    sns.barplot(x='Importance', y='Feature', data=importance_df)
+    plt.title('Feature Importances')
+    plt.show()
+
+# Saving the Trained Model
+def save_model(model, model_path):
+    """
+    Save the trained model to the specified path.
+    """
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+# The main function to orchestrate the entire pipeline
+def main():
+    """
+    Main function to execute the tabular classification pipeline.
+    """
+    # Step 1. Retrieve or load the dataset
+    dataset_path = r'/remote-home/cs_acmis_xyt/AutomlAgent/benchmark/NL2Workflow/datasets/tabular/horse_health_outcomes/train.csv'
+    df = load_dataset(dataset_path)
+
+    # Step 2. Preprocess the data
+    df = preprocess_data(df)
+
+    # Step 3. Split the data into training, validation, and test sets
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+
+    # Step 4. Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 5. Evaluate the model
+    performance_scores = evaluate_model(model, X_test, y_test)
+
+    # Step 6. Plot feature importances
+    plot_feature_importances(model, X_train)
+
+    # Step 7. Save the trained model
+    model_path = "./agent_workspace/trained_models/random_forest_model.pkl"
+    save_model(model, model_path)
+
+    return performance_scores
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Traceback (most recent call last):
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 179, in <module>
+    model_performance = main()
+                        ^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 161, in main
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+                                                     ^^^^^^^^^^^^^^
+  File "/remote-home/cs_acmis_xyt/AutomlAgent/./agent_workspace/exp/None_qwen72b_p3_rap_decomp_ver_full.py", line 63, in split_data
+    raise ValueError(f"The dataset does not contain the '{target_column}' column.")
+ValueError: The dataset does not contain the 'health_status' column.

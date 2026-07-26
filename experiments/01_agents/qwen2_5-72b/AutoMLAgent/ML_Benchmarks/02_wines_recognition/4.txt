@@ -1,0 +1,187 @@
+######代码######
+
+import os
+import random
+import time
+import json
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from xgboost import XGBClassifier
+import joblib
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
+DATASET_PATH = "./agent_workspace/datasets"  # path for saving and loading dataset(s)
+MODEL_PATH = "./agent_workspace/trained_models"  # path for saving trained models
+
+# Ensure the directories exist
+os.makedirs(DATASET_PATH, exist_ok=True)
+os.makedirs(MODEL_PATH, exist_ok=True)
+
+# Data retrieval and collection
+def load_dataset():
+    url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data'
+    column_names = [
+        'Class', 'Alcohol', 'Malic acid', 'Ash', 'Alcalinity of ash', 'Magnesium',
+        'Total phenols', 'Flavanoids', 'Nonflavanoid phenols', 'Proanthocyanins',
+        'Color intensity', 'Hue', 'OD280/OD315 of diluted wines', 'Proline'
+    ]
+    df = pd.read_csv(url, header=None, names=column_names)
+    return df
+
+# Data preprocessing
+def preprocess_data(df):
+    # Handle missing values
+    df.fillna(df.mean(), inplace=True)
+
+    # Feature scaling
+    numerical_features = df.columns[1:]  # Exclude the target variable 'Class'
+    scaler = StandardScaler()
+    df[numerical_features] = scaler.fit_transform(df[numerical_features])
+
+    # Feature correlation analysis
+    correlation_matrix = df.corr()
+    print("Correlation Matrix:\n", correlation_matrix)
+
+    return df
+
+# Data splitting
+def split_data(df):
+    X = df.drop('Class', axis=1)
+    y = df['Class'] - 1  # Adjust class labels to start from 0
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=SEED)
+    return X_train, X_test, y_train, y_test
+
+# Model training
+def train_model(X_train, y_train):
+    xgb = XGBClassifier()
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [6, 10, 15]
+    }
+    grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
+    print("Best parameters:", grid_search.best_params_)
+    return best_model
+
+# Model evaluation
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy:", accuracy)
+
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    print("Confusion Matrix:\n", conf_matrix)
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=model.classes_, yticklabels=model.classes_)
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+    print("Classification Report:\n", classification_report(y_test, y_pred))
+
+    performance_scores = {
+        'Accuracy': accuracy,
+        'Confusion Matrix': conf_matrix.tolist(),
+        'Classification Report': classification_report(y_test, y_pred, output_dict=True)
+    }
+    return performance_scores
+
+# Main function to orchestrate the pipeline
+def main():
+    # Step 1: Load the dataset
+    df = load_dataset()
+    print("Dataset shape:", df.shape)
+    print("Missing values:\n", df.isnull().sum())
+
+    # Step 2: Preprocess the dataset
+    df = preprocess_data(df)
+
+    # Step 3: Split the dataset
+    X_train, X_test, y_train, y_test = split_data(df)
+
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+
+    # Step 5: Evaluate the model
+    model_performance = evaluate_model(model, X_test, y_test)
+
+    # Step 6: Save the model
+    model_path = os.path.join(MODEL_PATH, 'xgboost_wine_model.pkl')
+    joblib.dump(model, model_path)
+    print("Model saved to:", model_path)
+
+    return model_performance
+
+if __name__ == "__main__":
+    model_performance = main()
+    print("Model Performance on Test Set:", model_performance)
+
+
+######执行结果######
+The script has been executed. Here is the output:
+Dataset shape: (178, 14)
+Missing values:
+ Class                           0
+Alcohol                         0
+Malic acid                      0
+Ash                             0
+Alcalinity of ash               0
+Magnesium                       0
+Total phenols                   0
+Flavanoids                      0
+Nonflavanoid phenols            0
+Proanthocyanins                 0
+Color intensity                 0
+Hue                             0
+OD280/OD315 of diluted wines    0
+Proline                         0
+dtype: int64
+Correlation Matrix:
+                                  Class  ...   Proline
+Class                         1.000000  ... -0.633717
+Alcohol                      -0.328222  ...  0.643720
+Malic acid                    0.437776  ... -0.192011
+Ash                          -0.049643  ...  0.223626
+Alcalinity of ash             0.517859  ... -0.440597
+Magnesium                    -0.209179  ...  0.393351
+Total phenols                -0.719163  ...  0.498115
+Flavanoids                   -0.847498  ...  0.494193
+Nonflavanoid phenols          0.489109  ... -0.311385
+Proanthocyanins              -0.499130  ...  0.330417
+Color intensity               0.265668  ...  0.316100
+Hue                          -0.617369  ...  0.236183
+OD280/OD315 of diluted wines -0.788230  ...  0.312761
+Proline                      -0.633717  ...  1.000000
+
+[14 rows x 14 columns]
+Best parameters: {'learning_rate': 0.2, 'max_depth': 6, 'n_estimators': 100}
+Accuracy: 0.9722222222222222
+Confusion Matrix:
+ [[12  0  0]
+ [ 1 13  0]
+ [ 0  0 10]]
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.92      1.00      0.96        12
+           1       1.00      0.93      0.96        14
+           2       1.00      1.00      1.00        10
+
+    accuracy                           0.97        36
+   macro avg       0.97      0.98      0.97        36
+weighted avg       0.97      0.97      0.97        36
+
+Model saved to: ./agent_workspace/trained_models/xgboost_wine_model.pkl
+Model Performance on Test Set: {'Accuracy': 0.9722222222222222, 'Confusion Matrix': [[12, 0, 0], [1, 13, 0], [0, 0, 10]], 'Classification Report': {'0': {'precision': 0.9230769230769231, 'recall': 1.0, 'f1-score': 0.96, 'support': 12.0}, '1': {'precision': 1.0, 'recall': 0.9285714285714286, 'f1-score': 0.9629629629629629, 'support': 14.0}, '2': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 10.0}, 'accuracy': 0.9722222222222222, 'macro avg': {'precision': 0.9743589743589745, 'recall': 0.9761904761904763, 'f1-score': 0.974320987654321, 'support': 36.0}, 'weighted avg': {'precision': 0.9743589743589745, 'recall': 0.9722222222222222, 'f1-score': 0.9722633744855966, 'support': 36.0}}}
