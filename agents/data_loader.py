@@ -1,354 +1,741 @@
 # -*- coding: utf-8 -*-
+"""Platform-neutral dataset discovery, loading, and analysis.
+
+The primary API in this module is :func:`resolve_dataset`.  It resolves a
+natural-language dataset description against either MySQL or PostgreSQL and
+returns a JSON-safe :class:`DatasetResolution`.  Applying that resolution to a
+workflow node is deliberately left to the selected platform Action.
+"""
+
+from __future__ import annotations
+
 import json
 import os
-import jieba
+import random
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, time
+from decimal import Decimal
+from typing import Any, Callable, Mapping
+
 import numpy as np
 import pandas as pd
-from rank_bm25 import BM25Okapi
-from prompts.data_loader_prompts import SYSTEM_PROMPT, USER_PROMPT, EDA_RESULT_TEMPLATE, RETR_DATASET_SYSTEM_PROMPT
+
+from embedding_models.embedding_model import Embedding_Model
 from llm.llm import Qwen_Model
-from utils.utils import load_json, get_project_root,update_data_info
-from ml_platform.ai_studio import AI_Studio
-from config import MySQL_Config, RANDOM_SEED
-from utils.mysql_utils import MySQLDatabase
+from prompts.data_loader_prompts import (
+    EDA_RESULT_TEMPLATE,
+    RETR_DATASET_SYSTEM_PROMPT,
+    SYSTEM_PROMPT,
+    USER_PROMPT,
+)
 from utils.logs import logger
+from utils.utils import (
+    get_data_info_path,
+    load_json,
+    update_data_info,
+)
 
-class Data_Loader:
 
-    def __init__(self, ai_studio, annotation=False):
-        self.ai_studio = ai_studio
-        self.annotation = annotation
-        self.db = MySQLDatabase(host=MySQL_Config["server"], port=MySQL_Config["port"], user=MySQL_Config["username"], password=MySQL_Config["password"], database=MySQL_Config["database"])
+SUPPORTED_DATABASE_BACKENDS = ("mysql", "postgresql")
+DEFAULT_RETRIEVER = "all-mpnet-base-v2"
+MAX_LLM_ATTEMPTS = 3
 
-    def run(self, data_description, node_id):
-        self.db.connect()
-        total_input_tokens = 0
-        total_output_tokens = 0
-        table_name, input_tokens, output_tokens = self.retrieve_dataset(data_description)
-        if table_name == None:
-            update_data_info(dataset_info="")
-            return "", 0, total_input_tokens, total_output_tokens
 
-        total_input_tokens += input_tokens
-        total_output_tokens += output_tokens
-        logger.info(f"llm检索到的数据集为: {table_name}")
-        logger.info("正在从数据库加载数据...")
-        data = self.load_data(table_name)
-        logger.info("数据加载完成")
+class DatasetResolutionError(RuntimeError):
+    """Base exception for dataset resolution failures."""
 
-        logger.info("正在对数据集的列进行配置...")
-        mapping, result_json, price, input_tokens, output_tokens, sample_value = self.get_columns(data)
-        logger.info(f"配置完成")
-        total_input_tokens += input_tokens
-        total_output_tokens += output_tokens
-        self.update_node_params({
-            "table_name": table_name,
-            "attr_mapping": mapping,
-            "node_id": node_id
-        })
 
-        eda_result = self.eda(data, result_json, sample_value)
+class DatasetNotFoundError(DatasetResolutionError):
+    """Raised when no database table can be selected for a description."""
 
-        self.db.close_connection()
 
-        update_data_info(dataset_info=eda_result)
+class ColumnConfigurationError(DatasetResolutionError):
+    """Raised when the LLM cannot produce a valid column configuration."""
 
-        return eda_result, price, total_input_tokens, total_output_tokens
 
-    def load_data(self, table_name):
+@dataclass
+class DatasetResolution:
+    """Platform-neutral result consumed by a concrete platform Action."""
 
-        # 查询示例
-        select_query = f"SELECT * FROM {table_name}"
+    data_description: str
+    backend: str
+    table_name: str
+    columns: list[str]
+    attr_mapping: dict[str, dict[str, Any]]
+    column_roles: dict[str, dict[str, str]]
+    column_metadata: list[dict[str, Any]]
+    sample_values: dict[str, list[Any]]
+    eda_result: str
+    price: float
+    input_tokens: int
+    output_tokens: int
 
-        # 执行查询并获取结果和列名
-        results, column_names = self.db.read_query(select_query)
-        data = None
-        # 检查results是否为None
-        if results is not None:
-            # 将查询结果转换为DataFrame
-            data = pd.DataFrame(results, columns=column_names)
+    def as_dict(self) -> dict[str, Any]:
+        """Return a recursively JSON-safe representation."""
 
-        else:
-            print("查询没有返回任何结果")
+        return _json_safe(asdict(self))
 
-        return data
 
-    def get_columns(self, data):
+@dataclass
+class _LLMSelection:
+    table_name: str
+    input_tokens: int
+    output_tokens: int
+    price: float
+
+
+@dataclass
+class _ColumnConfiguration:
+    attr_mapping: dict[str, dict[str, Any]]
+    column_roles: dict[str, dict[str, str]]
+    column_metadata: list[dict[str, Any]]
+    sample_values: dict[str, list[Any]]
+    input_tokens: int
+    output_tokens: int
+    price: float
+
+
+class _MySQLAdapter:
+    """Adapt the existing MySQL helper to the resolver's table-only API."""
+
+    def __init__(self, config: Mapping[str, Any]) -> None:
+        # Keep the MySQL connector out of Orange/PostgreSQL-only processes.
+        # Platform-specific database drivers are imported only when their
+        # backend is actually selected.
+        from utils.mysql_utils import MySQLDatabase
+
+        normalized = _normalize_database_config("mysql", config)
+        self.database = MySQLDatabase(
+            host=normalized["host"],
+            port=normalized["port"],
+            user=normalized["user"],
+            password=normalized["password"],
+            database=normalized["database"],
+        )
+
+    def connect(self) -> None:
+        self.database.connect()
+
+    def close_connection(self) -> None:
+        connection = self.database.connection
+        if connection is not None and connection.is_connected():
+            self.database.close_connection()
+
+    def get_database_info(self) -> list[dict[str, Any]]:
+        return self.database.get_database_info()
+
+    def read_table(self, table_name: str) -> tuple[list[tuple[Any, ...]], list[str]]:
+        # The name has already been checked against discovered metadata.  It is
+        # still quoted to make unusual but valid MySQL identifiers safe.
+        quoted_table = "`" + table_name.replace("`", "``") + "`"
+        result = self.database.read_query(f"SELECT * FROM {quoted_table}")
+        if result is None:
+            raise DatasetResolutionError(
+                f"Failed to read MySQL table {table_name!r}"
+            )
+        return result
+
+
+class DatasetResolver:
+    """Resolve a dataset description using one configured database backend."""
+
+    def __init__(
+        self,
+        backend: str,
+        db_config: Mapping[str, Any],
+        *,
+        retriever: str = DEFAULT_RETRIEVER,
+        embedding_model_factory: Callable[[str], Any] = Embedding_Model,
+        llm_factory: Callable[[], Any] = Qwen_Model,
+        database: Any | None = None,
+    ) -> None:
+        self.backend = _validate_backend(backend)
+        self.db_config = _normalize_database_config(self.backend, db_config)
+        self.retriever = retriever
+        self.embedding_model_factory = embedding_model_factory
+        self.llm_factory = llm_factory
+        self.db = database or self._create_database()
+
+    def resolve(
+        self,
+        data_description: str,
+        *,
+        user_requirement: str | None = None,
+        update_context: bool = True,
+    ) -> DatasetResolution:
+        """Resolve, load, classify, and summarize a database table.
+
+        Connections are always closed in ``finally``.  The returned value does
+        not include database connection details or credentials.
         """
-        {
-            "PassengerId": {
-                "key": 0,
-                "name": "PassengerId",
-                "type": 2,  // 属性类型编号，1：离散属性，2：数值属性，3：文本属性，4：日期属性
-                "role": 0   // 属性类别编号，0：特征属性，1：目标属性，2：描述属性，-1：忽略该属性
+
+        if not isinstance(data_description, str) or not data_description.strip():
+            raise ValueError("data_description must be a non-empty string")
+
+        resolution: DatasetResolution | None = None
+        try:
+            self.db.connect()
+            datasets = self._normalize_database_info(
+                self.db.get_database_info()
+            )
+            selection = self._retrieve_dataset(data_description, datasets)
+            allowed_tables = {
+                dataset["dataset_name"] for dataset in datasets
             }
-            ...
-        }
-        """
-        ############################################################## 1.获取数据集的字段配置 ##############################################################
-        import random
-        total_input_tokens = 0
-        total_output_tokens = 0
-        # 去除含有缺失值的行
-        df_clean = data.dropna()
-        if len(df_clean) < 3:
-            df_clean = data
-        # 生成3个随机索引
-        rng = random.Random(RANDOM_SEED)
-        random_indices = rng.sample(range(len(df_clean)), 3)
+            if selection.table_name not in allowed_tables:
+                raise DatasetNotFoundError(
+                    "The selected table is not present in database metadata"
+                )
 
-        # 选择这些随机索引对应的行
-        random_rows = df_clean.iloc[random_indices]
+            data = self._load_table(selection.table_name)
+            requirement = (
+                user_requirement
+                if user_requirement is not None
+                else _read_current_instruction()
+            )
+            column_config = self._configure_columns(data, requirement)
+            eda_result = self._eda(
+                data,
+                column_config.column_roles,
+                column_config.sample_values,
+            )
 
-        random_rows = random_rows.to_dict(orient='records')
-        sample_value = {}
-        for col in data.columns:
-            sample_value[col] = []
-            for  i in range(len(random_rows)):
-                sample_value[col].append(random_rows[i][col])
+            resolution = DatasetResolution(
+                data_description=data_description,
+                backend=self.backend,
+                table_name=selection.table_name,
+                columns=[str(column) for column in data.columns],
+                attr_mapping=column_config.attr_mapping,
+                column_roles=column_config.column_roles,
+                column_metadata=column_config.column_metadata,
+                sample_values=column_config.sample_values,
+                eda_result=eda_result,
+                price=selection.price + column_config.price,
+                input_tokens=(
+                    selection.input_tokens + column_config.input_tokens
+                ),
+                output_tokens=(
+                    selection.output_tokens + column_config.output_tokens
+                ),
+            )
+        except DatasetNotFoundError:
+            if update_context:
+                update_data_info(dataset_info="")
+            raise
+        finally:
+            try:
+                self.db.close_connection()
+            except Exception as exc:
+                logger.warning(f"关闭数据库连接失败: {exc}")
 
-        columns_info = data.columns.to_list()
-        data_path = os.path.join(get_project_root(), r"data/data_info.json")
-        with open(data_path, 'r', encoding='utf-8') as f:
-            data_info = json.load(f)
-        prompt = USER_PROMPT.format(user_requirement=data_info["instruction"], columns_info=columns_info)
-        llm = Qwen_Model()
-        msgs = [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
+        if resolution is None:
+            raise DatasetResolutionError("Dataset resolution produced no result")
+        if update_context:
+            update_data_info(dataset_info=resolution.eda_result)
+        return resolution
+
+    def _create_database(self) -> Any:
+        if self.backend == "mysql":
+            return _MySQLAdapter(self.db_config)
+        from utils.postgres_utils import PostgreSQLDatabase
+
+        return PostgreSQLDatabase(
+            host=self.db_config["host"],
+            port=self.db_config["port"],
+            user=self.db_config["user"],
+            password=self.db_config["password"],
+            database=self.db_config["database"],
+            schema=self.db_config["schema"],
+        )
+
+    @staticmethod
+    def _normalize_database_info(
+        datasets: Any,
+    ) -> list[dict[str, Any]]:
+        if not isinstance(datasets, list):
+            raise DatasetResolutionError(
+                "Database metadata must be a list of datasets"
+            )
+
+        normalized: list[dict[str, Any]] = []
+        seen_names: set[str] = set()
+        for dataset in datasets:
+            if not isinstance(dataset, Mapping):
+                continue
+            name = dataset.get("dataset_name")
+            columns = dataset.get("columns")
+            if (
+                not isinstance(name, str)
+                or not name
+                or name in seen_names
+                or not isinstance(columns, (list, tuple))
+            ):
+                continue
+            normalized.append(
+                {
+                    "dataset_name": name,
+                    "columns": [str(column) for column in columns],
+                }
+            )
+            seen_names.add(name)
+
+        if not normalized:
+            raise DatasetNotFoundError(
+                "No tables were discovered in the configured database"
+            )
+        return normalized
+
+    def _retrieve_dataset(
+        self,
+        data_description: str,
+        datasets: list[dict[str, Any]],
+    ) -> _LLMSelection:
+        corpus = [
+            dataset["dataset_name"]
+            + json.dumps(dataset["columns"], ensure_ascii=False)
+            for dataset in datasets
         ]
-        max_try = 3
-        retry_time = 0
-        while retry_time < max_try:
-            content, message, input_tokens, output_tokens, price = llm.predict(messages=msgs)
-            total_input_tokens += input_tokens
-            total_output_tokens += output_tokens
-            result_json = load_json(content)
-            feedback = ""
-            # 检查JSON解析是否成功
-            if content != {}:
-                if len(result_json) != len(columns_info):
-                    feedback = "请重新输入，确保配置的列与数据集存在的列一致。不要猜测数据集存在的列，我给你的列就是对的！"
-                else:
-                    break
+
+        if len(datasets) == 1:
+            recalled_datasets = datasets
+        else:
+            model = self.embedding_model_factory(self.retriever)
+            pairs = model.get_scores(
+                [data_description],
+                corpus,
+                topk=min(7, len(corpus)),
+            )
+            recalled_datasets = [
+                datasets[index]
+                for _, index in pairs
+                if isinstance(index, (int, np.integer))
+                and 0 <= int(index) < len(datasets)
+            ]
+            if not recalled_datasets:
+                raise DatasetNotFoundError(
+                    "Embedding retrieval returned no database tables"
+                )
+
+        dataset_names = [
+            dataset["dataset_name"] for dataset in recalled_datasets
+        ]
+        logger.info(f"语义相似度检索的数据集: {dataset_names}")
+
+        system_prompt = RETR_DATASET_SYSTEM_PROMPT.format(
+            datasets=dataset_names
+        )
+        messages: list[Any] = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": data_description},
+        ]
+        llm = self.llm_factory()
+        input_tokens_total = 0
+        output_tokens_total = 0
+        price_total = 0.0
+
+        for _ in range(MAX_LLM_ATTEMPTS):
+            content, message, input_tokens, output_tokens, price = llm.predict(
+                messages=messages
+            )
+            input_tokens_total += input_tokens
+            output_tokens_total += output_tokens
+            price_total += price
+
+            parsed = load_json(content) if isinstance(content, str) else {}
+            selected_name = (
+                parsed.get("dataset_name")
+                if isinstance(parsed, Mapping)
+                else None
+            )
+            if selected_name in dataset_names:
+                return _LLMSelection(
+                    table_name=selected_name,
+                    input_tokens=input_tokens_total,
+                    output_tokens=output_tokens_total,
+                    price=price_total,
+                )
+
+            if selected_name:
+                feedback = (
+                    f"你选择的数据集 {selected_name!r} 不合法，"
+                    f"请从以下数据集中选择：{dataset_names}"
+                )
             else:
-                feedback = """JSON解析错误！请返回严格的JSON格式，并用```json和```括起来
-```json
-{
-"col_name"{
-        "role": <必须是["feature", "target", "skip", "meta"]中的一个>,
-        "type": <必须是["numeric", "categorical", "datetime", "text"]中的一个>
-    },
-    ...
-}
-```"""
-            retry_time += 1
-            logger.info(f"第{retry_time}次尝试")
-            msgs.append(message)
-            msgs.append({
-                "role": "user",
-                "content": feedback
-            })
-        # 将结果处理为file组件需要的数据
+                feedback = (
+                    "JSON解析错误。请返回能被 json.loads() 解析的严格 JSON，"
+                    "并重新选择一个候选数据集。"
+                )
+            if message is not None:
+                messages.append(message)
+            messages.append({"role": "user", "content": feedback})
+
+        raise DatasetNotFoundError(
+            "The LLM could not select a valid database table"
+        )
+
+    def _load_table(self, table_name: str) -> pd.DataFrame:
+        logger.info(f"正在从 {self.backend} 加载数据表: {table_name}")
+        rows, column_names = self.db.read_table(table_name)
+        return pd.DataFrame(rows, columns=column_names)
+
+    def _configure_columns(
+        self,
+        data: pd.DataFrame,
+        user_requirement: str,
+    ) -> _ColumnConfiguration:
+        columns = [str(column) for column in data.columns]
+        sample_values = self._sample_values(data)
+        prompt = USER_PROMPT.format(
+            user_requirement=user_requirement,
+            columns_info=columns,
+        )
+        messages: list[Any] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        llm = self.llm_factory()
+        input_tokens_total = 0
+        output_tokens_total = 0
+        price_total = 0.0
+        column_roles: dict[str, dict[str, str]] | None = None
+
+        for attempt in range(1, MAX_LLM_ATTEMPTS + 1):
+            content, message, input_tokens, output_tokens, price = llm.predict(
+                messages=messages
+            )
+            input_tokens_total += input_tokens
+            output_tokens_total += output_tokens
+            price_total += price
+
+            parsed = load_json(content) if isinstance(content, str) else {}
+            validation_error = _validate_column_roles(parsed, columns)
+            if validation_error is None:
+                column_roles = {
+                    column: {
+                        "role": parsed[column]["role"],
+                        "type": parsed[column]["type"],
+                    }
+                    for column in columns
+                }
+                break
+
+            logger.info(f"第 {attempt} 次列配置未通过校验")
+            if message is not None:
+                messages.append(message)
+            messages.append(
+                {
+                    "role": "user",
+                    "content": validation_error,
+                }
+            )
+
+        if column_roles is None:
+            raise ColumnConfigurationError(
+                "The LLM could not produce a valid column configuration"
+            )
+
         role_map = {
             "feature": 0,
             "target": 1,
             "meta": 2,
-            "skip": -1
+            "skip": -1,
         }
         type_map = {
             "numeric": 2,
             "categorical": 1,
             "text": 3,
-            "datetime": 4
+            "datetime": 4,
         }
-        mapping = {}
-        count = 0
-        for key, value in result_json.items():
-            mapping[key] = {
-                "key": count,
-                "name": key,
-                "type": type_map[value["type"]],
-                "role": role_map[value["role"]]
+        attr_mapping: dict[str, dict[str, Any]] = {}
+        column_metadata: list[dict[str, Any]] = []
+        for index, column in enumerate(columns):
+            role_info = column_roles[column]
+            attr_mapping[column] = {
+                "key": index,
+                "name": column,
+                "type": type_map[role_info["type"]],
+                "role": role_map[role_info["role"]],
             }
-            count += 1
-        return mapping, result_json, price, total_input_tokens, total_output_tokens, sample_value
+            column_metadata.append(
+                {
+                    "name": column,
+                    "role": role_info["role"],
+                    "type": role_info["type"],
+                    "sample_values": sample_values[column],
+                }
+            )
 
-    def update_node_params(self, args):
+        return _ColumnConfiguration(
+            attr_mapping=attr_mapping,
+            column_roles=column_roles,
+            column_metadata=column_metadata,
+            sample_values=sample_values,
+            input_tokens=input_tokens_total,
+            output_tokens=output_tokens_total,
+            price=price_total,
+        )
 
-        widget_params = {
-            "type": "2",
-            "server": MySQL_Config["server"],
-            "database": MySQL_Config["database"],
-            "schema": "public",
-            "port": MySQL_Config["port"],
-            "username": MySQL_Config["username"],
-            "password": MySQL_Config["password"],
-            "dbType": None,
-            "load_type": "table",
-            "getDatabaseFlag": False,
-            "selectedDatasource": None,
-            "selectedDatasourceUserId": -1,
-            "isNewIDIS": True,
-            "table_name": args["table_name"],
-            "save2db": False,
-            "sql_code": "",
-            "dump_table": "my_table",
-            "selectedDataset": "",
-            "dataset_name": None,
-            "dataset_sql": None,
-            "field": None,
-            "interact_type": 0,
-            "attr_mapping": args["attr_mapping"]
-        }
-
-        data = {
-            "workflow_id": self.ai_studio.workflow_id,
-            "param_info": {str(args["node_id"]): widget_params},
-        }
-
-        data = json.dumps(data, ensure_ascii=False)
-
-        result = self.ai_studio.update_node_params(data)
-        return result
-
-    def eda(self, data, result_json, sample_value):
-        df = data
-        ############################################################## 3.整理EDA的结果 ##############################################################
-        eda_result = EDA_RESULT_TEMPLATE.replace("{shape}", str(df.shape))
-        columns = df.columns.tolist()
-        categorical_feature = []
-        numerical_feature = []
-        target = {"name": "", "type": ""}
-        for i in range(len(columns)):
-            name = columns[i]
-            role = result_json[name]["role"]
-            type = result_json[name]["type"]
-            if role == "target":
-                target["name"] = name
-                target["type"] = type
-            elif role == "feature":
-                if type == "categorical":
-                    categorical_feature.append(name)
-                elif type == "numeric":
-                    numerical_feature.append(name)
-
-        if target["type"] == "categorical":
-            target_distribution = df[target["name"]].value_counts().to_string()
+    @staticmethod
+    def _sample_values(data: pd.DataFrame) -> dict[str, list[Any]]:
+        clean_data = data.dropna()
+        sample_source = clean_data if len(clean_data) >= 3 else data
+        sample_size = min(3, len(sample_source))
+        if sample_size:
+            rng = random.Random(_read_random_seed())
+            sample_indexes = rng.sample(range(len(sample_source)), sample_size)
+            sample_rows = sample_source.iloc[sample_indexes]
         else:
-            target_distribution = df[target["name"]].describe().to_string()
-        eda_result = eda_result.replace("{target_distribution}", target_distribution)
+            sample_rows = sample_source.iloc[0:0]
 
-        columns_info = []
-        sample_data = []
-        for c in df.columns:
-            if result_json[c]["role"] == "feature":
-                sample_data.append({
-                    "column name": c,
-                    "sample data": sample_value[c]
-                })
-                # "data type": result_json[c]["type"]
-                columns_info.append(
-                    {
-                        "column name": c,
-                        "data type": result_json[c]["type"]
-                    }
-                )
-        eda_result = eda_result.replace("{sample_data}", json.dumps(sample_data, ensure_ascii=False))
-        # categorical_analysis = ""
-        # for cf in categorical_feature:
-        #     categorical_analysis += df[cf].value_counts().to_string() + "\n"
-        # eda_result = eda_result.replace("{categorical_analysis}", categorical_analysis)
-        #
-        # numerical_analysis = df[numerical_feature].describe().to_string()
-        # eda_result = eda_result.replace("{numerical_analysis}", numerical_analysis)
-        #
-        # correlation_check = df[numerical_feature + [target["name"]]].corr().to_string()
-        # eda_result = eda_result.replace("{correlation_check}", correlation_check)
+        samples: dict[str, list[Any]] = {}
+        for column in data.columns:
+            samples[str(column)] = [
+                _json_safe(value) for value in sample_rows[column].tolist()
+            ]
+        return samples
 
-        missing_value_check = df.isnull().sum()
-        missing_value_check = missing_value_check[missing_value_check > 0].to_string()
-        eda_result = eda_result.replace("{missing_value_check}", missing_value_check)
-        return eda_result
+    @staticmethod
+    def _eda(
+        data: pd.DataFrame,
+        column_roles: Mapping[str, Mapping[str, str]],
+        sample_values: Mapping[str, list[Any]],
+    ) -> str:
+        eda_result = EDA_RESULT_TEMPLATE.replace("{shape}", str(data.shape))
+        target_name = next(
+            (
+                column
+                for column, metadata in column_roles.items()
+                if metadata["role"] == "target"
+            ),
+            None,
+        )
+        if target_name is None:
+            target_distribution = "No target column was identified."
+        elif column_roles[target_name]["type"] == "categorical":
+            target_distribution = data[target_name].value_counts().to_string()
+        else:
+            target_distribution = data[target_name].describe().to_string()
+        eda_result = eda_result.replace(
+            "{target_distribution}", target_distribution
+        )
 
-    def retrieve_dataset(self, data_description):
-        """
-        使用了HyDE检索技术：LLM生成的data_description包含了假设文档 + BM25/语义相似度检索
-        """
-
-        datasets_info = self.db.get_database_info()
-
-        # ######################## BM25 ReCall ########################
-        # corpus = [datasets["dataset_name"]+json.dumps(datasets["columns"], ensure_ascii=False) for datasets in datasets_info]
-        #
-        # tokenized_corpus = [jieba.lcut(doc) for doc in corpus]
-        #
-        # bm25 = BM25Okapi(tokenized_corpus)
-        #
-        # task_des_tokens = jieba.lcut(data_description)
-        # doc_scores = bm25.get_scores(task_des_tokens)
-        # top_indexes = np.argsort(doc_scores)[::-1][:5]
-        #
-        # recalled_dataset = [datasets_info[index] for index in top_indexes]
-        #
-        # dataset_names = [d["dataset_name"] for d in recalled_dataset]
-        # logger.info("BM25检索的数据集: {}".format(dataset_names))
-
-        ######################## 语义相似度 ReCall ########################
-        from embedding_models.embedding_model import Embedding_Model
-        corpus = [datasets["dataset_name"] + json.dumps(datasets["columns"], ensure_ascii=False) for datasets in
-                  datasets_info]
-        model = Embedding_Model("all-mpnet-base-v2")
-        pairs_sorted = model.get_scores([data_description], corpus,topk=7)
-        dataset_names = [datasets_info[index]["dataset_name"] for s, index in pairs_sorted]
-        logger.info("语义相似度检索的数据集: {}".format(dataset_names))
-
-        ######################## LLM ReRank ########################
-        system_prompt = RETR_DATASET_SYSTEM_PROMPT.format(datasets=dataset_names)
-        llm = get_llm()
-        msgs = [
+        sample_data = [
             {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": data_description
+                "column name": column,
+                "sample data": sample_values[column],
             }
+            for column, metadata in column_roles.items()
+            if metadata["role"] == "feature"
         ]
-        total_input_tokens = 0
-        total_output_tokens = 0
-        max_try = 3
-        retry_time = 0
-        while retry_time < max_try:
-            retry_time += 1
-            content, message, input_tokens, output_tokens, price = llm.predict(messages=msgs)
-            total_input_tokens += input_tokens
-            total_output_tokens += output_tokens
+        eda_result = eda_result.replace(
+            "{sample_data}",
+            json.dumps(sample_data, ensure_ascii=False),
+        )
 
-            content = load_json(content)
-            if content != {}:
-                if content["dataset_name"] in dataset_names:
-                    return content["dataset_name"], total_input_tokens,  total_output_tokens
-                else:
-                    feedback = f"你选择的数据集{content['dataset_name']}不合法，请从以下数据集中选择：{dataset_names}"
-            else:
-                feedback = "JSON解析错误！你的输出应该是一个严格的JSON，确保你的输出能够被python的json.loads()函数解析。重新选择一个数据集"
+        missing_values = data.isnull().sum()
+        missing_values = missing_values[missing_values > 0].to_string()
+        return eda_result.replace(
+            "{missing_value_check}", missing_values
+        )
 
-            msgs.append(message)
-            msgs.append({
-                "role": "user",
-                "content": feedback
-            })
 
-        return None, total_input_tokens,  total_output_tokens
+def resolve_dataset(
+    data_description: str,
+    backend: str,
+    db_config: Mapping[str, Any],
+    *,
+    user_requirement: str | None = None,
+    update_context: bool = True,
+) -> DatasetResolution:
+    """Convenience API for platform Actions."""
 
-def load_data(data_description, node_id):
-    data_loader = Data_Loader(AI_Studio())
-    return data_loader.run(data_description, node_id)
+    resolver = DatasetResolver(backend=backend, db_config=db_config)
+    return resolver.resolve(
+        data_description,
+        user_requirement=user_requirement,
+        update_context=update_context,
+    )
+
+
+class Data_Loader:
+    """Deprecated compatibility wrapper for the original tuple-returning API.
+
+    New platform Actions should call :func:`resolve_dataset` and apply the
+    returned resolution themselves.  ``ai_studio`` is accepted only so older
+    callers can still construct this class; this neutral wrapper never imports
+    or invokes AI Studio.
+    """
+
+    def __init__(
+        self,
+        ai_studio: Any | None = None,
+        annotation: bool = False,
+        *,
+        backend: str = "mysql",
+        db_config: Mapping[str, Any] | None = None,
+    ) -> None:
+        del annotation
+        self.ai_studio = ai_studio
+        self.backend = _validate_backend(backend)
+        self.db_config = dict(
+            db_config or _default_database_config(self.backend)
+        )
+        self.resolver = DatasetResolver(self.backend, self.db_config)
+        self.last_resolution: DatasetResolution | None = None
+
+    def run(
+        self,
+        data_description: str,
+        node_id: str | int | None = None,
+    ) -> tuple[str, float, int, int]:
+        del node_id
+        self.last_resolution = self.resolver.resolve(data_description)
+        return (
+            self.last_resolution.eda_result,
+            self.last_resolution.price,
+            self.last_resolution.input_tokens,
+            self.last_resolution.output_tokens,
+        )
+
+
+def load_data(
+    data_description: str,
+    node_id: str | int | None = None,
+    *,
+    backend: str = "mysql",
+    db_config: Mapping[str, Any] | None = None,
+) -> tuple[str, float, int, int]:
+    """Deprecated tuple-returning wrapper retained for existing imports."""
+
+    loader = Data_Loader(
+        backend=backend,
+        db_config=db_config,
+    )
+    return loader.run(data_description, node_id)
+
+
+def _validate_backend(backend: str) -> str:
+    if not isinstance(backend, str):
+        raise ValueError(
+            f"backend must be one of {SUPPORTED_DATABASE_BACKENDS}"
+        )
+    normalized = backend.strip().lower()
+    if normalized not in SUPPORTED_DATABASE_BACKENDS:
+        raise ValueError(
+            f"Unsupported database backend {backend!r}; "
+            f"expected one of {SUPPORTED_DATABASE_BACKENDS}"
+        )
+    return normalized
+
+
+def _normalize_database_config(
+    backend: str,
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(config, Mapping):
+        raise ValueError("db_config must be a mapping")
+
+    normalized = {
+        "host": config.get("host", config.get("server")),
+        "port": config.get("port"),
+        "user": config.get("user", config.get("username")),
+        "password": config.get("password"),
+        "database": config.get("database"),
+    }
+    if backend == "postgresql":
+        normalized["schema"] = config.get("schema", "public")
+
+    missing = [
+        key
+        for key, value in normalized.items()
+        if value is None or value == ""
+    ]
+    if missing:
+        raise ValueError(
+            f"Missing {backend} database configuration: {', '.join(missing)}"
+        )
+    return normalized
+
+
+def _validate_column_roles(
+    parsed: Any,
+    columns: list[str],
+) -> str | None:
+    if not isinstance(parsed, Mapping):
+        return (
+            "JSON解析错误。请返回严格 JSON，并为所有给定列配置 role 和 type。"
+        )
+    if set(parsed.keys()) != set(columns):
+        return (
+            "请重新输入，确保配置列与给定的数据集列完全一致，"
+            "不要遗漏或猜测列名。"
+        )
+
+    valid_roles = {"feature", "target", "meta", "skip"}
+    valid_types = {"numeric", "categorical", "datetime", "text"}
+    for column in columns:
+        value = parsed.get(column)
+        if not isinstance(value, Mapping):
+            return f"列 {column!r} 的配置必须是包含 role 和 type 的对象。"
+        if value.get("role") not in valid_roles:
+            return f"列 {column!r} 的 role 不合法，请重新配置所有列。"
+        if value.get("type") not in valid_types:
+            return f"列 {column!r} 的 type 不合法，请重新配置所有列。"
+    return None
+
+
+def _default_database_config(backend: str) -> Mapping[str, Any]:
+    # Kept lazy so importing the neutral resolver does not bind it to a
+    # platform or expose one platform's configuration to another.
+    if backend == "mysql":
+        from config import MySQL_Config
+
+        return MySQL_Config
+    from config import PG_CONFIG
+
+    return PG_CONFIG
+
+
+def _read_random_seed() -> int:
+    try:
+        from config import RANDOM_SEED
+
+        return int(RANDOM_SEED)
+    except (ImportError, TypeError, ValueError):
+        return 42
+
+
+def _read_current_instruction() -> str:
+    data_path = get_data_info_path()
+    try:
+        with open(data_path, "r", encoding="utf-8") as file:
+            data_info = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        return ""
+    instruction = data_info.get("instruction", "")
+    return instruction if isinstance(instruction, str) else str(instruction)
+
+
+def _json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, np.generic):
+        return _json_safe(value.item())
+    if isinstance(value, (datetime, date, time, pd.Timestamp)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if value is pd.NA:
+        return None
+    if isinstance(value, Mapping):
+        return {
+            str(key): _json_safe(item) for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    try:
+        if bool(pd.isna(value)):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return str(value)

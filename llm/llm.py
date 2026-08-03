@@ -52,8 +52,7 @@ class Qwen_Model:
 if __name__ == '__main__':
     import json
     messages = [
-        {"role": "system",
-         "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.\n\nCurrent Date: 2024-09-30"},
+        {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.\n\nCurrent Date: 2024-09-30"},
         {"role": "user", "content": "What's the temperature in San Francisco now? How about tomorrow?"},
     ]
     model = Qwen_Model()

@@ -1,0 +1,561 @@
+[
+  {
+    "widget_name": "File",
+    "widget_id": "orange.widgets.data.file",
+    "description": "用于加载示例数据集",
+    "type": "io",
+    "params": [
+      {
+        "name": "type",
+        "type": "str",
+        "default": "sample",
+        "description": "使用默认值sample即可"
+      },
+      {
+        "name": "filename",
+        "type": "str",
+        "default": "iris.csv",
+        "description": "示例数据集名称：必须是['heart_disease.csv', 'housing.csv', 'iris.csv', 'titanic.csv', 'zoo.csv']中的一个。"
+      }
+    ]
+  },
+  {
+    "widget_name": "SQL Table",
+    "widget_id": "orange.widgets.data.sql",
+    "description": "用于加载用户个人的表格数据。添加该组件时必须更新参数 data_description，系统会从配置的 PostgreSQL 数据库中检索并确认具体数据表。",
+    "type": "io",
+    "params": [
+      {
+        "name": "data_description",
+        "type": "str",
+        "default": "",
+        "description": "给出可能需要加载的数据集名称和可能的列名。该参数为必填项，系统会据此在 PostgreSQL 中确认具体数据表。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Rank",
+    "widget_id": "Orange.widgets.data.owrank",
+    "description": "用于计算特征的重要性，对特征重要性进行排序。",
+    "type": "feature engineering",
+    "params": []
+  },
+  {
+    "widget_name": "Edit Domain",
+    "widget_id": "Orange.widgets.data.oweditdomain",
+    "description": "用于修改离散字段的类别标签，例如将 gender 列中的“男”“女”标签改为“0”“1”；转换结果仍然是离散类别。",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "column_name",
+        "type": "str",
+        "default": "",
+        "description": "需要修改类别标签的离散字段名。仅支持 Orange 离散变量，不用于连续数值、字符串或时间字段的值替换。"
+      },
+      {
+        "name": "valueMappings",
+        "type": "list",
+        "default": [],
+        "description": "离散类别标签的映射列表。每项格式为：{\"key\": int, \"originValue\": 原类别标签, \"currentValue\": 新类别标签}；key 必须从 0 开始连续编号，未配置的类别保持原标签。例如可把类别标签“男”“女”改为“0”“1”。注意：转换后的“0”“1”仍然是离散类别标签，不是连续数值；该参数不支持替换连续字段中的具体数值。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Save Data",
+    "widget_id": "Orange.widgets.data.owsave",
+    "description": "当用户明确要求需要保存数据，才会使用该组件",
+    "type": "io",
+    "params": []
+  },
+  {
+    "widget_name": "Data Sampler",
+    "widget_id": "Orange.widgets.data.owdatasampler",
+    "description": "用于数据集划分，数据抽样。用户没有要求划分数据就不要使用。***独热编码处理应该在数据划分之前，数据划分节点的输出不要连接数据处理组件。***",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "sampling_type",
+        "type": "int",
+        "default": 0,
+        "description": "抽样类型，0：固定比例，1：固定样本大小，2：交叉验证，3：自助式抽样"
+      },
+      {
+        "name": "percentage",
+        "type": "int",
+        "default": 10,
+        "description": "固定比例，抽样时的抽样比例设置。当抽样类型为0时需配置，否则保持默认即可。抽样的数据属于测试数据，比如，要求20%的测试数据，则该值为20"
+      },
+      {
+        "name": "n_samples",
+        "type": "int",
+        "default": 15,
+        "description": "固定样本大小，抽样时抽样的样本大小。当抽样类型为1时需配置，否则保持默认即可。"
+      },
+      {
+        "name": "replacement",
+        "type": "bool",
+        "default": false,
+        "description": "固定样本大小时是否允许有放回抽样"
+      },
+      {
+        "name": "n_folds",
+        "type": "int",
+        "default": 10,
+        "description": "交叉验证抽样时，样本折数。当抽样类型为2时需配置，否则保持默认即可。"
+      },
+      {
+        "name": "selected_folds",
+        "type": "int",
+        "default": 1,
+        "description": "交叉验证抽样时，测试集折数。当抽样类型为2时需配置，否则保持默认即可。"
+      },
+      {
+        "name": "replicable",
+        "type": "bool",
+        "default": false,
+        "description": "是否支持可重复抽样"
+      },
+      {
+        "name": "stratified",
+        "type": "bool",
+        "default": false,
+        "description": "是否支持分层抽样"
+      }
+    ]
+  },
+  {
+    "widget_name": "Select Columns",
+    "widget_id": "Orange.widgets.data.owselectcolumns",
+    "description": "用于剔除特定的特征，无明确要求不要使用。用于对每一个特征进行筛选：feature为一般特征属性，target为目标属性，必须配置目标列，ignore为对预测无用的属性(例如ID列)。",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "ignores",
+        "type": "list",
+        "default": [],
+        "description": "需要移除的属性"
+      },
+      {
+        "name": "features",
+        "type": "list",
+        "default": [],
+        "description": "一般特征属性"
+      },
+      {
+        "name": "targets",
+        "type": "str",
+        "default": "",
+        "description": "目标属性，有且只能有一个。该列必须进行配置！"
+      }
+    ]
+  },
+  {
+    "widget_name": "Unique",
+    "widget_id": "Orange.widgets.data.owunique",
+    "description": "用于对数据进行去重，当不指定分组属性时会针对整个数据集中重复数据进行去重操作，在去重操作时可以指定是否删除全部的重复数据或保留第一行或最后一行的重复数据。",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "selGroupByVariables",
+        "type": "list",
+        "default": [],
+        "description": "哪些属性相同算是重复值，默认当所有属性都相同才算是重复值，此时应将所有列填入列表。"
+      },
+      {
+        "name": "configure",
+        "type": "str",
+        "default": "Last instance",
+        "description": "去重配置，Last instance：最后一个值, First instance：第一个值，Drop：删除重复值"
+      }
+    ]
+  },
+  {
+    "widget_name": "Impute",
+    "widget_id": "Orange.widgets.data.owimpute",
+    "description": "用于处理一般表格数据中的缺失值。",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "method",
+        "type": "int",
+        "default": 1,
+        "description": "缺失值填补方法，1：不填补，2：平均值或频繁值，3：基于模型，4：随机值，5：删除缺失值所在的行"
+      }
+    ]
+  },
+  {
+    "widget_name": "Continuize",
+    "widget_id": "Orange.widgets.data.owcontinuize",
+    "description": "用于对离散型特征进行连续化处理。无明确要求不要使用",
+    "type": "preprocess",
+    "params": [
+      {
+        "name": "multi_attr",
+        "type": "int",
+        "default": 0,
+        "description": "一般离散属性连续化处理方法，0：以目标/第一个取值为基础，1：以最频值为基础，2：每个取值一个属性，类似独热编码。3：移除所有离散属性，4：转换为有序值，标签编码。5：根据取值数量划分"
+      },
+      {
+        "name": "cont_attr",
+        "type": "int",
+        "default": 0,
+        "description": "连续属性连续化处理方法，0：不做任何处理。1：处理过程为将原始值减去最小值并除以最大跨度，因此所有转化后的值都将在 0-1 之间。2：处理过程为原始值减去平均值再除以偏差。"
+      },
+      {
+        "name": "disc_cls_attr",
+        "type": "int",
+        "default": 0,
+        "description": "离散目标属性连续化处理方法，0：不做任何处理。1：转换为有序值，标签编码。2：根据取值数量划分，3：每个取值一个属性，类似独热编码。"
+      },
+      {
+        "name": "range",
+        "type": "int",
+        "default": 0,
+        "description": "连续化取值范围，0表示[-1,1]，1表示[0,1]"
+      }
+    ]
+  },
+  {
+    "widget_name": "Formula",
+    "widget_id": "Orange.widgets.data.owfeatureconstructor",
+    "description": "用于进行特征构建，构建一个新特征。创建一个新列。",
+    "type": "feature engineering",
+    "params": [
+      {
+        "name": "expressions",
+        "type": "list",
+        "default": [],
+        "description": "需要构建的新特征表达式列表。每项格式为：{\"key\": int, \"name\": str, \"expression\": str, \"type\": str, \"image\": str, \"categories\": str}。key 必须从 0 开始连续编号；name 是新字段名；expression 是 Orange 支持的 Python 表达式。数值特征使用 type=\"2\"、image=\"N\"，expression 直接返回数值，categories 可留空。离散特征使用 type=\"1\"、image=\"C\"；categories 使用逗号分隔并保留实际有语义的类别标签，其排列顺序就是类别索引，expression 必须返回从 0 开始的整数索引，而不是返回类别标签字符串。例如 categories=\"minor,adult\" 时，expression=\"0 if age < 18 else 1\"，返回 0 表示 minor，返回 1 表示 adult；不要写成 expression=\"'minor' if age < 18 else 'adult'\"。表达式返回的索引必须位于 0 到类别数量减 1 的范围内。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Scatter Plot",
+    "widget_id": "Orange.widgets.visualize.owscatterplot",
+    "description": "用于绘制散点图。",
+    "type": "visualize",
+    "params": []
+  },
+  {
+    "widget_name": "Line Plot",
+    "widget_id": "Orange.widgets.visualize.owlineplot",
+    "description": "用于构建折线图，可用于可视化时序数据或多条数据曲线的走势。Orange3 Line Plot 接收数据输入，不要求像 Uniplore Line Chart 一样固定连接模型输出和训练数据两条边。",
+    "type": "visualize",
+    "params": []
+  },
+  {
+    "widget_name": "kNN",
+    "widget_id": "Orange.widgets.model.owknn",
+    "description": "用于构建K近邻模型。该模型适用于表格分类和表格回归任务。",
+    "type": "model",
+    "params": [
+      {
+        "name": "n_neighbors",
+        "type": "int",
+        "default": 5,
+        "description": "邻节点个数,取值范围为：1~100"
+      },
+      {
+        "name": "metric",
+        "type": "str",
+        "default": "euclidean",
+        "description": "用于距离计算的度量，取值范围为：1.euclidean：“直线”，两点之间的距离, 2.manhattan：所有属性的绝对差之和, 3.mahalanobis：点与分布之间的距离, 4.chebyshev：切比雪夫"
+      },
+      {
+        "name": "weights",
+        "type": "str",
+        "default": "uniform",
+        "description": "预测中使用的权重函数，取值范围为：1.uniform：每个邻居的所有点都是平等的, 2.distance：距离查询点较近的邻节点比较远的邻节点影响更大"
+      }
+    ]
+  },
+  {
+    "widget_name": "Tree",
+    "widget_id": "Orange.widgets.model.owtree",
+    "description": "用于构建决策树模型。该模型适用于表格分类和表格回归任务。",
+    "type": "model",
+    "params": [
+      {
+        "name": "limit_min_leaf",
+        "type": "bool",
+        "default": true,
+        "description": "是否设置叶子节点中的最小实例数"
+      },
+      {
+        "name": "min_leaf",
+        "type": "int",
+        "default": 2,
+        "description": "叶子节点中的最小实例数"
+      },
+      {
+        "name": "limit_min_internal",
+        "type": "bool",
+        "default": true,
+        "description": "是否设置分割子集数"
+      },
+      {
+        "name": "min_internal",
+        "type": "int",
+        "default": 5,
+        "description": "分割子集数"
+      },
+      {
+        "name": "limit_depth",
+        "type": "bool",
+        "default": true,
+        "description": "是否设置最大数深度"
+      },
+      {
+        "name": "max_depth",
+        "type": "int",
+        "default": 100,
+        "description": "最大数深度"
+      }
+    ]
+  },
+  {
+    "widget_name": "Random Forest",
+    "widget_id": "Orange.widgets.model.owrandomforest",
+    "description": "用于构建随机森林模型，该模型适用于表格分类和表格回归任务。",
+    "type": "model",
+    "params": [
+      {
+        "name": "n_estimators",
+        "type": "int",
+        "default": 10,
+        "description": "数的数量"
+      },
+      {
+        "name": "use_max_features",
+        "type": "bool",
+        "default": false,
+        "description": "是否每次拆分时考虑属性数"
+      },
+      {
+        "name": "max_features",
+        "type": "str",
+        "default": "auto",
+        "description": "考虑属性数，最大不得超过数据集的特征属性数大小。Orange 原生控件仅支持正整数字符串；auto 等无法表示的值会保存在工作流信息中，但不会在 Orange 控件中生效。"
+      },
+      {
+        "name": "use_random_state",
+        "type": "bool",
+        "default": false,
+        "description": "是否启用随机种子"
+      },
+      {
+        "name": "use_max_depth",
+        "type": "bool",
+        "default": false,
+        "description": "是否限制单颗树的深度"
+      },
+      {
+        "name": "max_depth",
+        "type": "int",
+        "default": 3,
+        "description": "单颗树的深度"
+      },
+      {
+        "name": "use_min_samples_split",
+        "type": "bool",
+        "default": true,
+        "description": "是否启用子集数目停止划分"
+      },
+      {
+        "name": "min_samples_split",
+        "type": "int",
+        "default": 2,
+        "description": "小于子集的数目停止划分"
+      }
+    ]
+  },
+  {
+    "widget_name": "Gradient Boosting",
+    "widget_id": "Orange.widgets.model.owgradientboosting",
+    "description": "用于构建梯度提升决策树模型，该模型适用于表格分类和表格回归任务。",
+    "type": "model",
+    "params": [
+      {
+        "name": "loss_function",
+        "type": "int",
+        "default": 0,
+        "description": "损失函数。该参数会保存在工作流信息中；当前 Orange 控件没有对应 Setting，因此非默认值不会在 Orange 控件中生效。"
+      },
+      {
+        "name": "n_estimators",
+        "type": "int",
+        "default": 10,
+        "description": "树的数量,取值范围为：1~1000"
+      },
+      {
+        "name": "learning_rate",
+        "type": "float",
+        "default": 0.1,
+        "description": "学习率,取值范围为：0.0~1.0"
+      },
+      {
+        "name": "use_max_depth",
+        "type": "bool",
+        "default": false,
+        "description": "是否应用最大深度"
+      },
+      {
+        "name": "max_depth",
+        "type": "int",
+        "default": 3,
+        "description": "最大深度,取值范围为：1~∞"
+      },
+      {
+        "name": "use_min_samples",
+        "type": "bool",
+        "default": false,
+        "description": "是否应用最小样本数"
+      },
+      {
+        "name": "min_samples",
+        "type": "int",
+        "default": 2,
+        "description": "最小样本数,取值范围为：1~∞"
+      }
+    ]
+  },
+  {
+    "widget_name": "Linear Regression",
+    "widget_id": "Orange.widgets.model.owlinearregression",
+    "description": "用于构建线性回归模型。***该模型只能用于表格回归任务***",
+    "type": "model",
+    "params": [
+      {
+        "name": "regression_type",
+        "type": "str",
+        "default": "0",
+        "description": "规则化方法，必须为['0','1','2','3']中的字符，分别表示无规则化、套索回归、岭回归和弹性网络回归"
+      }
+    ]
+  },
+  {
+    "widget_name": "Logistic Regression",
+    "widget_id": "Orange.widgets.model.owlogisticregression",
+    "description": "用于构建逻辑回归模型。***该模型只能用于表格分类任务***",
+    "type": "model",
+    "params": [
+      {
+        "name": "C",
+        "type": "float",
+        "default": 1,
+        "description": "惩罚力度，必须为0.001~1000之间的浮点数。无法由 Orange 滑块精确表示的值会保存在工作流信息中，但不会在 Orange 控件中生效。"
+      },
+      {
+        "name": "penalty",
+        "type": "str",
+        "default": "l2",
+        "description": "正则化方法，取值范围为：l1和l2，分别表示套索回归和岭回归正则化方法。"
+      }
+    ]
+  },
+  {
+    "widget_name": "Naive Bayes",
+    "widget_id": "Orange.widgets.model.ownaivebayes",
+    "description": "用于构建朴素贝叶斯分类模型。Orange3 的 Naive Bayes 仅适用于表格分类任务，不支持表格回归任务。",
+    "type": "model",
+    "params": [
+      {
+        "name": "name",
+        "type": "str",
+        "default": "Naive Bayes",
+        "description": "模型名称，一般使用默认即可，当有多个相同模型时，需要通过该参数区分，比如'Naive Bayes1'、'Naive Bayes2'"
+      }
+    ]
+  },
+  {
+    "widget_name": "Neural Network",
+    "widget_id": "Orange.widgets.model.owneuralnetwork",
+    "description": "用于构建神经网络模型，该模型适用于表格分类和表格回归任务。由于神经网络模型开销较大，除非用户要求使用它，否则不要用它进行模型训练",
+    "type": "model",
+    "params": [
+      {
+        "name": "hidden_layers_input",
+        "type": "str",
+        "default": "100,",
+        "description": "隐藏层配置,格式为：'节点数,节点数,...',例如：'100,50,20'"
+      },
+      {
+        "name": "activation",
+        "type": "str",
+        "default": "3",
+        "description": "激活函数,取值范围为：0.Identity：恒等函数，1.Logistic：逻辑函数，2.tanh：双曲正切函数，3.ReLu：修正线性单元"
+      },
+      {
+        "name": "solver",
+        "type": "str",
+        "default": "2",
+        "description": "优化方法,取值范围为：0.L-BFGS-B：拟牛顿法，1.SGD：随机梯度下降，2.Adam：自适应矩估计"
+      },
+      {
+        "name": "alpha",
+        "type": "float",
+        "default": 0.0001,
+        "description": "正则项α，取值范围为0.0~1.0。无法由 Orange 滑块精确表示的值会保存在工作流信息中，但不会在 Orange 控件中生效。"
+      },
+      {
+        "name": "maxItera",
+        "type": "int",
+        "default": 200,
+        "description": "最大迭代次数,取值范围为：1~1000"
+      },
+      {
+        "name": "replicable",
+        "type": "bool",
+        "default": true,
+        "description": "是否启用可复制训练"
+      }
+    ]
+  },
+  {
+    "widget_name": "Test and Score",
+    "widget_id": "Orange.widgets.evaluate.owtestandscore",
+    "description": "Test and Score 组件接收数据抽样后的数据以及待评估的模型算法，然后该组件会开始对模型算法进行评估。一定记住要使用 Test and Score 对模型进行评估，必须连接三条边，以便获取输入训练数据、测试数据和待评估的模型。",
+    "type": "evaluate",
+    "params": []
+  },
+  {
+    "widget_name": "Predictions",
+    "widget_id": "Orange.widgets.evaluate.owpredictions",
+    "description": "用于预测一般的表格数据集但是不能用于时序数据，该组件需要输入数据和模型，注意添加这两条边。",
+    "type": "predict",
+    "params": [
+      {
+        "name": "output_attrs",
+        "type": "bool",
+        "default": true,
+        "description": "是否输出属性。该参数会保存在工作流信息中；Orange Predictions 固定保留输入属性，因此 false 不会在控件中生效。"
+      },
+      {
+        "name": "output_predictions",
+        "type": "bool",
+        "default": true,
+        "description": "是否输出预测值。该参数会保存在工作流信息中；Orange Predictions 固定输出预测列，因此 false 不会在控件中生效。"
+      },
+      {
+        "name": "output_probabilities",
+        "type": "bool",
+        "default": false,
+        "description": "是否输出预测概率，回归任务不需要，分类任务需要设置为true"
+      }
+    ]
+  },
+  {
+    "widget_name": "Confusion Matrix",
+    "widget_id": "Orange.widgets.evaluate.owconfusionmatrix",
+    "description": "用于输出预测结果的混淆矩阵",
+    "type": "visualize",
+    "params": []
+  },
+  {
+    "widget_name": "Correlations",
+    "widget_id": "Orange.widgets.data.owcorrelations",
+    "description": "用于相关图，可用于可视化属性之间的相关性。",
+    "type": "visualize",
+    "params": []
+  }
+]

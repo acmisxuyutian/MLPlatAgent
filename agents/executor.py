@@ -1,14 +1,23 @@
 # -*- coding: utf-8 -*-
+import ast
 import json
 import os
 import time
 
 from utils.logs import logger
 from llm.llm import Qwen_Model
-from utils.utils import get_project_root, load_json, load_python
+from utils.utils import (
+    get_data_info_path,
+    get_project_root,
+    load_json,
+    load_python,
+)
 from ml_platform.actions import action_agent
 from prompts.executor_prompts import TOOLS_PROMPT, Experiences
 
+# Retained for compatibility with code and tests that inspect the five
+# operation API.  Execution itself uses ``_build_execution_scope`` below so
+# successful calls can be recorded without changing the LLM-facing functions.
 CODE_INI = """from ml_platform.actions import action_agent
 
 def add_node(widget_name, node_name):
@@ -33,18 +42,267 @@ def delete_edge(edge_id):
     return action_agent.delete_edge(args)
 """
 
+
+WORKFLOW_OPERATION_NAMES = {
+    "add_node",
+    "delete_node",
+    "update_node_params",
+    "add_edge",
+    "delete_edge",
+}
+
+
+class WorkflowCodeValidationError(ValueError):
+    """Raised when generated code escapes the five-operation API."""
+
+
+def _validate_workflow_value(node, defined_variables):
+    if isinstance(node, ast.Constant):
+        return
+    if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+        if node.id not in defined_variables:
+            raise WorkflowCodeValidationError(
+                f"未定义的安全变量：{node.id}"
+            )
+        return
+    if isinstance(node, (ast.List, ast.Tuple)):
+        for element in node.elts:
+            _validate_workflow_value(element, defined_variables)
+        return
+    if isinstance(node, ast.Dict):
+        for key, value in zip(node.keys, node.values):
+            if key is None:
+                raise WorkflowCodeValidationError("不允许字典解包")
+            _validate_workflow_value(key, defined_variables)
+            _validate_workflow_value(value, defined_variables)
+        return
+    if (
+        isinstance(node, ast.UnaryOp)
+        and isinstance(node.op, (ast.UAdd, ast.USub))
+        and isinstance(node.operand, ast.Constant)
+        and isinstance(node.operand.value, (int, float))
+    ):
+        return
+    raise WorkflowCodeValidationError(
+        "工作流操作参数只能使用字面量或本段代码定义的安全变量"
+    )
+
+
+def _validate_workflow_call(call, defined_variables):
+    if not isinstance(call.func, ast.Name):
+        raise WorkflowCodeValidationError("不允许属性调用或动态函数调用")
+    if call.func.id not in WORKFLOW_OPERATION_NAMES:
+        raise WorkflowCodeValidationError(
+            f"不允许调用函数：{call.func.id}"
+        )
+    for argument in call.args:
+        _validate_workflow_value(argument, defined_variables)
+    for keyword in call.keywords:
+        if keyword.arg is None:
+            raise WorkflowCodeValidationError("不允许关键字参数解包")
+        _validate_workflow_value(keyword.value, defined_variables)
+
+
+def validate_workflow_code(code):
+    """Allow only direct calls from the documented workflow operation space."""
+    try:
+        tree = ast.parse(code, mode="exec")
+    except SyntaxError as exc:
+        raise WorkflowCodeValidationError(
+            f"Python 语法错误：{exc.msg}"
+        ) from exc
+
+    defined_variables = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.Expr) and isinstance(
+            statement.value,
+            ast.Call,
+        ):
+            _validate_workflow_call(
+                statement.value,
+                defined_variables,
+            )
+            continue
+        if isinstance(statement, ast.Assign):
+            if (
+                len(statement.targets) != 1
+                or not isinstance(statement.targets[0], ast.Name)
+            ):
+                raise WorkflowCodeValidationError(
+                    "仅允许对单个安全变量赋值"
+                )
+            target_name = statement.targets[0].id
+            if (
+                target_name in defined_variables
+                or target_name in WORKFLOW_OPERATION_NAMES
+                or target_name == "action_agent"
+                or target_name.startswith("__")
+            ):
+                raise WorkflowCodeValidationError(
+                    f"不允许定义或重复赋值变量：{target_name}"
+                )
+            if isinstance(statement.value, ast.Call):
+                _validate_workflow_call(
+                    statement.value,
+                    defined_variables,
+                )
+                if (
+                    not isinstance(statement.value.func, ast.Name)
+                    or statement.value.func.id != "add_node"
+                ):
+                    raise WorkflowCodeValidationError(
+                        "仅允许使用变量接收 add_node 的返回值"
+                    )
+            else:
+                _validate_workflow_value(
+                    statement.value,
+                    defined_variables,
+                )
+            defined_variables.add(target_name)
+            continue
+        raise WorkflowCodeValidationError(
+            "每条语句必须是工作流操作调用、add_node 返回值赋值，"
+            "或工作流操作参数的字面量赋值"
+        )
+    return True
+
+
+class _WorkflowEditRecorder:
+    """Record successful calls from the five-operation workflow API.
+
+    Runtime node IDs are platform-assigned and therefore cannot be compared
+    directly across experiment runs.  Nodes created during the current Agent
+    run receive stable local aliases; IDs from the input workflow remain
+    opaque literals and are anonymized by the evaluation function.
+    """
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self._operations = []
+        self._created_node_aliases = {}
+
+    def get_operations(self):
+        return list(self._operations)
+
+    def _node_reference(self, node_id):
+        alias = self._created_node_aliases.get(str(node_id))
+        return alias if alias is not None else repr(node_id)
+
+    @staticmethod
+    def _normalized_params(node_params):
+        if isinstance(node_params, str):
+            try:
+                decoded = json.loads(node_params)
+            except json.JSONDecodeError:
+                return node_params
+            if isinstance(decoded, dict):
+                return decoded
+        return node_params
+
+    def record_add_node(self, node_id, widget_name, node_name):
+        alias = f"_added_node_{len(self._created_node_aliases) + 1}"
+        self._created_node_aliases[str(node_id)] = alias
+        self._operations.append(
+            f"{alias} = add_node({widget_name!r}, {node_name!r})"
+        )
+
+    def record_delete_node(self, node_id):
+        self._operations.append(
+            f"delete_node({self._node_reference(node_id)})"
+        )
+
+    def record_update_node_params(
+        self,
+        node_id,
+        widget_name,
+        node_params,
+    ):
+        normalized_params = self._normalized_params(node_params)
+        self._operations.append(
+            "update_node_params("
+            f"{self._node_reference(node_id)}, "
+            f"{widget_name!r}, "
+            f"{normalized_params!r})"
+        )
+
+    def record_add_edge(self, source_node_id, target_node_id):
+        self._operations.append(
+            "add_edge("
+            f"{self._node_reference(source_node_id)}, "
+            f"{self._node_reference(target_node_id)})"
+        )
+
+    def record_delete_edge(self, edge_id):
+        self._operations.append(f"delete_edge({edge_id!r})")
+
+
+def _build_execution_scope(current_action_agent, recorder):
+    """Build the runtime API exposed to LLM-generated workflow code."""
+
+    def add_node(widget_name, node_name):
+        args = {"widget_name": widget_name, "node_name": node_name}
+        node_id = current_action_agent.add_node(args)
+        recorder.record_add_node(node_id, widget_name, node_name)
+        return node_id
+
+    def delete_node(node_id):
+        args = {"node_id": node_id}
+        result = current_action_agent.delete_node(args)
+        recorder.record_delete_node(node_id)
+        return result
+
+    def update_node_params(node_id, widget_name, node_params):
+        args = {
+            "node_id": node_id,
+            "widget_name": widget_name,
+            "node_params": node_params,
+        }
+        result = current_action_agent.update_node_params(args)
+        recorder.record_update_node_params(
+            node_id,
+            widget_name,
+            node_params,
+        )
+        return result
+
+    def add_edge(source_node_id, target_node_id):
+        args = {
+            "source_node_id": source_node_id,
+            "target_node_id": target_node_id,
+        }
+        result = current_action_agent.add_edge(args)
+        recorder.record_add_edge(source_node_id, target_node_id)
+        return result
+
+    def delete_edge(edge_id):
+        args = {"edge_id": edge_id}
+        result = current_action_agent.delete_edge(args)
+        recorder.record_delete_edge(edge_id)
+        return result
+
+    return {
+        "__name__": "__workflow_operations__",
+        "action_agent": current_action_agent,
+        "add_node": add_node,
+        "delete_node": delete_node,
+        "update_node_params": update_node_params,
+        "add_edge": add_edge,
+        "delete_edge": delete_edge,
+    }
+
+
 class Executor:
 
     def __init__(self, annotation, tool_retrieve_type = 0, user_intent=None):
         self.llm = Qwen_Model()
         self.project_root = get_project_root()
-        self.widgets_path = os.path.join(self.project_root, r"data/ml_platform_data_example/widgets.json")
-        with open(self.widgets_path, encoding='utf-8') as  f:
-            self.widgets = json.load(f)
-
         self.action_agent = action_agent
+        self.widgets_path = self.action_agent.widgets_path
+        self.widgets = self.action_agent.widgets
 
-        self.actions_path = os.path.join(self.project_root, r'data/ml_platform_data_example/actions_zh.json')
+        self.actions_path = os.path.join(self.project_root, r'data/actions_zh.json')
         with open(self.actions_path, encoding='utf-8') as  f:
             self.actions = json.load(f)
         # 0: 默认，1: 去掉基于类型的检索，2：去掉基于语义相似的检索（HuggingGPT），3：去掉基于LLM的检索，4：仅仅保留基于语义相似度检索
@@ -60,6 +318,14 @@ class Executor:
             "widget_retrieval": 0,
             "operation_sequence_generation": 0
         }
+        self.widget_retrieval_status = None
+        self._workflow_edit_recorder = _WorkflowEditRecorder()
+
+    def reset_workflow_edit_sets(self):
+        self._workflow_edit_recorder.reset()
+
+    def get_workflow_edit_sets(self):
+        return self._workflow_edit_recorder.get_operations()
 
     def run(self, task, case_number, retriever):
         return self.act(task, case_number, retriever)
@@ -82,8 +348,21 @@ class Executor:
         self.time_cost["widget_retrieval"] += (end_time - begin_time)
 
         result["widgets"] = relevant_widgets
-        if relevant_widgets == [] and self.user_intent != "Modify":
+        if (
+            relevant_widgets == []
+            and self.user_intent != "Modify"
+            and self.widget_retrieval_status == "no_component_needed"
+            and task["type"] in {"preprocess", "feature engineering"}
+        ):
+            result["skipped"] = True
+            result["reason"] = "当前数据状态不需要执行该可选处理步骤"
             return result, True
+        if relevant_widgets == [] and self.user_intent != "Modify":
+            result["error"] = (
+                f"当前平台 {self.action_agent.platform_name} "
+                f"没有找到可完成任务“{task['description']}”的组件。"
+            )
+            return result, False
 
         self.action_agent.relevant_widgets_names = [w["widget_name"]for w in relevant_widgets]
         if case_number > 0:
@@ -122,14 +401,17 @@ class Executor:
                 str_case += case + "\n"
             i = system_prompt.rfind("\n# 演示案例")
             system_prompt = system_prompt[:i] + str_case + system_prompt[i:]
-        data_path = os.path.join(get_project_root(), r"data/data_info.json")
+        data_path = get_data_info_path()
         with open(data_path, 'r', encoding='utf-8') as f:
             data_info = json.load(f)
         is_timeseries_model = False
         if task["type"] == "model":
             for rw in relevant_widgets:
                 for w in self.widgets:
-                    if w["widget_name"] == rw["widget_name"] and w["package"] == "timeseries":
+                    if (
+                        w["widget_name"] == rw["widget_name"]
+                        and w.get("package") == "timeseries"
+                    ):
                         is_timeseries_model = True
         if is_timeseries_model:
             user_prompt = f"我的总目标为：{data_info['instruction']}，现在需要你帮我完成的任务为：{task['description']}" + "\n工作流状态\n" + workflow_info + "\n数据集信息\n" + data_info["dataset_info"]
@@ -188,19 +470,42 @@ class Executor:
             is_succ, content = load_python(content)
             result["codes"] = content
             if is_succ:
-                code = f"{CODE_INI}\naction_agent.relevant_widgets_names = {self.action_agent.relevant_widgets_names}\n" + content
                 try:
-                    exec(code)
+                    validate_workflow_code(content)
+                except WorkflowCodeValidationError as exc:
+                    result["error"] = (
+                        "生成代码超出允许的工作流操作空间："
+                        f"{exc}"
+                    )
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "给出的代码超出了允许的五种工作流编辑操作："
+                            f"{exc}。请只调用 add_node、delete_node、"
+                            "update_node_params、add_edge、delete_edge，"
+                            "不要生成或执行任意 Python 代码。"
+                        ),
+                    })
+                    continue
+                try:
+                    execution_scope = _build_execution_scope(
+                        self.action_agent,
+                        self._workflow_edit_recorder,
+                    )
+                    exec(content, execution_scope)
                     end_time = time.time()
                     self.time_cost["operation_sequence_generation"] += (end_time - begin_time)
+                    result.pop("error", None)
                     return result, True
                 except Exception as e:
+                    result["error"] = f"工作流操作执行失败：{e}"
                     workflow_info = json.dumps(self.action_agent.get_workflow(), ensure_ascii=False)
                     messages.append({
                         "role": "user",
                         "content": f"给出的函数调用执行出错了：{e}。***工作流状态已更新为：{workflow_info}***\n你要先反思犯错的原因，避免再犯同样的错。最后请*****基于新的工作流******重新给出正确的函数调用代码！"
                     })
             else:
+                result["error"] = f"函数调用代码格式错误：{content}"
                 messages.append({
                     "role": "user",
                     "content": f"给出的函数调用代码格式错误：{content}。你是输出应该有且只有一个Python代码块：```python\n生成的函数调用代码\n```"
@@ -216,11 +521,13 @@ class Executor:
         1. Recall: 召回相关组件的方法：基于任务类型和BM25进行召回top-k
         2. Rank: 使用 LLM 对召回的组件进行选择
         """
+        self.widget_retrieval_status = "searching"
         relevant_widgets = []
-        data_path = os.path.join(get_project_root(), r"data/data_info.json")
+        data_path = get_data_info_path()
         with open(data_path, 'r', encoding='utf-8') as f:
             data_info = json.load(f)
         if self.user_intent != "Modify" and data_info["dataset_info"] == "" and task["type"] in ["preprocess","feature engineering"]:
+            self.widget_retrieval_status = "missing_dataset_context"
             return []
         ############################################### 1.根据任务类型对组件进行初筛 ###############################################
         widgets = []
@@ -231,23 +538,39 @@ class Executor:
                 if widget["type"] == task["type"]:
                     widgets.append({
                         "widget_name": widget["widget_name"],
-                        "package": widget["package"],
-                        "image": widget["image"],
+                        "package": widget.get("package", widget["type"]),
+                        "image": widget.get("image", ""),
                         "description": widget["description"],
                         "params": widget["params"]
                     })
             else:
                 widgets.append({
                     "widget_name": widget["widget_name"],
-                    "package": widget["package"],
-                    "image": widget["image"],
+                    "package": widget.get("package", widget["type"]),
+                    "image": widget.get("image", ""),
                     "description": widget["description"],
                     "params": widget["params"]
                 })
 
+        # Some platform catalogs use their own coarse category names. When the
+        # active catalog has no exact task-type match, keep retrieval platform
+        # agnostic by searching the complete catalog instead of hard-coding a
+        # component mapping in the Agent core.
+        if not widgets and self.tool_retrieve_type in [0, 2, 3]:
+            widgets = [
+                {
+                    "widget_name": widget["widget_name"],
+                    "package": widget.get("package", widget["type"]),
+                    "image": widget.get("image", ""),
+                    "description": widget["description"],
+                    "params": widget["params"]
+                }
+                for widget in self.widgets
+            ]
+
         widget_names = [widget["widget_name"] for widget in widgets]
 
-        if task["type"] == "io":
+        if task["type"] == "io" and "File" in widget_names:
             file_index = widget_names.index("File")
             if task["description"].rfind("示例数据") != -1 or task["description"].rfind("example dataset") != -1:
                 relevant_widgets = [{
@@ -256,10 +579,15 @@ class Executor:
                     "params": widgets[file_index]["params"]
                 }]
                 logger.info(f"最终检索到的相关组件为：['File']")
+                self.widget_retrieval_status = "selected"
                 return relevant_widgets
             else:
                 widgets.pop(file_index)
                 widget_names.pop(file_index)
+
+        if not widgets:
+            self.widget_retrieval_status = "no_platform_widgets"
+            return []
 
         ############################################### 2.语义相似度 Recall ###############################################
         if len(widgets) > topk and self.tool_retrieve_type in [0, 1, 3, 4]:
@@ -328,6 +656,9 @@ class Executor:
                     try:
                         # 检查选择的组件列表是否为空
                         if len(content["widget_names"]) == 0:
+                            self.widget_retrieval_status = (
+                                "no_component_needed"
+                            )
                             return []
                         else:
                             # 若选择了组件，检查选择的组件是否合法
@@ -354,6 +685,13 @@ class Executor:
             logger.info("不进行LLM检索")
             content = {}
             content["widget_names"] = relevant_widgets_names
+        if (
+            not isinstance(content, dict)
+            or not isinstance(content.get("widget_names"), list)
+        ):
+            self.widget_retrieval_status = "invalid_selection"
+            return []
+
         relevant_widgets = []
         relevant_widget_names = content["widget_names"]
         for relevant_widget_name in relevant_widget_names:
@@ -365,6 +703,9 @@ class Executor:
                     "params": widgets[relevant_widget_index]["params"]
                 })
         logger.info(f"最终检索到的相关组件为：{relevant_widget_names}")
+        self.widget_retrieval_status = (
+            "selected" if relevant_widgets else "invalid_selection"
+        )
         return relevant_widgets
 
     def retrieve_case(self, task, case_number, retriever):

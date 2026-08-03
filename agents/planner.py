@@ -3,7 +3,7 @@ import json
 import os
 
 from llm.llm import Qwen_Model
-from utils.utils import load_json, get_project_root
+from utils.utils import load_json, get_project_root, update_data_info
 from prompts.planner_prompts import INTENT_PROMPT, PLAN_PROMPT, Experiences
 from utils.logs import logger
 from ml_platform.actions import action_agent
@@ -92,6 +92,8 @@ class Planner:
         """
         if user_intent != "Modify":
             self.action_agent.clear_workflow()
+            update_data_info(dataset_info="")
+            self.current_workflow = {"edges": [], "nodes": []}
         self.current_workflow = json.dumps(self.current_workflow, ensure_ascii=False)
         logger.info(f"current workflow: {self.current_workflow}")
 

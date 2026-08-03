@@ -1,0 +1,3863 @@
+[
+    {
+        "widget_name": "File",
+        "widget_id": 13,
+        "package": "io",
+        "image": "File.svg",
+        "input": {},
+        "output": {
+            "data": "数据集"
+        },
+        "description": "用于加载示例数据集",
+        "params": [
+            {
+                "name": "type",
+                "type": "str",
+                "default": "sample",
+                "description": "使用默认值sample即可"
+            },
+            {
+                "name": "filename",
+                "type": "str",
+                "default": "iris.csv",
+                "description": "示例数据集名称：必须是['adult.csv', 'airpassengers.csv', 'breast_cancer.csv', 'bridges.csv', 'bridges.mt1.csv', 'bridges.mt2.csv', 'car.csv', 'glass.csv', 'heart_disease.csv', 'housing.csv', 'iris.csv', 'lenses.csv', 'market-basket.csv', 'titanic.csv', 'voting.csv', 'wine.csv', 'zoo.csv']中的一个。"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "SQL Table",
+        "widget_id": 7,
+        "package": "io",
+        "image": "SQLTable.svg",
+        "description": "用于加载用户个人的表格和时序数据集，如，螃蟹年龄等是表格数据集。添加该组件时必须更新参数data_description以完成数据集加载",
+        "params": [
+            {
+                "name": "data_description",
+                "type": "str",
+                "default": "",
+                "description": "给出你认为可能需要加载的数据集名称（英文名称）和可能的列名（英文列名）。***此处为必填项，否则无法加载数据集。***"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Image",
+        "widget_id": 265,
+        "package": "deeplearning",
+        "image": "Image.svg",
+        "description": "用于加载用户个人的图像数据集，无法配置参数进行自动加载，需要用户手动上传",
+        "params": [],
+        "type": "io"
+    },
+    {
+        "widget_name": "Text",
+        "widget_id": 266,
+        "package": "deeplearning",
+        "image": "Text.svg",
+        "description": "用于加载用户个人的文本数据集，如顾客评论，新闻文章这样的文本数据，不需要配置数据集，需要用户手动上传",
+        "params": [],
+        "type": "io"
+    },
+    {
+        "widget_name": "Save Data",
+        "widget_id": 24,
+        "package": "io",
+        "image": "Save.svg",
+        "description": "当用户明确要求需要保存数据，才会使用该组件",
+        "params": [],
+        "type": "io"
+    },
+    {
+        "widget_name": "Impute",
+        "widget_id": 14,
+        "package": "preprocess",
+        "image": "Impute.svg",
+        "description": "用于处理一般表格数据中的缺失值。",
+        "params": [
+            {
+                "name": "method",
+                "type": "int",
+                "default": 1,
+                "description": "缺失值填补方法，1：不填补，2：平均值或频繁值，3：基于模型，4：随机值，5：删除缺失值所在的行"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Interpolate",
+        "widget_id": 102,
+        "package": "timeseries",
+        "image": "Interpolate.svg",
+        "description": "用于处理时间序列数据中的缺失值。没有缺失值就不要使用它，即使Interpolate可以用于平滑数据。",
+        "params": [
+            {
+                "name": "interpolation_method",
+                "type": "str",
+                "default": "linear",
+                "description": "处理时间序列数据中的缺失值方法，linear：线性插值法，cubic：三次样条插值法，nearest：最近邻插值法，mean：平均值插值法"
+            },
+            {
+                "name": "multi_variate",
+                "type": "bool",
+                "default": false,
+                "description": "表示是否要使用多元多项式处理，true：勾选 false：不勾选"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Data Sampler",
+        "widget_id": 12,
+        "package": "preprocess",
+        "image": "DataSampler.svg",
+        "description": "用于数据集划分，数据抽样。用户没有要求划分数据就不要使用。***独热编码处理应该在数据划分之前，数据划分节点的输出不要连接数据处理组件。***",
+        "params": [
+            {
+                "name": "sampling_type",
+                "type": "int",
+                "default": 0,
+                "description": "抽样类型，0：固定比例，1：固定样本大小，2：交叉验证，3：自助式抽样"
+            },
+            {
+                "name": "percentage",
+                "type": "int",
+                "default": 10,
+                "description": "固定比例，抽样时的抽样比例设置。当抽样类型为0时需配置，否则保持默认即可。抽样的数据属于测试数据，比如，要求20%的测试数据，则该值为20"
+            },
+            {
+                "name": "n_samples",
+                "type": "int",
+                "default": 15,
+                "description": "固定样本大小，抽样时抽样的样本大小。当抽样类型为1时需配置，否则保持默认即可。"
+            },
+            {
+                "name": "replacement",
+                "type": "bool",
+                "default": false,
+                "description": "固定样本大小时是否允许有放回抽样"
+            },
+            {
+                "name": "n_folds",
+                "type": "int",
+                "default": 10,
+                "description": "交叉验证抽样时，样本折数。当抽样类型为2时需配置，否则保持默认即可。"
+            },
+            {
+                "name": "selected_folds",
+                "type": "int",
+                "default": 1,
+                "description": "交叉验证抽样时，测试集折数。当抽样类型为2时需配置，否则保持默认即可。"
+            },
+            {
+                "name": "replicable",
+                "type": "bool",
+                "default": false,
+                "description": "是否支持可重复抽样"
+            },
+            {
+                "name": "stratified",
+                "type": "bool",
+                "default": false,
+                "description": "是否支持分层抽样"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Outliers",
+        "widget_id": 19,
+        "package": "preprocess",
+        "image": "Outliers.svg",
+        "input": {
+            "data": "数据集"
+        },
+        "output": {
+            "data": "处理后的数据集"
+        },
+        "description": "可以通过指定离群值检测策略对数据集进行离群值检测，但是该组件不能对离群值做处理。",
+        "params": [
+            {
+                "name": "outlier_strategy",
+                "type": "int",
+                "default": 0,
+                "description": "离群值检测方法：0表示One class SVM，1表示Covariance Estimator，2表示Local Outlier Factor，3表示Isolation Forest"
+            },
+            {
+                "name": "nu",
+                "type": "int",
+                "default": 10,
+                "description": "当outlier_strategy为0时，Nu需要配置，Nu是训练误差部分的上限和支持向量部分的下限参数，其取值范围为[1,100]。"
+            },
+            {
+                "name": "gamma",
+                "type": "float",
+                "default": 0.01,
+                "description": "当outlier_strategy为0时，gamma需要配置，核系数是一个gamma参数，它指定了单个数据实例具有多少影响力，其取值范围为[0.01,10]。"
+            },
+            {
+                "name": "contamination",
+                "type": "int",
+                "default": 10,
+                "description": "当outlier_strategy为1时，contamination需要配置，contamination是指数据集中离群值的比例，其取值范围为[0,100]。"
+            },
+            {
+                "name": "is_support",
+                "type": "bool",
+                "default": false,
+                "description": "当outlier_strategy为1时，is_support需要配置，该参数表示是否启用支持比例。"
+            },
+            {
+                "name": "support_fraction",
+                "type": "float",
+                "default": 0.1,
+                "description": "当outlier_strategy为1时，support_fraction需要配置，support_fraction指定包含在估计中的点的比例，其取值范围为[0.1,10]。"
+            },
+            {
+                "name": "lcontamination",
+                "type": "int",
+                "default": 5,
+                "description": "当outlier_strategy为2时，lcontamination需要配置，该参数是指数据集中离群值的比例，其取值范围为[1,50]。"
+            },
+            {
+                "name": "n_neighbors",
+                "type": "int",
+                "default": 20,
+                "description": "当outlier_strategy为2时，n_neighbors需要配置，n_neighbors指邻节点数，其取值范围为[1,100000]。"
+            },
+            {
+                "name": "metric",
+                "type": "str",
+                "default": "euclidean",
+                "description": "当outlier_strategy为2时，metric需要配置，该参数是指距离指标，其取值范围为['euclidean', 'manhattan', 'cosine', 'jaccard', 'hamming', 'minkowski']。"
+            },
+            {
+                "name": "icontamination",
+                "type": "int",
+                "default": 20,
+                "description": "当outlier_strategy为3时，icontamination需要配置，icontamination是指数据集中离群值的比例，其取值范围为[0,100]。"
+            },
+            {
+                "name": "replicable",
+                "type": "bool",
+                "default": false,
+                "description": "当outlier_strategy为3时，replicable需要配置，该参数是代表是否启用随机种子。"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Select Rows",
+        "widget_id": 21,
+        "package": "preprocess",
+        "image": "SelectRows.svg",
+        "input": {
+            "data": "数据集"
+        },
+        "output": {
+            "data": "处理后的数据集"
+        },
+        "description": "用于对数据集进行过滤。不能用于删除工作流中的步骤！",
+        "params": [
+            {
+                "name": "conditions",
+                "type": "list",
+                "default": [],
+                "description": "筛选条件, 以一个列表返回：[ \n        [\n            0,                          // 属性编号\n            5,                          // 筛选操作，对于数值型，0：等于，1：不等于，2：小于，3：小于等于，4：大于，5：大于等于，6：在...和...之间，7：在...和...之外，8：非空值\n            2                           // 过滤值\n        ],\n        [\n            4,                          // 属性编号\n            0,                          // 筛选操作，对于离散型，0：等于，1：不等于，2：是其中的一个，3：非空值\n            \"Iris-setosa\"           // 过滤值\n        ]\n    ]"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Unique",
+        "widget_id": 264,
+        "package": "preprocess",
+        "image": "Unique.svg",
+        "description": "用于对数据进行去重，当不指定分组属性时会针对整个数据集中重复数据进行去重操作，在去重操作时可以指定是否删除全部的重复数据或保留第一行或最后一行的重复数据。",
+        "params": [
+            {
+                "name": "selGroupByVariables",
+                "type": "list",
+                "default": [],
+                "description": "哪些属性相同算是重复值，默认当所有属性都相同才算是重复值，此时应将所有列填入列表。"
+            },
+            {
+                "name": "configure",
+                "type": "str",
+                "default": "Last instance",
+                "description": "去重配置，Last instance：最后一个值, First instance：第一个值，Drop：删除重复值"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Select Columns",
+        "widget_id": 1,
+        "package": "featureengineering",
+        "image": "SelectColumns.svg",
+        "description": "用于剔除特定的特征，无明确要求不要使用。用于对每一个特征进行筛选：feature为一般特征属性，target为目标属性，必须配置目标列，ignore为对预测无用的属性(例如ID列)。",
+        "params": [
+            {
+                "name": "ignores",
+                "type": "list",
+                "default": [],
+                "description": "需要移除的属性"
+            },
+            {
+                "name": "features",
+                "type": "list",
+                "default": [],
+                "description": "一般特征属性"
+            },
+            {
+                "name": "targets",
+                "type": "str",
+                "default": "",
+                "description": "目标属性，有且只能有一个。该列必须进行配置！"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Change Domain",
+        "widget_id": 262,
+        "package": "featureengineering",
+        "image": "ChangeDomain.svg",
+        "description": "用于对数据集特征的数据类型进行重新配置，可以完成数据类型转换的需求。无明确要求不要使用",
+        "params": [
+            {
+                "name": "textAttrs",
+                "type": "list",
+                "default": [],
+                "description": "存储文本类型的属性，转换为文本类型后，属性变为描述属性"
+            },
+            {
+                "name": "categoricalAttrs",
+                "type": "list",
+                "default": [],
+                "description": "存储离散类型（Categorical）"
+            },
+            {
+                "name": "numericAttrs",
+                "type": "list",
+                "default": [],
+                "description": "存储数值类型（Numeric）"
+            },
+            {
+                "name": "datetimeAttrs",
+                "type": "list",
+                "default": [],
+                "description": "存储日期类型（Datetime）"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Continuize",
+        "widget_id": 6,
+        "package": "featureengineering",
+        "image": "Continuize.svg",
+        "description": "用于对离散型特征进行连续化处理。无明确要求不要使用",
+        "params": [
+            {
+                "name": "multi_attr",
+                "type": "int",
+                "default": 0,
+                "description": "一般离散属性连续化处理方法，0：以目标/第一个取值为基础，1：以最频值为基础，2：每个取值一个属性，类似独热编码。3：移除所有离散属性，4：转换为有序值，标签编码。5：根据取值数量划分"
+            },
+            {
+                "name": "cont_attr",
+                "type": "int",
+                "default": 0,
+                "description": "连续属性连续化处理方法，0：不做任何处理。1：处理过程为将原始值减去最小值并除以最大跨度，因此所有转化后的值都将在 0-1 之间。2：处理过程为原始值减去平均值再除以偏差。"
+            },
+            {
+                "name": "disc_cls_attr",
+                "type": "int",
+                "default": 0,
+                "description": "离散目标属性连续化处理方法，0：不做任何处理。1：转换为有序值，标签编码。2：根据取值数量划分，3：每个取值一个属性，类似独热编码。"
+            },
+            {
+                "name": "range",
+                "type": "int",
+                "default": 0,
+                "description": "连续化取值范围，0表示[-1,1]，1表示[0,1]"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Discretize",
+        "widget_id": 4,
+        "package": "featureengineering",
+        "image": "Discretize.svg",
+        "description": "用于对数据中的数值型属性进行离散化操作。无明确要求不要使用",
+        "params": [
+            {
+                "name": "method",
+                "type": "int",
+                "default": 1,
+                "description": "离散化方法，1：等频划分，2：等宽划分，3：保留原始数值，4：Entropy-MDL离散化，5：移除数值变量"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Edit Domain",
+        "widget_id": 20,
+        "package": "preprocess",
+        "image": "EditDomain.svg",
+        "description": "用于对数据中的数值进行转换，例如，可以对'gender'列进行序数化，将男，女的字符值转换为0，1",
+        "params": [
+            {
+                "name": "column_name",
+                "type": "str",
+                "default": "",
+                "description": "需要进行数值转换的列名"
+            },
+            {
+                "name": "valueMappings",
+                "type": "list",
+                "default": [],
+                "description": "数值转换之间的映射关系，每一个映射关系都为一个JSON构成{\n    \"key\": int=\"序号\",\n    \"originValue\": 原始值,\n    \"currentValue\": 修改后的值\n}，例如将男，女的字符值转换为0，1这个问题，valueMappings的值应该为：[\n    {\n        \"key\": 0,\n        \"originValue\": \"男\",\n        \"currentValue\": \"0\"\n    },\n    {\n        \"key\": 1,\n        \"originValue\": \"女\",\n        \"currentValue\": \"1\"\n    }\n]"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Rank",
+        "widget_id": 15,
+        "package": "featureengineering",
+        "image": "Rank.svg",
+        "description": "用于计算特征的重要性，对特征重要性进行排序。",
+        "params": [],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "One Hot Encoder",
+        "widget_id": 133,
+        "package": "featureengineering",
+        "image": "OneHotEncoder.png",
+        "description": "用于进行特征工程处理，该组件可以对非目标特征和字符数据类型的特征进行独热编码。若没有字符型特征就不要进行独热编码***样例值为[1, 1, 1]则表明为数字类型的特征，['Y','N','N']则为字符型***",
+        "params": [
+            {
+                "name": "encode_vars",
+                "type": "list",
+                "default": [],
+                "description": "选择需要进行独热编码的特征名，***只能选择字符类型特征。样例值为[1, 1, 1]则表明为数字类型的特征，['Y','N','N']则为字符型***"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Feature Constructor",
+        "widget_id": 107,
+        "package": "featureengineering",
+        "image": "FeatureConstructor.svg",
+        "description": "用于进行特征构建，构建一个新特征。创建一个新列。",
+        "params": [
+            {
+                "name": "expressions",
+                "type": "list",
+                "default": [],
+                "description": "存储了需要构建的特征属性表达式。每个特征属性表达式由一个JSON构成：{\"key\": int=<表达式ID，从0开始>, \"name\": str=<构建的属性名>, \"expression\": str=<Python表达式,支持数学四则运算(+,-,*,/,//)、取余运算(%)、指数运算以及值的比较(<,>,<=,>=,==,!=)，例如: value1 if 条件1 else value2 if 条件2 else value3，请注意：表达式中的字符串需要用''括起来，因此，如何value1为字符类型，表达式中的'value1'。一个实际案例：数据列有[age,gender]，新特征的值为：如果性别为男就加5岁，性别为女就不变。表达式为：age+5 if gender==\"male\" else age>, \"type\": str=<属性类型，1表示离散属性，2表示数值属性>, \"image\": str=<属性类型图片，C表示离散属性，N表示数值属性>, \"categories\": str=<当构建的属性为类别特征时，根据该字段存储类别标签，以逗号分隔。若为数值属性，则使用默认值\"A, B\">}"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Select Best N Attributes",
+        "widget_id": 23,
+        "package": "featureengineering",
+        "image": "bestN.png",
+        "description": "用于自动特征选择，选择与目标特征最相关的前N个特征。",
+        "params": [
+            {
+                "name": "n",
+                "type": "int",
+                "default": 3,
+                "description": "自动选择的特征个数"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "KNN",
+        "widget_id": 43,
+        "package": "model",
+        "image": "KNN.svg",
+        "description": "用于构建K近邻模型。该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "n_neighbors",
+                "type": "int",
+                "default": 5,
+                "description": "邻节点个数,取值范围为：1~100"
+            },
+            {
+                "name": "metric",
+                "type": "str",
+                "default": "euclidean",
+                "description": "用于距离计算的度量，取值范围为：1.euclidean：“直线”，两点之间的距离, 2.manhattan：所有属性的绝对差之和, 3.mahalanobis：点与分布之间的距离, 4.chebyshev：切比雪夫"
+            },
+            {
+                "name": "weights",
+                "type": "str",
+                "default": "uniform",
+                "description": "预测中使用的权重函数，取值范围为：1.uniform：每个邻居的所有点都是平等的, 2.distance：距离查询点较近的邻节点比较远的邻节点影响更大"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Logistic Regression",
+        "widget_id": 48,
+        "package": "model",
+        "image": "LogisticRegression.svg",
+        "description": "用于构建逻辑回归模型。***该模型只能用于表格分类任务***",
+        "params": [
+            {
+                "name": "C",
+                "type": "float",
+                "default": 1,
+                "description": "惩罚力度，必须为0.001~1000之间的浮点数"
+            },
+            {
+                "name": "penalty",
+                "type": "str",
+                "default": "l2",
+                "description": "正则化方法，取值范围为：l1和l2，分别表示套索回归和岭回归正则化方法。"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Linear Regression",
+        "widget_id": 45,
+        "package": "model",
+        "image": "LinearRegression.svg",
+        "description": "用于构建线性回归模型。***该模型只能用于表格回归任务***",
+        "params": [
+            {
+                "name": "regression_type",
+                "type": "str",
+                "default": "0",
+                "description": "规则化方法，必须为['0','1','2','3']中的字符，分别表示无规则化、套索回归、岭回归和弹性网络回归"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Tree",
+        "widget_id": 41,
+        "package": "model",
+        "image": "Tree.svg",
+        "input": {
+            "data": "数据集"
+        },
+        "output": {
+            "modes": "构建好的机器学习模型名称",
+            "hyper_params": "模型超参数配置"
+        },
+        "description": "用于构建决策树模型。该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "limit_min_leaf",
+                "type": "bool",
+                "default": true,
+                "description": "是否设置叶子节点中的最小实例数"
+            },
+            {
+                "name": "min_leaf",
+                "type": "int",
+                "default": 2,
+                "description": "叶子节点中的最小实例数"
+            },
+            {
+                "name": "limit_min_internal",
+                "type": "bool",
+                "default": true,
+                "description": "是否设置分割子集数"
+            },
+            {
+                "name": "min_internal",
+                "type": "int",
+                "default": 5,
+                "description": "分割子集数"
+            },
+            {
+                "name": "limit_depth",
+                "type": "bool",
+                "default": true,
+                "description": "是否设置最大数深度"
+            },
+            {
+                "name": "max_depth",
+                "type": "int",
+                "default": 100,
+                "description": "最大数深度"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Random Forest",
+        "widget_id": 44,
+        "package": "model",
+        "image": "RandomForest.svg",
+        "description": "用于构建随机森林模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "n_estimators",
+                "type": "int",
+                "default": 10,
+                "description": "数的数量"
+            },
+            {
+                "name": "use_max_features",
+                "type": "bool",
+                "default": false,
+                "description": "是否每次拆分时考虑属性数"
+            },
+            {
+                "name": "max_features",
+                "type": "str",
+                "default": "auto",
+                "description": "考虑属性数，最大不得超过数据集的特征属性数大小"
+            },
+            {
+                "name": "use_random_state",
+                "type": "bool",
+                "default": false,
+                "description": "是否启用随机种子"
+            },
+            {
+                "name": "use_max_depth",
+                "type": "bool",
+                "default": false,
+                "description": "是否限制单颗树的深度"
+            },
+            {
+                "name": "max_depth",
+                "type": "int",
+                "default": 3,
+                "description": "单颗树的深度"
+            },
+            {
+                "name": "use_min_samples_split",
+                "type": "bool",
+                "default": true,
+                "description": "是否启用子集数目停止划分"
+            },
+            {
+                "name": "min_samples_split",
+                "type": "int",
+                "default": 2,
+                "description": "小于子集的数目停止划分"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "LightGBM",
+        "widget_id": 138,
+        "package": "model",
+        "image": "lightGBM.png",
+        "description": "用于构建LightGBM模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "boosting_type",
+                "type": "str",
+                "default": "gbdt",
+                "description": "学习器类型，\"gbdt\"，\"dart\", \"goss\"，\"rf\""
+            },
+            {
+                "name": "n_estimators",
+                "type": "int",
+                "default": 10,
+                "description": "树的数量"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.1,
+                "description": "学习率"
+            },
+            {
+                "name": "sampling_rate",
+                "type": "float",
+                "default": 0.1,
+                "description": "抽样率"
+            },
+            {
+                "name": "max_depth_check",
+                "type": "bool",
+                "default": false,
+                "description": "是否控制最大深度"
+            },
+            {
+                "name": "max_depth",
+                "type": "int",
+                "default": 3,
+                "description": "最大深度"
+            },
+            {
+                "name": "num_leaves_check",
+                "type": "bool",
+                "default": false,
+                "description": "是否控制最大叶子数"
+            },
+            {
+                "name": "num_leaves",
+                "type": "int",
+                "default": 31,
+                "description": "最大叶子数"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Naive Bayes",
+        "widget_id": 36,
+        "package": "model",
+        "image": "NaiveBayes.svg",
+        "description": "用于构建朴素贝叶斯模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "name",
+                "type": "str",
+                "default": "Naive Bayes",
+                "description": "模型名称，一般使用默认即可，当有多个相同模型时，需要通过该参数区分，比如'Naive Bayes1'、'Naive Bayes2'"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "AdaBoost",
+        "widget_id": 39,
+        "package": "model",
+        "image": "AdaBoost.svg",
+        "description": "用于构建自适应提升算法模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "n_estimators",
+                "type": "int",
+                "default": 50,
+                "description": "学习器数目,取值范围为：1~1000"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 1,
+                "description": "学习率,取值范围为：0.00001~1"
+            },
+            {
+                "name": "algorithm",
+                "type": "str",
+                "default": "SAMME.R",
+                "description": "分类算法,取值范围为：1.SAMME.R：实数提升，2.SAMME：二值提升"
+            },
+            {
+                "name": "loss",
+                "type": "str",
+                "default": "linear",
+                "description": "回归损失函数,取值范围为：1.Linear：线性函数，2.Square：平方函数，3.Exponential：指数函数"
+            },
+            {
+                "name": "use_random_state",
+                "type": "bool",
+                "default": false,
+                "description": "是否启用随机数生成器种子"
+            },
+            {
+                "name": "random_state",
+                "type": "int",
+                "default": 0,
+                "description": "随机数生成器种子"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Neural Network",
+        "widget_id": 106,
+        "package": "model",
+        "image": "NN.svg",
+        "description": "用于构建神经网络模型，该模型适用于表格分类和表格回归任务。由于神经网络模型开销较大，除非用户要求使用它，否则不要用它进行模型训练",
+        "params": [
+            {
+                "name": "hidden_layers_input",
+                "type": "str",
+                "default": "100,",
+                "description": "隐藏层配置,格式为：'节点数,节点数,...',例如：'100,50,20'"
+            },
+            {
+                "name": "activation",
+                "type": "str",
+                "default": "3",
+                "description": "激活函数,取值范围为：0.Identity：恒等函数，1.Logistic：逻辑函数，2.tanh：双曲正切函数，3.ReLu：修正线性单元"
+            },
+            {
+                "name": "solver",
+                "type": "str",
+                "default": "2",
+                "description": "优化方法,取值范围为：0.L-BFGS-B：拟牛顿法，1.SGD：随机梯度下降，2.Adam：自适应矩估计"
+            },
+            {
+                "name": "alpha",
+                "type": "float",
+                "default": 0.0001,
+                "description": "正则项α,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "maxItera",
+                "type": "int",
+                "default": 200,
+                "description": "最大迭代次数,取值范围为：1~1000"
+            },
+            {
+                "name": "replicable",
+                "type": "bool",
+                "default": true,
+                "description": "是否启用可复制训练"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Stochastic Gradient Descent",
+        "widget_id": 35,
+        "package": "model",
+        "image": "SGD.svg",
+        "description": "用于构建随机梯度下降算法模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "classification_loss",
+                "type": "str",
+                "default": "hinge",
+                "description": "分类损失函数,取值范围为：1.hinge：铰链损失，2.log：对数损失，3.modified_huber：修正的Huber损失，4.squared_hinge：平方铰链损失，5.perceptron：感知器损失，6.squared_loss：平方损失，7.huber：Huber损失，8.epsilon_insensitive：ε-不敏感损失，9.squared_epsilon_insensitive：平方ε-不敏感损失"
+            },
+            {
+                "name": "classification_epsilon",
+                "type": "float",
+                "default": 0.1,
+                "description": "ε,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "regression_loss",
+                "type": "str",
+                "default": "squared_loss",
+                "description": "回归损失函数,取值范围为：1.squared_loss：平方损失，2.huber：Huber损失，3.epsilon_insensitive：ε-不敏感损失，4.squared_epsilon_insensitive：平方ε-不敏感损失"
+            },
+            {
+                "name": "regression_epsilon",
+                "type": "float",
+                "default": 0.1,
+                "description": "ε,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "penalty",
+                "type": "str",
+                "default": "l2",
+                "description": "正则化方法,取值范围为：1.none：无正则化，2.l1：L1正则化，3.l2：L2正则化，4.elasticnet：弹性网正则化"
+            },
+            {
+                "name": "alpha",
+                "type": "float",
+                "default": 1e-05,
+                "description": "正则化因子 (α),取值范围为：0.0~1.0"
+            },
+            {
+                "name": "l1_ratio",
+                "type": "float",
+                "default": 0.15,
+                "description": "elastic_net_mixing 混合因子,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "learning_rate",
+                "type": "str",
+                "default": "constant",
+                "description": "学习率,取值范围为：1.constant：常数，2.optimal：最优，3.Inverse Scaling：逆缩放"
+            },
+            {
+                "name": "eta0",
+                "type": "float",
+                "default": 0.01,
+                "description": "初始学习率，η0,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "power_t",
+                "type": "float",
+                "default": 0.25,
+                "description": "反向缩放指数，t,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "max_iter",
+                "type": "int",
+                "default": 1000,
+                "description": "迭代次数,取值范围为：1~10000"
+            },
+            {
+                "name": "shuffle",
+                "type": "bool",
+                "default": true,
+                "description": "是否启用每次迭代后混洗数据"
+            },
+            {
+                "name": "use_random_state",
+                "type": "bool",
+                "default": false,
+                "description": "是否启用固定混洗随机种子数"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "SVM",
+        "widget_id": 49,
+        "package": "model",
+        "image": "SVM.svg",
+        "description": "用于构建支持向量机模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "svm_type",
+                "type": "int",
+                "default": 0,
+                "description": "svm类型,取值范围为：0.SVM：标准SVM，1.v-SVM：ν-SVM"
+            },
+            {
+                "name": "C",
+                "type": "float",
+                "default": 1,
+                "description": "代价,for SVM,取值范围为：0.0~∞"
+            },
+            {
+                "name": "epsilon",
+                "type": "float",
+                "default": 0.1,
+                "description": "回归损失,for SVM,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "nu_C",
+                "type": "float",
+                "default": 1,
+                "description": "回归代价,for v-SVM,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "nu",
+                "type": "float",
+                "default": 0.5,
+                "description": "复杂度上界,for v-SVM,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "kernel",
+                "type": "str",
+                "default": "poly",
+                "description": "核函数类型,取值范围为：1.linear：线性核，2.poly：多项式核，3.rbf：径向基函数核，4.sigmoid：S形核"
+            },
+            {
+                "name": "gamma",
+                "type": "float",
+                "default": 0,
+                "description": "gamma值,for 'poly'，'rbf'，'sigmoid',取值范围为：0.0~∞"
+            },
+            {
+                "name": "coef0",
+                "type": "float",
+                "default": 0,
+                "description": "coef0值,for 'poly'，'sigmoid',取值范围为：-∞~∞"
+            },
+            {
+                "name": "degree",
+                "type": "int",
+                "default": 3,
+                "description": "degree值,for 'poly',取值范围为：1~∞"
+            },
+            {
+                "name": "tol",
+                "type": "float",
+                "default": 0.001,
+                "description": "数值容差,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "limit_iter",
+                "type": "bool",
+                "default": true,
+                "description": "是否启用迭代限制"
+            },
+            {
+                "name": "max_iter",
+                "type": "int",
+                "default": 100,
+                "description": "最大迭代次数,取值范围为：1~10000"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Gradient Boosting Decision Tree",
+        "widget_id": 47,
+        "package": "model",
+        "image": "gbdt.png",
+        "description": "用于构建梯度提升决策树模型，该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "loss_function",
+                "type": "int",
+                "default": 0,
+                "description": "损失函数,对于分类任务取值范围为：0.deviance：偏差，对于回归任务取值范围为：0.ls：最小二乘，1.lad：绝对损失，2.huber：Huber损失，3.quantile：分位数损失"
+            },
+            {
+                "name": "n_estimators",
+                "type": "int",
+                "default": 10,
+                "description": "树的数量,取值范围为：1~1000"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.1,
+                "description": "学习率,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "use_max_depth",
+                "type": "bool",
+                "default": false,
+                "description": "是否应用最大深度"
+            },
+            {
+                "name": "max_depth",
+                "type": "int",
+                "default": 3,
+                "description": "最大深度,取值范围为：1~∞"
+            },
+            {
+                "name": "use_min_samples",
+                "type": "bool",
+                "default": false,
+                "description": "是否应用最小样本数"
+            },
+            {
+                "name": "min_samples",
+                "type": "int",
+                "default": 2,
+                "description": "最小样本数,取值范围为：1~∞"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "XGBoost",
+        "widget_id": 286,
+        "package": "model",
+        "image": "XGBoost.svg",
+        "description": "用于构建XGBoost算法模型，该模型适用于表格分类和表格回归任务。***该模型一般具有较好的性能，如果没有指定模型可以优先考虑该模型***",
+        "params": [
+            {
+                "name": "booster",
+                "type": "str",
+                "default": "gbtree",
+                "description": "学习器类型,取值范围为：1.gbtree：基于树的模型，2.dart：DART模型，3.gblinear：线性模型"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.3,
+                "description": "学习率,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "gamma",
+                "type": "float",
+                "default": 0,
+                "description": "gamma,取值范围为：0.0~∞"
+            },
+            {
+                "name": "max_depth",
+                "type": "int",
+                "default": 6,
+                "description": "树最大深度,取值范围为：1~∞"
+            },
+            {
+                "name": "min_child_widget",
+                "type": "int",
+                "default": 1,
+                "description": "取值范围为：1~∞"
+            },
+            {
+                "name": "max_delta_step",
+                "type": "float",
+                "default": 0,
+                "description": "叶子节点最大delta步数,取值范围为：0.0~∞"
+            },
+            {
+                "name": "subsample",
+                "type": "float",
+                "default": 1,
+                "description": "训练实例的子样本比例,取值范围为：0.0~1.0"
+            },
+            {
+                "name": "sampling_method",
+                "type": "str",
+                "default": "uniform",
+                "description": "抽样方法,取值范围为：1.uniform：均匀抽样，2.gradient_based：基于梯度的抽样"
+            },
+            {
+                "name": "lambda",
+                "type": "float",
+                "default": 1,
+                "description": "L2正则化权重,取值范围为：0.0~∞"
+            },
+            {
+                "name": "alpha",
+                "type": "float",
+                "default": 0,
+                "description": "L1正则化权重,取值范围为：0.0~∞"
+            },
+            {
+                "name": "tree_method",
+                "type": "str",
+                "default": "auto",
+                "description": "树构造算法,取值范围为：1.auto：自动选择，2.exact：精确算法，3.approx：近似算法，4.hist：直方图算法"
+            },
+            {
+                "name": "scale_pos_weight",
+                "type": "float",
+                "default": 1,
+                "description": "Scale Pos Weight,取值范围为：0.0~∞"
+            },
+            {
+                "name": "updater",
+                "type": "str",
+                "default": "grow_colmaker",
+                "description": "树更新方式,取值范围为：1.grow_colmaker：按列生长，2.grow_histmaker：直方图生长，3.grow_quantile_histmaker：分位数直方图生长，4.grow_gpu_hist：GPU直方图生长，5.sync：同步，6.refresh：刷新，7.prune：剪枝"
+            },
+            {
+                "name": "process_type",
+                "type": "str",
+                "default": "default",
+                "description": "提升过程,取值范围为：1.default：默认，2.update：更新"
+            },
+            {
+                "name": "grow_policy",
+                "type": "str",
+                "default": "depthwise",
+                "description": "添加新节点策略,取值范围为：1.depthwise：深度优先，2.lossguide：损失指导"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "AutoML Training",
+        "widget_id": 40,
+        "package": "model",
+        "image": "UFO.png",
+        "description": "用于自动搜索最佳模型，除非用户明确要求使用自动模型构建，否则不要使用，因为它很耗费资源。该模型适用于表格分类和表格回归任务。",
+        "params": [
+            {
+                "name": "generations",
+                "type": "int",
+                "default": 5,
+                "description": "迭代次数,取值范围为：1~100"
+            },
+            {
+                "name": "population_size",
+                "type": "int",
+                "default": 5,
+                "description": "每代保留模型数,取值范围为：1~100"
+            },
+            {
+                "name": "offspring_size",
+                "type": "int",
+                "default": 5,
+                "description": "单个产生后代数,取值范围为：1~100"
+            },
+            {
+                "name": "early_stop",
+                "type": "int",
+                "default": 3,
+                "description": "终止检测迭代数,取值范围为：1~100"
+            },
+            {
+                "name": "type0seed",
+                "type": "bool",
+                "default": false,
+                "description": "是否启用随机种子"
+            },
+            {
+                "name": "m0classification_metric",
+                "type": "str",
+                "default": "accuracy",
+                "description": "分类任务 模型评估指标,取值范围为：1.accuracy：准确率，2.adjusted_rand_score：调整兰德指数，3.balanced_accuracy：平衡准确率，4.f1_macro：宏平均F1分数，5.f1_micro：微平均F1分数，6.f1_weighted：加权平均F1分数，7.neg_log_loss：负对数损失，8.precision_macro：宏平均精确率，9.precision_micro：微平均精确率，10.precision_weighted：加权平均精确率，11.recall_macro：宏平均召回率，12.recall_micro：微平均召回率，13.recall_weighted：加权平均召回率"
+            },
+            {
+                "name": "m0regression_metric",
+                "type": "str",
+                "default": "neg_mean_squared_error",
+                "description": "回归任务 模型评估指标,取值范围为：1.neg_mean_squared_error：负均方误差，2.r2：决定系数"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "K-Means",
+        "widget_id": 77,
+        "package": "clustering",
+        "image": "KMeans.svg",
+        "description": "用于构建K-Means算法模型，它将未标记的数据集分组为不同的簇。该模型仅适用于无监督任务",
+        "params": [
+            {
+                "name": "k",
+                "type": "list",
+                "default": [
+                    3
+                ],
+                "description": "簇数量，通常为整数列表，例如：[3]"
+            },
+            {
+                "name": "selected_k",
+                "type": "int",
+                "default": 2,
+                "description": "选择的簇数量，通常为一个整数，例如：2"
+            },
+            {
+                "name": "init_method",
+                "type": "str",
+                "default": "k-means++",
+                "description": "初始化方法，取值范围为：1.k-means++：选择初始中心点的方法，2.random：随机选择初始中心点"
+            },
+            {
+                "name": "re_runs",
+                "type": "int",
+                "default": 10,
+                "description": "运行次数，取值范围为：1~100"
+            },
+            {
+                "name": "max_iter",
+                "type": "int",
+                "default": 200,
+                "description": "最大迭代次数，取值范围为：1~1000"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Image Classification",
+        "widget_id": 267,
+        "package": "deeplearning",
+        "image": "ImageCls.svg",
+        "description": "用于构建图像分类模型，该模型仅适用于图像分类任务。支持的模型有：['ResNet34','ResNet50','ResNet101','ResNet152','ConvNeXt','ConvNeXt-large','ConvNeXt-small','ViT']",
+        "params": [
+            {
+                "name": "frame",
+                "type": "str",
+                "default": "pytorch",
+                "description": "训练框架，仅能选择pytorch和tensorflow"
+            },
+            {
+                "name": "select_model",
+                "type": "str",
+                "default": "ResNet50",
+                "description": "选择用于图像分类的深度学习模型，仅能选择：['ResNet34','ResNet50','ResNet101','ResNet152','ConvNeXt','ConvNeXt-large','ConvNeXt-small','ViT']"
+            },
+            {
+                "name": "epoch",
+                "type": "int",
+                "default": 3,
+                "description": "训练迭代轮数，取值范围为：1~100"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.01,
+                "description": "学习率，取值范围为：0.0001~0.1"
+            },
+            {
+                "name": "batch_size",
+                "type": "int",
+                "default": 2,
+                "description": "一个epoch训练的样本大小，取值范围为：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Object Detection",
+        "widget_id": 268,
+        "package": "deeplearning",
+        "image": "ObjectDet.svg",
+        "description": "用于构建目标检测模型，该模型仅适用于目标检测任务。支持的模型有：['yolov3','FasterRCNN','MaskRCNN','SSD']",
+        "params": [
+            {
+                "name": "frame",
+                "type": "str",
+                "default": "pytorch",
+                "description": "训练框架，仅能选择PyTorch和Tensorflow"
+            },
+            {
+                "name": "select_model",
+                "type": "str",
+                "default": "yolov3",
+                "description": "选择用于目标检测的深度学习模型，PyTorch仅能选择：['yolov3','FasterRCNN','MaskRCNN','SSD']，Tensorflow仅能选择：['SSD','FasterRCNN']"
+            },
+            {
+                "name": "backbone",
+                "type": "str",
+                "default": "DarkNet53",
+                "description": "选择用于目标检测的主干网络，PyTorch仅能选择：['DarkNet53','MobileNetV2']，Tensorflow仅能选择：['MobileNetV1','MobileNetV2','ResNet50','ResNet101']"
+            },
+            {
+                "name": "epoch",
+                "type": "int",
+                "default": 3,
+                "description": "训练迭代轮数，取值范围为：1~100"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.01,
+                "description": "学习率，取值范围为：0.0001~0.1"
+            },
+            {
+                "name": "batch_size",
+                "type": "int",
+                "default": 2,
+                "description": "一个epoch训练的样本大小，取值范围为：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Segmentation",
+        "widget_id": 269,
+        "package": "deeplearning",
+        "image": "Segmentation.png",
+        "description": "用于构建图像分割模型，该模型仅适用于图像分割任务。支持的模型有：['SegFormer-B0'~'SegFormer-B5','BEiT-base','BEiT-large','UperNet-Swin-tiny']。",
+        "params": [
+            {
+                "name": "frame",
+                "type": "str",
+                "default": "pytorch",
+                "description": "训练框架，仅能选择PyTorch和Tensorflow"
+            },
+            {
+                "name": "select_model",
+                "type": "str",
+                "default": "SegFormer-B0",
+                "description": "选择用于图像分割的深度学习模型，PyTorch仅能选择：['SegFormer-B0'~'SegFormer-B5','BEiT-base','BEiT-large','UperNet-Swin-tiny']，Tensorflow仅能选择：['SegFormer-B0'~'SegFormer-B5']"
+            },
+            {
+                "name": "epoch",
+                "type": "int",
+                "default": 3,
+                "description": "训练迭代轮数，取值范围为：1~100"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.02,
+                "description": "学习率，取值范围为：0.0001~0.1"
+            },
+            {
+                "name": "batch_size",
+                "type": "int",
+                "default": 2,
+                "description": "一个epoch训练的样本大小，取值范围为：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Text Classification",
+        "widget_id": 271,
+        "package": "deeplearning",
+        "image": "TextCls.svg",
+        "description": "用于构建文本分类模型，该模型仅适用于文本分类任务，仅支持BERT模型。",
+        "params": [
+            {
+                "name": "frame",
+                "type": "str",
+                "default": "pytorch",
+                "description": "训练框架，仅能选择PyTorch和Tensorflow"
+            },
+            {
+                "name": "select_model",
+                "type": "str",
+                "default": "BERT",
+                "description": "选择用于文本分类的深度学习模型，仅支持BERT模型"
+            },
+            {
+                "name": "epoch",
+                "type": "int",
+                "default": 3,
+                "description": "训练迭代轮数，取值范围为：1~100"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.01,
+                "description": "学习率，取值范围为：0.0001~0.1"
+            },
+            {
+                "name": "batch_size",
+                "type": "int",
+                "default": 4,
+                "description": "一个epoch训练的样本大小，取值范围为：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Translation",
+        "widget_id": 274,
+        "package": "deeplearning",
+        "image": "Translation.svg",
+        "description": "用于构建机器翻译模型，该模型仅适用于机器翻译任务，仅支持Seq2Seq模型。",
+        "params": [
+            {
+                "name": "frame",
+                "type": "str",
+                "default": "pytorch",
+                "description": "训练框架，仅能选择pytorch和tensorflow"
+            },
+            {
+                "name": "select_model",
+                "type": "str",
+                "default": "Seq2Seq",
+                "description": "选择用于机器翻译的深度学习模型，仅支持Seq2Seq模型"
+            },
+            {
+                "name": "epoch",
+                "type": "int",
+                "default": 3,
+                "description": "训练迭代轮数，取值范围为：1~100"
+            },
+            {
+                "name": "learning_rate",
+                "type": "float",
+                "default": 0.01,
+                "description": "学习率，取值范围为：0.0001~0.1"
+            },
+            {
+                "name": "batch_size",
+                "type": "int",
+                "default": 4,
+                "description": "一个epoch训练的样本大小，取值范围为：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "ARIMA Model",
+        "widget_id": 95,
+        "package": "timeseries",
+        "image": "ARIMA.svg",
+        "description": "用于构建ARIMA时序预测模型，该模型仅适用于时序预测任务。",
+        "params": [
+            {
+                "name": "forecast_steps",
+                "type": "int",
+                "default": 3,
+                "description": "需要模型预测未来的步数或称期数，比如，如果用户指明了下一年每个月，则步数为12，如果用户指明了下三个月，则步数为3"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "VAR Model",
+        "widget_id": 96,
+        "package": "timeseries",
+        "image": "VAR.svg",
+        "description": "用于构建Vector Autoregression model，简称VAR时序预测模型，该模型仅适用于时序预测任务。",
+        "params": [
+            {
+                "name": "forecast_steps",
+                "type": "int",
+                "default": 3,
+                "description": "需要模型预测未来的步数或称期数，比如，如果用户指明了下一年每个月，则步数为12，如果用户指明了下三个月，则步数为3"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Predictions",
+        "widget_id": 31,
+        "package": "evaluate",
+        "image": "Predictions.svg",
+        "description": "用于预测一般的表格数据集但是不能用于时序数据，该组件需要输入数据和模型，注意添加这两条边。",
+        "params": [
+            {
+                "name": "output_attrs",
+                "type": "bool",
+                "default": true,
+                "description": "是否输出属性"
+            },
+            {
+                "name": "output_predictions",
+                "type": "bool",
+                "default": true,
+                "description": "是否输出预测值"
+            },
+            {
+                "name": "output_probabilities",
+                "type": "bool",
+                "default": false,
+                "description": "是否输出预测概率，回归任务不需要，分类任务需要设置为true"
+            }
+        ],
+        "type": "predict"
+    },
+    {
+        "widget_name": "Infer",
+        "widget_id": 278,
+        "package": "deeplearning",
+        "image": "Infer.svg",
+        "description": "用于对需要预测的图像或文本数据集进行预测。需要特别注意：进行预测时Infer的使用方式和Predictions不一样，Infer只需要添加一条边：模型节点到该组件的边。***时序数据不能使用它进行预测***",
+        "params": [],
+        "type": "predict"
+    },
+    {
+        "widget_name": "Test Score",
+        "widget_id": 29,
+        "package": "evaluate",
+        "image": "TestAndScore.svg",
+        "description": "Test Score组件接收数据抽样后的数据以及待评估的模型算法，然后该组件会开始对模型算法进行评估。一定记住要使用Test Score对模型进行评估，必须连接三条边，以便获取输入训练数据，测试数据和待评估的模型。",
+        "params": [],
+        "type": "evaluate"
+    },
+    {
+        "widget_name": "Confusion Matrix",
+        "widget_id": 30,
+        "package": "evaluate",
+        "image": "ConfusionMatrix.svg",
+        "description": "用于输出预测结果的混淆矩阵",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Line Chart",
+        "widget_id": 97,
+        "package": "visualize",
+        "image": "LineChart.svg",
+        "description": "用于构建折线图。需要特别注意：用于可视化时序数据查看数据走势的时候，需要添加两条边：一条将时序预测模型的输出连接到该组件，一条将训练数据的输出连接到该组件。",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Scatter Plot",
+        "widget_id": 81,
+        "package": "visualize",
+        "image": "ScatterPlot.svg",
+        "description": "用于绘制散点图。",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Distributions",
+        "widget_id": 87,
+        "package": "visualize",
+        "image": "Distribution.svg",
+        "description": "用于构建柱状图，可用于可视化属性值出现在数据集中的次数。",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Correlogram",
+        "widget_id": 91,
+        "package": "visualize",
+        "image": "Correlogram.svg",
+        "description": "用于相关图，可用于可视化属性之间的相关性。",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Association Rules",
+        "widget_id": "association-rules",
+        "package": "associate",
+        "image": "AssociationRules.svg",
+        "description": "Implements the FP-growth frequent pattern mining algorithm to induce association rules from input data. For classification rule induction, rules whose consequent does not fall within the class value range are skipped.",
+        "params": [
+            {
+                "name": "Find Association Rules",
+                "type": "str",
+                "default": "最小支持度：1% 最小置信度：90% 最大规则数：10000",
+                "description": "向用户提供关联规则的查找条件。如果选中\"归纳分类（项->类别）规则\"被勾选，那么控件将只生成在规则的右侧（后继）具有类值的规则 最小支持度：规则覆盖的数据的最小占比 最小置信度：在符合左侧条件（先导）的样例中，符合右侧结果的样例（后继）在其中的占比 最大规则数：用来限制算法生成的规则的数量 取值范围：最小支持度： 0.0001%~100% 最小置信度： 1%~100% 最大规则数： 10000~100000"
+            },
+            {
+                "name": "Filter Rules",
+                "type": "str",
+                "default": "先导： 包含：crew 最小项：1 最大项：999 后继： 包含：adult 最小项：1 最大项：999",
+                "description": "先导： 包含：用户可以使用空格分隔的正则表达式过滤先导项 最小项：在先导中项需要满足的词项出现的最小次数 最大项：在先导中项需要满足的词项出现的最大次数 后继： 包含：用户可以使用空格分隔的正则表达式过滤先导项 最小项：在后继中项需要满足的词项出现的最小次数 最大项：在后继中项需要满足的词项出现的最大次数 取值范围：先导： 包含：用于查找先导项的正则表达式或字符串 最小项：1~最大项 最大项：最小项~999 后继： 包含：用于查找先导项的正则表达式或字符串 最小项：1~最大项 最大项：最小项~999"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Frequent Itemsets",
+        "widget_id": "frequent-itemsets",
+        "package": "associate",
+        "image": "FrequentItemsets.svg",
+        "description": "Mines frequent itemsets from input data. Frequent itemset mining reveals which variables frequently appear together in datasets, serving as the foundation for association rules, correlation analysis, and many other data mining tasks.",
+        "params": [
+            {
+                "name": "查找项集",
+                "type": "str",
+                "default": "最小支持度：1% 最大项集数：10000",
+                "description": "Sets 用户可以通过项集搜索的条件查找项集： 最小支持度：所要生成的项集在数据集中的最小占比。对于大型数据集而言，一般该值设置为一个较小的数目，如0.01%\\~2%。 最大项集数：设置项集数的上限。 取值范围：最小支持度： 0.0001%\\~100% 最大项集数： 10000\\~100000"
+            },
+            {
+                "name": "过滤项集",
+                "type": "str",
+                "default": "包含：female 最小层级：1 最大层级：999",
+                "description": "Sets 过滤项集：为用户提供用来过滤项集的正则表达式匹配操作。需要匹配多个词时，可以用逗号将各个正则表达式分隔开 包含：通过正则表达式来过滤项集 最小层级：项集中必须出现的最小项数；如果为1，将显示所有项集 最大层级：项集中出现的最大项数；即如果想要查找具有少于 5 个项的项集，可将该参数为 5 取值范围：包含：用户可以使用空格分隔的正则表达式过滤项集 最小层级：1\\~最大层级 最大层级：最小层级\\~999"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "BIRCH",
+        "widget_id": "birch",
+        "package": "clustering",
+        "image": "BIRCH.svg",
+        "description": "Uses the BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies) hierarchical clustering algorithm to partition data. Builds a Clustering Feature Tree (CF Tree) for efficient clustering of large datasets with limited memory.",
+        "params": [
+            {
+                "name": "Custom Number of Clusters",
+                "type": "str",
+                "default": "true",
+                "description": "Sets 是否自定义簇数量，如果为否，则根据进行聚类自动生成簇数 取值范围：True / False"
+            },
+            {
+                "name": "Number of Clusters",
+                "type": "str",
+                "default": "3",
+                "description": "Specifies 簇数量 取值范围：1~1000"
+            },
+            {
+                "name": "Cluster Feature Radius Threshold",
+                "type": "str",
+                "default": "0.5",
+                "description": "实例距离簇中心的距离阈值 取值范围：0.00000001~10000"
+            },
+            {
+                "name": "Maximum Clustering Features",
+                "type": "str",
+                "default": "50",
+                "description": "簇中的最大特征数，如果一个簇的特征数超过这个值会分裂为两个簇 取值范围：1~1000"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Bisecting K-Means",
+        "widget_id": "bisecting-kmeans",
+        "package": "clustering",
+        "image": "BisectingKMeans.svg",
+        "description": "Performs bisecting K-Means clustering, a hybrid hierarchical/partitional approach that repeatedly splits clusters into two using K-Means.",
+        "params": [
+            {
+                "name": "Number of Clusters",
+                "type": "str",
+                "default": "2",
+                "description": "Specifies 簇数 取值范围：1~1000"
+            },
+            {
+                "name": "Initialization Method",
+                "type": "str",
+                "default": "random",
+                "description": "k-means++：k-means++ random：随机产生 取值范围：k-means++ random"
+            },
+            {
+                "name": "初始化次数",
+                "type": "str",
+                "default": "1",
+                "description": "初始化次数，用于产生最佳初始参数 取值范围：1~100"
+            },
+            {
+                "name": "Relative Tolerance",
+                "type": "str",
+                "default": "0.0001",
+                "description": "连续两次迭代的聚类中心的相对公差，用于判断收敛 取值范围：0.00000001~1"
+            },
+            {
+                "name": "Maximum Iterations",
+                "type": "str",
+                "default": "100",
+                "description": "最大迭代次数 取值范围：1~10000"
+            },
+            {
+                "name": "内部KMeans算法",
+                "type": "str",
+                "default": "lloyd",
+                "description": "lloyd elkan 取值范围：lloyd elkan"
+            },
+            {
+                "name": "二分策略",
+                "type": "str",
+                "default": "biggest_inertia",
+                "description": "Selects 定义如何执行二分操作 biggest_initia：所有计算出的聚类都是具有最大SSE（平方误差之和）的聚类，并将其一分为二 largest_cluster：从先前计算的所有聚类中具有最大群体数的聚类，并将其一分为二。 取值范围：biggest_inertia largest_cluster"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "DBSCAN",
+        "widget_id": "dbscan",
+        "package": "clustering",
+        "image": "DBSCAN.svg",
+        "description": "Performs DBSCAN (Density-Based Spatial Clustering of Applications with Noise) clustering. Groups together points that are closely packed together while marking points in low-density regions as outliers.",
+        "params": [
+            {
+                "name": "最小包含点数",
+                "type": "str",
+                "default": "4",
+                "description": "核心点的邻节点树量 取值范围：1~100"
+            },
+            {
+                "name": "扫描半径",
+                "type": "str",
+                "default": "0.5",
+                "description": "两个样本点之间的最大距离 取值范围：0.00000001~1000"
+            },
+            {
+                "name": "Metric",
+                "type": "str",
+                "default": "欧几里得",
+                "description": "对数据进行分组的距离度量 欧几里得（Eclidean）：两点间的直线距离 曼哈顿（Manhattan）：所有属性的绝对差值之和 余弦（Cosine）：内积空间中两个向量的夹角的余弦值 取值范围：欧几里得 曼哈顿 余弦"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Gaussian Mixture",
+        "widget_id": "gaussian-mixture",
+        "package": "clustering",
+        "image": "GaussianMixture.svg",
+        "description": "Builds a Gaussian Mixture Model (GMM) for probabilistic clustering. Represents the data as a weighted sum of Gaussian distributions and assigns each data point a probability of belonging to each cluster.",
+        "params": [
+            {
+                "name": "Number of Clusters",
+                "type": "str",
+                "default": "2",
+                "description": "Specifies 簇数 取值范围：1~1000"
+            },
+            {
+                "name": "协方差类型",
+                "type": "str",
+                "default": "full",
+                "description": "full：每个分量有各自不同的标准协方差矩阵，完全协方差矩阵 tied：所有分量有相同的标准协方差矩阵 diag：每个分量有各自不同对角协方差矩阵 spherical：每个分量有各自不同的简单协方差矩阵，球面协方差矩阵 取值范围：full tied diag spherical"
+            },
+            {
+                "name": "收敛阈值",
+                "type": "str",
+                "default": "0.001",
+                "description": "迭代停止阈值 取值范围：0.00000001~100"
+            },
+            {
+                "name": "协方差对角非负正则化",
+                "type": "str",
+                "default": "0.000001",
+                "description": "保证协方差矩阵均为正 取值范围：0.00000001~1000"
+            },
+            {
+                "name": "Maximum Iterations",
+                "type": "str",
+                "default": "100",
+                "description": "最大迭代次数 取值范围：1~10000"
+            },
+            {
+                "name": "初始化次数",
+                "type": "str",
+                "default": "1",
+                "description": "初始化次数，用于产生最佳初始参数 取值范围：1~100"
+            },
+            {
+                "name": "初始化参数类型",
+                "type": "str",
+                "default": "kmeans",
+                "description": "Selects 初始化参数实现方式 kmeans：kmeans方式 k-means++：k-means++ random：随机产生 random_from_data：从初始平均值中随机 取值范围：kmeans k-means++ random random_from_data"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Hierarchical Clustering",
+        "widget_id": "hierarchical-clustering",
+        "package": "clustering",
+        "image": "HierarchicalClustering.svg",
+        "description": "Performs hierarchical clustering to build a tree of clusters. Supports both agglomerative (bottom-up) and divisive (top-down) approaches with various linkage criteria.",
+        "params": [
+            {
+                "name": "连接",
+                "type": "str",
+                "default": "最短距离法",
+                "description": "簇间距离度量： 最短距离法 未加权平均距离法 最长距离法 内平方距离法 取值范围：最短距离法 未加权平均距离法 最长距离法 内平方距离法"
+            },
+            {
+                "name": "注释",
+                "type": "str",
+                "default": "无",
+                "description": "树图中的注释信息 取值范围：无 数字"
+            },
+            {
+                "name": "剪枝",
+                "type": "str",
+                "default": "10",
+                "description": "当树图较大时，用户可限制树的最大深度 取值范围：1~100"
+            },
+            {
+                "name": "缩放",
+                "type": "str",
+                "default": "12",
+                "description": "对树图进行缩放 取值范围：1~30"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Interactive K-Means",
+        "widget_id": "interactive-kmeans",
+        "package": "clustering",
+        "image": "InteractiveKMeans.svg",
+        "description": "Provides an interactive interface for K-Means clustering, allowing users to visually explore and adjust clustering parameters and view results in real time.",
+        "params": [
+            {
+                "name": "Axes",
+                "type": "str",
+                "default": "sepal length",
+                "description": "Selects x和y轴的属性 取值范围：输入数据集中的数值型属性"
+            },
+            {
+                "name": "聚类中心",
+                "type": "str",
+                "default": "3",
+                "description": "Sets 中心点个数：中心数 随机位置：随机分配质心的位置。如果要在图形的特定位置添加质心，请单击此位置。如果要移动质心，请将其拖放到所需位置。 取值范围：1~10"
+            },
+            {
+                "name": "手动单步执行",
+                "type": "str",
+                "default": "",
+                "description": "重计算聚类中心：逐步执行算法的不同阶段。基于分配给质心的数据的最中央位置，重新计算质心将质心移动到新位置。"
+            },
+            {
+                "name": "自动执行",
+                "type": "str",
+                "default": "",
+                "description": "自动计算：自动地逐步执行。"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "K-Modes",
+        "widget_id": "k-modes",
+        "package": "clustering",
+        "image": "KModes.svg",
+        "description": "Performs K-Modes clustering algorithm, a variant of K-Means specifically designed for categorical data, using the mode of clusters instead of means.",
+        "params": [
+            {
+                "name": "Number of Clusters",
+                "type": "str",
+                "default": "3",
+                "description": "Specifies 簇数 取值范围：1~1000"
+            },
+            {
+                "name": "最大迭代数",
+                "type": "str",
+                "default": "200",
+                "description": "算法运行的最大迭代次数 取值范围：1~1000"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Mean Shift",
+        "widget_id": "mean-shift",
+        "package": "clustering",
+        "image": "MeanShift.svg",
+        "description": "Performs Mean Shift clustering, a non-parametric algorithm that discovers blobs in a smooth density of samples by iteratively shifting data points towards the mode of the density function.",
+        "params": [
+            {
+                "name": "分位点",
+                "type": "str",
+                "default": "0.3",
+                "description": "【0，1】之间 取值范围：0~1"
+            },
+            {
+                "name": "样本数",
+                "type": "str",
+                "default": "150",
+                "description": "用于计算的实例数 取值范围：1~10000"
+            },
+            {
+                "name": "核函数宽带",
+                "type": "str",
+                "default": "",
+                "description": "根据参数计算出的核函数带宽"
+            },
+            {
+                "name": "最大迭代数",
+                "type": "str",
+                "default": "300",
+                "description": "算法运行的最大迭代次数 取值范围：1~10000"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Chinese Conversion",
+        "widget_id": "chinese-conversion",
+        "package": "deeplearning",
+        "image": "ChineseConversion.svg",
+        "description": "Converts text between Simplified Chinese and Traditional Chinese using deep learning models.",
+        "params": [
+            {
+                "name": "Model Selection",
+                "type": "str",
+                "default": "简转繁",
+                "description": "中文简繁转换模型 取值范围：简转繁 繁转简"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "GRU Time Series",
+        "widget_id": "gru-timeseries",
+        "package": "deeplearning",
+        "image": "GRUTimeSeries.svg",
+        "description": "Builds a GRU (Gated Recurrent Unit) deep learning model for time series forecasting.",
+        "params": [
+            {
+                "name": "Model Name",
+                "type": "str",
+                "default": "GRU TS",
+                "description": "Sets the model name, used to distinguish different models in other components 取值范围：Non-empty string"
+            },
+            {
+                "name": "Number of Epochs",
+                "type": "str",
+                "default": "3",
+                "description": "训练迭代轮数（epoch） 取值范围：1~1000"
+            },
+            {
+                "name": "Learning Rate",
+                "type": "str",
+                "default": "0.001",
+                "description": "learning rate 取值范围：0.00000001~1"
+            },
+            {
+                "name": "Batch Size",
+                "type": "str",
+                "default": "64",
+                "description": "一轮训练的样本大小（batch size） 取值范围：1~840"
+            },
+            {
+                "name": "隐藏层大小",
+                "type": "str",
+                "default": "64",
+                "description": "Hidden Layers 取值范围：1~1024"
+            },
+            {
+                "name": "层数",
+                "type": "str",
+                "default": "2",
+                "description": "深度学习模型隐藏层层数（num of layers） 取值范围：1~100"
+            },
+            {
+                "name": "时间窗口",
+                "type": "str",
+                "default": "1",
+                "description": "根据历史的多少条数据预测未来的数据，如当值为1时，表明根据历史最近一条数据预测未来的一条数据 取值范围：1~1000"
+            },
+            {
+                "name": "预测",
+                "type": "str",
+                "default": "3",
+                "description": "预测未来多少条数据 取值范围：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "LSTM Time Series",
+        "widget_id": "lstm-timeseries",
+        "package": "deeplearning",
+        "image": "LSTMTimeSeries.svg",
+        "description": "Builds an LSTM (Long Short-Term Memory) deep learning model for time series forecasting.",
+        "params": [
+            {
+                "name": "Model Name",
+                "type": "str",
+                "default": "LSTM TS",
+                "description": "Sets the model name, used to distinguish different models in other components 取值范围：Non-empty string"
+            },
+            {
+                "name": "Number of Epochs",
+                "type": "str",
+                "default": "3",
+                "description": "训练迭代轮数（epoch） 取值范围：1~1000"
+            },
+            {
+                "name": "Learning Rate",
+                "type": "str",
+                "default": "0.001",
+                "description": "learning rate 取值范围：0.00000001~1"
+            },
+            {
+                "name": "Batch Size",
+                "type": "str",
+                "default": "64",
+                "description": "一轮训练的样本大小（batch size） 取值范围：1~840"
+            },
+            {
+                "name": "隐藏层大小",
+                "type": "str",
+                "default": "64",
+                "description": "Hidden Layers 取值范围：1~1024"
+            },
+            {
+                "name": "层数",
+                "type": "str",
+                "default": "2",
+                "description": "深度学习模型隐藏层层数（num of layers） 取值范围：1~100"
+            },
+            {
+                "name": "时间窗口",
+                "type": "str",
+                "default": "1",
+                "description": "根据历史的多少条数据预测未来的数据，如当值为1时，表明根据历史最近一条数据预测未来的一条数据 取值范围：1~1000"
+            },
+            {
+                "name": "预测",
+                "type": "str",
+                "default": "3",
+                "description": "预测未来多少条数据 取值范围：1~100"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Save File",
+        "widget_id": "save-file",
+        "package": "deeplearning",
+        "image": "SaveFile.svg",
+        "description": "Saves output data or models from deep learning components to files.",
+        "params": [
+            {
+                "name": "文件名",
+                "type": "str",
+                "default": "file",
+                "description": "需要保存的文件名称 取值范围：Non-empty string"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Summarization",
+        "widget_id": "summarization",
+        "package": "deeplearning",
+        "image": "Summarization.svg",
+        "description": "Performs automatic text summarization using deep learning models to generate concise summaries of input documents.",
+        "params": [
+            {
+                "name": "Model Name",
+                "type": "str",
+                "default": "非空字符串",
+                "description": " 取值范围：设置模型名称，用于在其他组件中区分不同的模型"
+            },
+            {
+                "name": "Computing Framework",
+                "type": "str",
+                "default": "PyTorch Tensorflow",
+                "description": " 取值范围：选择模型训练采用的训练框架，控件支持如下计算框架：PyTorchTensorflow"
+            },
+            {
+                "name": "Model Selection (PyTorch)",
+                "type": "str",
+                "default": "BART",
+                "description": "PyTorch 取值范围：支持的用于自动摘要的深度学习模型"
+            },
+            {
+                "name": "Model Selection (Tensorflow)",
+                "type": "str",
+                "default": "BART",
+                "description": "Tensorflow 取值范围：支持的用于自动摘要的深度学习模型"
+            },
+            {
+                "name": "Training Parameters",
+                "type": "str",
+                "default": "1~100000",
+                "description": "迭代轮数 取值范围：训练迭代轮数（epoch）"
+            },
+            {
+                "name": "Learning Rate",
+                "type": "str",
+                "default": "0.00000001~1",
+                "description": "训练参数 取值范围：learning rate"
+            },
+            {
+                "name": "Batch Size",
+                "type": "str",
+                "default": "1~840",
+                "description": "训练参数 取值范围：一个epoch训练的样本大小"
+            }
+        ],
+        "type": "predict"
+    },
+    {
+        "widget_name": "Calibration Plot",
+        "widget_id": "calibration-plot",
+        "package": "evaluate",
+        "image": "CalibrationPlot.svg",
+        "description": "Plots calibration curves to assess the reliability of probabilistic predictions from classifiers. Compares predicted probabilities against observed frequencies.",
+        "params": [
+            {
+                "name": "目标类",
+                "type": "str",
+                "default": "默认选中的值是离散目标属性取值的第一个",
+                "description": "离散目标属性的取值 取值范围：离散目标属性的取值"
+            },
+            {
+                "name": "Classifier",
+                "type": "str",
+                "default": "",
+                "description": "Selects 要评估的数据挖掘模型，后系统会绘制对应的校准曲线 取值范围：要评估的数据挖掘模型，支持多选"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Lift Curve",
+        "widget_id": "lift-curve",
+        "package": "evaluate",
+        "image": "LiftCurve.svg",
+        "description": "Plots a Lift Curve to evaluate the performance of a classification model by measuring how much better the model performs compared to random selection.",
+        "params": [
+            {
+                "name": "目标类",
+                "type": "str",
+                "default": "默认选中的值是离散目标属性取值的第一个",
+                "description": "离散目标属性的取值 取值范围：离散目标属性的取值"
+            },
+            {
+                "name": "Classifier",
+                "type": "str",
+                "default": "",
+                "description": "Selects 要评估的数据挖掘模型，后系统会绘制对应的Lift曲线 取值范围：要评估的数据挖掘模型，支持多选"
+            },
+            {
+                "name": "显示升力凸包",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Displays 为所有分类器绘制凸起曲线，曲线了每个期望的真阳率/阳率的最佳分类器 取值范围：Checked / Unchecked"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "ROC Analysis",
+        "widget_id": "roc-analysis",
+        "package": "evaluate",
+        "image": "ROCAnalysis.svg",
+        "description": "Plots ROC (Receiver Operating Characteristic) curves to evaluate classifier performance across different decision thresholds, showing the trade-off between true positive and false positive rates.",
+        "params": [
+            {
+                "name": "目标类",
+                "type": "str",
+                "default": "默认选中的值是离散目标属性取值的第一个",
+                "description": "离散目标属性的取值 取值范围：离散目标属性的取值"
+            },
+            {
+                "name": "Classifier",
+                "type": "str",
+                "default": "",
+                "description": "Selects 要评估的数据挖掘模型，后系统会绘制对应的ROC曲线 取值范围：要评估的数据挖掘模型，支持多选"
+            },
+            {
+                "name": "合并ROC曲线",
+                "type": "str",
+                "default": "根据折数合并预测",
+                "description": "Displays 当数据来自多次迭代的训练或测试（如 k-fold 交叉验证）时，可以平均结果。其中平均选项包括： 根据折数合并预测：将所有测试数据视为单次迭代结果 平均真阳率：垂直平均曲线，显示相应的置信区间 平均真阳率和假阳率阈值：遍历阈值，平均曲线的位置并显示水平和垂直置信区间 显示单独曲线：显示所有曲线，而不计算平均值 取值范围：根据折数合并预测 平均真阳率 平均真阳率和假阳率阈值 显示单独曲线"
+            },
+            {
+                "name": "ROC凸包",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Displays “凸曲线”选项是指显示每个单独分类器上的凸曲线 “显示凸包”选项显示结合了所有分类器的凸包 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "分析",
+                "type": "str",
+                "default": "假阳性代价：500 假阴性代价：500 目标类先验概率：0.5",
+                "description": "Displays 此部分用于分析曲线，用户可以指定假阳性（FP）和假阴性（FN）的比重以及目标类别概率 默认阈值（0.5）表示如果预测目标等级的概率大于等于 0.5，则由分类器实现ROC曲线上的点 性能曲线在 ROC 空间中显示出 iso 性能，因此该线上的所有点都会带来相同的利润/损失 取值范围：假阳性代价：1~1000 假阴性代价：1~1000 目标类先验概率：0.01~0.99"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Test & Score",
+        "widget_id": "test-and-score",
+        "package": "evaluate",
+        "image": "TestAndScore.svg",
+        "description": "Tests and scores classification/regression models on datasets using cross-validation and other sampling methods. Reports various performance metrics.",
+        "params": [],
+        "type": "evaluate"
+    },
+    {
+        "widget_name": "Create Class",
+        "widget_id": "create-class",
+        "package": "featureengineering",
+        "image": "CreateClass.svg",
+        "description": "Creates a new categorical class attribute from existing dataset attributes based on user-defined rules or patterns.",
+        "params": [
+            {
+                "name": "属性名称",
+                "type": "str",
+                "default": "class1",
+                "description": "新的分类属性的名称 取值范围：Non-empty string"
+            },
+            {
+                "name": "匹配设置（属性选择）",
+                "type": "str",
+                "default": "buying",
+                "description": "根据哪个属性构造新的分类属性 取值范围：数据集离散属性或字符串属性"
+            },
+            {
+                "name": "匹配设置（匹配信息）",
+                "type": "str",
+                "default": "",
+                "description": "别名：新分类属性中的值 子串：正则表达式定义的匹配条件，匹配1中定义的属性的值 实点击“Add”添加新的分类属性的值，点击“Delete”删除对应的值 取值范围：别名：非空字符串 子串：字符串，为空则表示剩余全部"
+            },
+            {
+                "name": "仅在开始时匹配",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 匹配从字符串开头开始匹配 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "区分大小写",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 匹配时区分大小写 取值范围：Checked / Unchecked"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Feature Synthesis",
+        "widget_id": "feature-synthesis",
+        "package": "featureengineering",
+        "image": "FeatureSynthesis.svg",
+        "description": "Performs automated feature engineering (Feature Synthesis) to automatically generate new features by applying transformations and combining existing attributes.",
+        "params": [
+            {
+                "name": "Target",
+                "type": "str",
+                "default": "iris",
+                "description": "添加实体 取值范围：数据集中的目标属性"
+            },
+            {
+                "name": "ID Relations [a one-to-many relationship]",
+                "type": "str",
+                "default": "",
+                "description": "在实体集合中添加表关系（一对多关系） 取值范围：多个数据集间的关系"
+            },
+            {
+                "name": "Aggregation Primitives",
+                "type": "str",
+                "default": "sum, std",
+                "description": "聚合原语，这些原语将相关实例作为输入并输出单个值。它们适用于实体集中的父子关系。如：\"count\"，\"sum\"，\"avg_time_between\"。 取值范围：num_true trend num_unique avg_time_between skew entropy min time_since_first max std mode first any count median last mean n_most_common sum percent_true time_since_last all"
+            },
+            {
+                "name": "Transformation Primitives",
+                "type": "str",
+                "default": "age, hour",
+                "description": "转换原语，这些基元将实体中的一个或多个变量作为输入，并为该实体输出新变量。它们适用于单个实体。如：\"hour\"，\"time_since_previous\"，\"absolute\"。 取值范围：age multiply_numeric_scalar not greater_than_equal_to_scalar not_equal less_than less_than_scalar longitude minute percentile multiply_numeric modulo_numeric_scalar time_since_previous is_weekend add_numeric not_equal_scalar time_since weekday week add_numeric_scalar hour negate scalar_subtract_numeric_feature cum_sum divide_numeric cum_min cum_mean and multiply_boolean subtract_numeric second diff cum_max equal greater_than_equal_to subtract_numeric_scalar haversine divide_numeric_scalar equal_scalar isin num_characters less_than_equal_to modulo_numeric month num_words year is_null day divide_by_feature less_than_equal_to_scalar absolute modulo_by_feature greater_than latitude or cum_count greater_than_scalar"
+            },
+            {
+                "name": "Filtering ValuesWhere Primitives",
+                "type": "str",
+                "default": "sum, hour",
+                "description": "根据聚合原语或转换原语过滤值 取值范围：聚合原语与转换原语的并集"
+            },
+            {
+                "name": "Max Depth [If -1, no limit]",
+                "type": "str",
+                "default": "-1",
+                "description": "控制DFS返回的要素的最大深度 取值范围：-1 0"
+            },
+            {
+                "name": "Max Features [If -1 or 0, no limit]",
+                "type": "str",
+                "default": "-1",
+                "description": "最大特征量 取值范围：-1~10000"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Group By",
+        "widget_id": "group-by",
+        "package": "featureengineering",
+        "image": "GroupBy.svg",
+        "description": "Groups data by specified attributes and computes aggregate statistics (e.g., sum, mean, count) for each group.",
+        "params": [
+            {
+                "name": "分组属性",
+                "type": "str",
+                "default": "iris",
+                "description": "Sets 选择分组属性，可以多个分组属性 取值范围：Dataset attributes"
+            },
+            {
+                "name": "分组配置",
+                "type": "str",
+                "default": "Count",
+                "description": "Selects 勾选列，在下方需要进行的操作 取值范围：分组后操作： Mean Median Variance Sum Min. value Max. value First value Last value Count Standard deviation Count Defined Proportion Defined Concatenate"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Manifold Learning",
+        "widget_id": "manifold-learning",
+        "package": "featureengineering",
+        "image": "ManifoldLearning.svg",
+        "description": "Performs manifold learning for non-linear dimensionality reduction, including algorithms like t-SNE, MDS, and Isomap.",
+        "params": [
+            {
+                "name": "Method",
+                "type": "str",
+                "default": "t分布随机嵌入（t-SNE）",
+                "description": "t分布随机嵌入（t-SNE） 多维缩放（MDS） 等度量映射（Isomap） 局部线性嵌入（Locally Linear Embedding） 谱嵌入（Spectral Embedding） 取值范围：t分布随机嵌入（t-SNE） 多维缩放（MDS） 等度量映射（Isomap） 局部线性嵌入（Locally Linear Embedding） 谱嵌入（Spectral Embedding）"
+            },
+            {
+                "name": "参数信息",
+                "type": "str",
+                "default": "",
+                "description": "各方法对应的参数指标"
+            },
+            {
+                "name": "输出信息",
+                "type": "str",
+                "default": "2",
+                "description": "输出数据的维度数 取值范围：1~20"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "PCA",
+        "widget_id": "pca",
+        "package": "featureengineering",
+        "image": "PCA.svg",
+        "description": "Applies Principal Component Analysis (PCA) to input data, computing linear transformations to project data onto principal components while preserving variance.",
+        "params": [
+            {
+                "name": "Principal Component Ratio",
+                "type": "str",
+                "default": "0.9",
+                "description": "主成分覆盖的方差范围 取值范围：0.1~1"
+            },
+            {
+                "name": "SVD Method",
+                "type": "str",
+                "default": "",
+                "description": "Selects 奇异值分解方法 取值范围：auto full arpack randomized"
+            },
+            {
+                "name": "Data Standardization",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 对数据进行标准化操作 取值范围：Checked / Unchecked"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Polynomial Features",
+        "widget_id": "polynomial-features",
+        "package": "featureengineering",
+        "image": "PolynomialFeatures.svg",
+        "description": "Generates polynomial and interaction features from existing attributes by computing products and powers of input features.",
+        "params": [
+            {
+                "name": "多项式阶数",
+                "type": "str",
+                "default": "2",
+                "description": "多项式展开式的最大阶数 取值范围：1~1000"
+            },
+            {
+                "name": "只进行交叉相乘",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 只进行交叉相乘，意味着不会出现单一特征的平方 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "是否包含零次方",
+                "type": "str",
+                "default": "勾选",
+                "description": "Whether to 包含特征的零次方，即1 取值范围：Checked / Unchecked"
+            }
+        ],
+        "type": "feature engineering"
+    },
+    {
+        "widget_name": "Corpus",
+        "widget_id": "corpus",
+        "package": "io",
+        "image": "Corpus.svg",
+        "description": "Loads text corpus datasets from files or online sources for text mining and NLP tasks.",
+        "params": [
+            {
+                "name": "Data Source",
+                "type": "str",
+                "default": "andersen",
+                "description": "Selects 样例数据：系统提供的样例文本数据集，可直接加载 手动上传：上传自定义文本数据集 取值范围：系统提供了8个样例文本数据集供用户选择 20newsgroups-test：20个不同主题的新闻组集合测试集 20newsgroups-train：20个不同主题的新闻组集合训练集 andersen：安徒生童话故事 book-excerpts：书籍节选 deerwester：书籍目录 election-tweets-2016：twitter数据集 grimm-tales-selected：格林童话筛选 grimm-tales：格林童话"
+            },
+            {
+                "name": "Title",
+                "type": "str",
+                "default": "",
+                "description": "配置文本数据集的标题属性 取值范围：文本数据集属性"
+            },
+            {
+                "name": "可选属性/忽略属性",
+                "type": "str",
+                "default": "",
+                "description": "配置文本数据集的可选属性以及忽略属性 取值范围：文本数据集属性"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Distance File",
+        "widget_id": "distance-file",
+        "package": "io",
+        "image": "DistanceFile.svg",
+        "description": "Loads pre-computed distance matrix files for use in clustering, network analysis, or other distance-based methods.",
+        "params": [
+            {
+                "name": "Data Source",
+                "type": "str",
+                "default": "conferences",
+                "description": "Selects 样例数据：系统提供的样例数据，可直接加载 手动上传：上传自定义距离矩阵 取值范围：系统提供了2个样例数据供用户选择 conferences：会议信息 slovenian-towns：斯洛文尼亚城市距离"
+            },
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "Displays 距离矩阵相关信息"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Load Model",
+        "widget_id": "load-model",
+        "package": "io",
+        "image": "LoadModel.svg",
+        "description": "Loads a previously saved/trained model from a file for reuse in prediction or evaluation workflows.",
+        "params": [
+            {
+                "name": "选择文件",
+                "type": "str",
+                "default": "",
+                "description": "Selects 加载可用的模型文件"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Network File",
+        "widget_id": "network-file",
+        "package": "io",
+        "image": "NetworkFile.svg",
+        "description": "Loads network/graph data from files in various formats (e.g., Pajek, GML) for network analysis.",
+        "params": [
+            {
+                "name": "图信息",
+                "type": "str",
+                "default": "",
+                "description": "加载图文件并且根据图构建数据表"
+            },
+            {
+                "name": "点数据信息",
+                "type": "str",
+                "default": "",
+                "description": "图中节点的信息。读取标准数据文件"
+            },
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "Displays 图的类型、点的个数、边的个数"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Network Generator",
+        "widget_id": "network-generator",
+        "package": "io",
+        "image": "NetworkGenerator.svg",
+        "description": "Generates synthetic network graphs with configurable parameters such as number of nodes, edges, and graph topology.",
+        "params": [
+            {
+                "name": "网络类型",
+                "type": "str",
+                "default": "环形图节点",
+                "description": "构建的网络图类型 取值范围：路径图 环形图节点 完全图 完全二分图 杠铃图 梯形图 圆梯图 网格图 超立方体图 星型图 棒棒糖图 几何图"
+            },
+            {
+                "name": "节点数目",
+                "type": "str",
+                "default": "10",
+                "description": "Sets 生成网络图的大致节点数（部分网络图不能完全满足节点数的）。 取值范围：1~100"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Random Data",
+        "widget_id": "random-data",
+        "package": "io",
+        "image": "RandomData.svg",
+        "description": "Generates random/synthetic datasets with configurable distributions and parameters for testing or demonstration purposes.",
+        "params": [
+            {
+                "name": "生成方法列表",
+                "type": "str",
+                "default": "",
+                "description": "Specifies 生成规则，并配置规则信息，方便生成相应的数据，可选定多条规则构建数据"
+            },
+            {
+                "name": "数据规则",
+                "type": "str",
+                "default": "正态分布",
+                "description": "数据规则选项卡 取值范围：支持的规则包括： 正态分布 伯努利分布 二项分布 连续型均与分布 离散型均匀分布 多项分布 超几何分布 负二项分布 泊松分布 指数分布 伽玛分布 Student-T 分布 二维正态分布"
+            },
+            {
+                "name": "生成实例数",
+                "type": "str",
+                "default": "1000",
+                "description": "需要生成的数据实例数 取值范围：1~10000"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Save Distance Matrix",
+        "widget_id": "save-distance-matrix",
+        "package": "io",
+        "image": "SaveDistanceMatrix.svg",
+        "description": "Saves computed distance matrices to files for later use in clustering or network analysis.",
+        "params": [
+            {
+                "name": "文件名",
+                "type": "str",
+                "default": "mydata",
+                "description": "需要保存的文件名称 取值范围：Non-empty string"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Save Model",
+        "widget_id": "save-model",
+        "package": "io",
+        "image": "SaveModel.svg",
+        "description": "Saves a trained model to a file for later loading and reuse in prediction or evaluation workflows.",
+        "params": [
+            {
+                "name": "文件名",
+                "type": "str",
+                "default": "mydata",
+                "description": "需要保存的文件名称 取值范围：Non-empty string"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Table Writer",
+        "widget_id": "table-writer",
+        "package": "io",
+        "image": "TableWriter.svg",
+        "description": "Writes processed data results into database tables for persistent storage and further analysis.",
+        "params": [
+            {
+                "name": "数据库类型",
+                "type": "str",
+                "default": "MySQL",
+                "description": "Specifies 连接数据库的类型 取值范围：Microsoft SQL Server PostgreSQL MySQL Oracle"
+            },
+            {
+                "name": "Database Host",
+                "type": "str",
+                "default": "127.0.0.1",
+                "description": "Specifies 数据库连接地址 取值范围：IP address or domain name"
+            },
+            {
+                "name": "Port",
+                "type": "str",
+                "default": "5432",
+                "description": "Specifies 连接端口号 取值范围：0~65535"
+            },
+            {
+                "name": "Schema",
+                "type": "str",
+                "default": "public",
+                "description": "schema，针对PostgreSQL数据库 取值范围：Non-empty string"
+            },
+            {
+                "name": "Database Name",
+                "type": "str",
+                "default": "test",
+                "description": "数据库名 取值范围：Non-empty string"
+            },
+            {
+                "name": "Username",
+                "type": "str",
+                "default": "postgres",
+                "description": "Specifies 数据库连接用户名 取值范围：Non-empty string"
+            },
+            {
+                "name": "Password",
+                "type": "str",
+                "default": "123456",
+                "description": "Specifies 数据库连接密码 取值范围：Non-empty string"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "CN2 Rule Induction",
+        "widget_id": "cn2-rule-induction",
+        "package": "model",
+        "image": "CN2RuleInduction.svg",
+        "description": "Induces classification rules using the CN2 rule induction algorithm, producing an ordered or unordered list of IF-THEN rules from data.",
+        "params": [
+            {
+                "name": "学习器名称",
+                "type": "str",
+                "default": "CN2 Rule Induction",
+                "description": "Sets 学习器的名称，用于在其他组件中区分不同的学习器 取值范围：String"
+            },
+            {
+                "name": "规则排序",
+                "type": "str",
+                "default": "有序",
+                "description": "有序：归纳有序的规则（决策列表） 查找规则条件，大部分分类被归纳到规则的头部 无序：归纳无序的规则（规则集） 针对原始数据分别学习每个分类的规则 取值范围：有序 无序"
+            },
+            {
+                "name": "覆盖算法",
+                "type": "str",
+                "default": "独有",
+                "description": "独有：在覆盖学习实例之后，将其从进一步考虑中移除。 加权：在覆盖学习实例之后，减小其权重（乘以γ）同时反过来减小其对进一步迭代算法的影响 取值范围：独有 加权： γ：0~1"
+            },
+            {
+                "name": "规则搜索",
+                "type": "str",
+                "default": "评估方法：Entropy 波束宽度：5",
+                "description": "Selects 评估方法：一个启发式评估找到假设： Entropy：衡量内容的不可预测性 Laplace Accuracy Weighted Relative Accuracy 波束宽度：保存迄今为止发现的最佳规则，并检测固定数量的替代方案（波束） 取值范围：评估方法： Entropy Laplace Accuracy Weighted Relative Accuracy 波束宽度：1~100"
+            },
+            {
+                "name": "规则过滤",
+                "type": "str",
+                "default": "最小规则覆盖范围：1 最大规则长度：5 统计显著性（默认 α）：1 相对重要性（父系 α）：1",
+                "description": "Selects 最小规则覆盖范围：发现的规则必须至少涵盖所要求的最小数量的例子，无序的规则必须涵盖大多数目标类的例子 最大规则长度：发现的规则可以最多组合器（条件）的最大允许数量 统计显著性（默认 α）：重要性测试来删除关于类的初始分配的特有的规则（不常用） 相对重要性（父系 α）：重要性测试来删除关于父类分布的特有的规则（不常用） 取值范围：最小规则覆盖范围：1~10000 最大规则长度：1~100 统计显著性（默认 α）：0~1 相对重要性（父系 α）：0~1"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Constant",
+        "widget_id": "constant",
+        "package": "model",
+        "image": "Constant.svg",
+        "description": "A baseline model that always predicts a constant value. Useful as a reference point for evaluating other models' performance.",
+        "params": [
+            {
+                "name": "Model Name",
+                "type": "str",
+                "default": "Constant",
+                "description": "Sets the model name, used to distinguish different models in other components 取值范围：Non-empty string"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Network Analysis",
+        "widget_id": "network-analysis",
+        "package": "network",
+        "image": "NetworkAnalysis.svg",
+        "description": "Performs statistical analysis on graph/network data, computing graph-level metrics (number of nodes, edges, density, diameter) and node-level metrics (degree, centrality measures).",
+        "params": [
+            {
+                "name": "Graph-level Metrics",
+                "type": "str",
+                "default": "节点数目",
+                "description": "对网络图中图级别信息进行统计分析 取值范围：节点数目 边数目 平均度 密度 直径 半径 平均最短路径长度 强连通组件数目 弱连通组件数目"
+            },
+            {
+                "name": "Node-level Metrics",
+                "type": "str",
+                "default": "入度",
+                "description": "对网络图中点级别信息进行统计分析 取值范围：度 入度 出度 平均邻居度 度中心性 入度中心性 出度中心性 接近中心性"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Network Clustering",
+        "widget_id": "network-clustering",
+        "package": "network",
+        "image": "NetworkClustering.svg",
+        "description": "Performs clustering on network/graph data to identify communities or groups of densely connected nodes.",
+        "params": [
+            {
+                "name": "Maximum Iterations",
+                "type": "str",
+                "default": "1000",
+                "description": "允许算法运行的最大迭代次数（可以在达到最大值之前收敛） 取值范围：1~100000"
+            },
+            {
+                "name": "聚类方法",
+                "type": "str",
+                "default": "",
+                "description": "图聚类算法 取值范围：标签传播聚类（Raghavan et al., 2007） 标签传播聚类（Leung et al., 2009）"
+            },
+            {
+                "name": "跳变衰减 (delta)",
+                "type": "str",
+                "default": "0.1",
+                "description": "Leung 等人（2009 年），以 Raghavan 的工作为基础，增加的跳变衰减参数 取值范围：0~1"
+            },
+            {
+                "name": "计算",
+                "type": "str",
+                "default": "",
+                "description": "点击该按钮对图进行聚类计算"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Network Explorer",
+        "widget_id": "network-explorer",
+        "package": "network",
+        "image": "NetworkExplorer.svg",
+        "description": "Visualizes and explores network/graph data interactively, supporting layout customization and visual inspection of graph structure.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "输入图数据的节点个数",
+                "description": "Displays 网络的节点和边的个数"
+            },
+            {
+                "name": "Color",
+                "type": "str",
+                "default": "相同颜色",
+                "description": "Displays 网络图中节点的颜色 取值范围：相同颜色 数据集离散型属性"
+            },
+            {
+                "name": "Shape",
+                "type": "str",
+                "default": "相同形状",
+                "description": "网络图中节点形状 取值范围：相同形状 数据集离散型属性"
+            },
+            {
+                "name": "大小",
+                "type": "str",
+                "default": "相同大小",
+                "description": "Sets 选择属性，节点将根据属性值节点大小 取值范围：相同大小 数据集连续型属性"
+            },
+            {
+                "name": "标记",
+                "type": "str",
+                "default": "不标记",
+                "description": "Selects 属性，节点将显示对应属性值 取值范围：不标记 数据集属性"
+            },
+            {
+                "name": "布局",
+                "type": "str",
+                "default": "环形",
+                "description": "Displays 网络图的样式，包括随机、网格、环形、同心环、广度优先、cose等布局 取值范围：随机 网格 环形 同心环 广度优先 cose"
+            },
+            {
+                "name": "节点大小",
+                "type": "str",
+                "default": "5",
+                "description": "Displays 调整网络图中节点的大小 取值范围：5~50"
+            },
+            {
+                "name": "边的宽度",
+                "type": "str",
+                "default": "1",
+                "description": "Displays 调整网络图中边的宽度 取值范围：1~10"
+            },
+            {
+                "name": "算法",
+                "type": "str",
+                "default": "不计算",
+                "description": "选中网络图中的点进行相关的计算，包括邻节点、广度优先搜索、深度优先搜索、PageRank 等。 取值范围：不计算 邻节点 广度优先搜索 深度优先搜索 PageRank"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Network From Distances",
+        "widget_id": "network-from-distances",
+        "package": "network",
+        "image": "NetworkFromDistances.svg",
+        "description": "Constructs a network/graph from a distance matrix by connecting nodes based on distance thresholds or k-nearest neighbors.",
+        "params": [
+            {
+                "name": "距离阈值",
+                "type": "str",
+                "default": "0.4",
+                "description": "边缘形成的紧密度阈值 取值范围：0~1"
+            },
+            {
+                "name": "百分数",
+                "type": "str",
+                "default": "1.5",
+                "description": "Specifies 要连接的数据实例的百分数 取值范围：0~100"
+            },
+            {
+                "name": "包含最近邻节点",
+                "type": "str",
+                "default": "2",
+                "description": "包括与所选实例最接近的邻居 取值范围：1~1000"
+            },
+            {
+                "name": "节点选择",
+                "type": "str",
+                "default": "保留所有节点",
+                "description": "Sets 保留所有节点：即输出整个网络 保留连接组件至少包含节点数：筛选出少于的节点数的节点 保留最大连接组件：仅保留最大的群集 取值范围：保留所有节点 保留连接组件至少包含节点数 保留最大连接组件"
+            },
+            {
+                "name": "边的权重",
+                "type": "str",
+                "default": "正比于距离",
+                "description": "Sets 正比于距离：权重以反映距离（接近度） 反比于距离：设置权重以反映倒转距离（差异） 取值范围：正比于距离 反比于距离"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Concatenate",
+        "widget_id": "concatenate",
+        "package": "preprocess",
+        "image": "Concatenate.svg",
+        "description": "Concatenates/merges multiple datasets by rows or columns, combining data from different sources into a single dataset.",
+        "params": [
+            {
+                "name": "属性域合并",
+                "type": "str",
+                "default": "输入数据属性的并集",
+                "description": "Sets 连接数据集的方法 取值范围：输入数据属性的并集 输入数据属性的交集"
+            },
+            {
+                "name": "数据源识别",
+                "type": "str",
+                "default": "不追加",
+                "description": "Sets 是否将数据集的标识添加到输出数据集，并数据集标识属性的类型 取值范围：追加：设置追加时需设置id属性的属性名及属性类别 不追加"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Distance Matrix",
+        "widget_id": "distance-matrix",
+        "package": "preprocess",
+        "image": "DistanceMatrix.svg",
+        "description": "Computes a distance matrix from the input dataset using various distance metrics, producing pairwise distances between all instances.",
+        "params": [],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Distance Transformation",
+        "widget_id": "distance-transformation",
+        "package": "preprocess",
+        "image": "DistanceTransformation.svg",
+        "description": "Transforms a distance matrix by applying operations such as normalization, thresholding, or conversion.",
+        "params": [
+            {
+                "name": "标准化操作",
+                "type": "str",
+                "default": "不进行该操作",
+                "description": "进行数据标准化操作 取值范围：不进行该操作 [0, 1] 区间 [-1, 1] 区间 Sigmoid 函数: 1/(1+exp(-X))"
+            },
+            {
+                "name": "转化",
+                "type": "str",
+                "default": "不进行该操作",
+                "description": "矩阵元素取值的变换 取值范围：不进行该操作 -X 1 - X max(X) - X 1/X"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Distances",
+        "widget_id": "distances",
+        "package": "preprocess",
+        "image": "Distances.svg",
+        "description": "Computes distances between data instances using various metrics and produces a distance matrix.",
+        "params": [
+            {
+                "name": "距离分割",
+                "type": "str",
+                "default": "行",
+                "description": "Selects 按行或列计算距离 取值范围：行 列"
+            },
+            {
+                "name": "Metric",
+                "type": "str",
+                "default": "欧几里得",
+                "description": "欧几里得（Eclidean）：两点间的直线距离 曼哈顿（Manhattan）：所有属性的绝对差值之和 余弦（Cosine）：内积空间中两个向量的夹角的余弦值 杰卡德（Jaccard）：两个集合交集的元素个数除以并集的元素个数 斯皮尔曼（Spearman）：映射为[0,1]区间上的秩相关系数 绝对斯皮尔曼（Spearman absolute）：映射为[0,1]区间上的基于绝对值的秩相关系数 皮尔森（Pearson）：映射为[0,1]区间上的绝对Pearson相关系数 绝对皮尔斯（Pearson absolute）：映射为[0,1]区间上的基于绝对值的Pearson相关系数 取值范围：欧几里得 曼哈顿 余弦 杰卡德 斯皮尔曼 绝对斯皮尔曼 皮尔森 绝对皮尔斯"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Merge Data",
+        "widget_id": "merge-data",
+        "package": "preprocess",
+        "image": "MergeData.svg",
+        "description": "Merges two datasets by matching on specified key attributes, similar to SQL JOIN operations.",
+        "params": [
+            {
+                "name": "数据集",
+                "type": "str",
+                "default": "",
+                "description": "一个数据集信息"
+            },
+            {
+                "name": "附加数据集",
+                "type": "str",
+                "default": "",
+                "description": "另一个数据集信息"
+            },
+            {
+                "name": "合并方式",
+                "type": "str",
+                "default": "从附加数据集附加列",
+                "description": "Specifies 合并方式： 从附加数据集附加列：输出数据集的所有实例，且实例后追加与另一个数据集相匹配的信息，如果找不到匹配信息，追加未知值。 匹配行：与a类似，但没有匹配的实例将不输出。 连接表，合并行：输出来自两个输入的所有实例，即使可能找不到匹配，如果找不到匹配，分配未知值。 取值范围：从附加数据集附加列 匹配行 连接表，合并行"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Preprocess",
+        "widget_id": "preprocess-",
+        "package": "preprocess",
+        "image": "Preprocess.svg",
+        "description": "Applies general data preprocessing operations to prepare datasets for analysis, including transformation, normalization, and cleaning.",
+        "params": [
+            {
+                "name": "添加预处理",
+                "type": "str",
+                "default": "",
+                "description": "Selects 预处理选项中有多种处理方式，用户可以按照自己的需求使用何种预处理数据的手段。并且其按照顺序执行预处理方法。 取值范围：离散化 连续化 缺失值处理 关联属性选择 随机选取属性 标准化属性 数据混淆 主成分分析 CUR矩阵分解"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Purge Domain",
+        "widget_id": "purge-domain",
+        "package": "preprocess",
+        "image": "PurgeDomain.svg",
+        "description": "Removes or filters specific attribute values from the dataset domain, such as removing categories with low frequency.",
+        "params": [
+            {
+                "name": "特征值",
+                "type": "str",
+                "default": "对离散型特征属性值进行排序",
+                "description": "Specifies 对特征值进行何种处理 取值范围：多选： 对离散型特征属性值进行排序 删除未使用的特征值 删除常量特征属性"
+            },
+            {
+                "name": "分类属性",
+                "type": "str",
+                "default": "删除未使用的目标属性值",
+                "description": "Specifies 对分类属性进行何种处理 取值范围：多选： 对离散型目标属性值进行排序 删除未使用的目标属性值 删除常量目标属性"
+            },
+            {
+                "name": "元属性",
+                "type": "str",
+                "default": "删除常量描述属性",
+                "description": "Specifies 对元属性进行何种处理 取值范围：多选： 删除未使用的描述属性值 删除常量描述属性"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Randomize",
+        "widget_id": "randomize",
+        "package": "preprocess",
+        "image": "Randomize.svg",
+        "description": "Randomly shuffles or permutes data instances/attributes to remove ordering effects or for privacy preservation.",
+        "params": [
+            {
+                "name": "列混淆",
+                "type": "str",
+                "default": "分类属性",
+                "description": "Selects 用户可以需要对哪些属性进行混洗操作，该部分可多选 取值范围：分类属性 一般属性 描述属性"
+            },
+            {
+                "name": "行混淆",
+                "type": "str",
+                "default": "10%",
+                "description": "Selects 需要混洗的数据集的比例。选择是否可以重复输出 取值范围：0%~100%"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Transpose",
+        "widget_id": "transpose",
+        "package": "preprocess",
+        "image": "Transpose.svg",
+        "description": "Transposes the dataset, swapping rows and columns so that instances become attributes and vice versa.",
+        "params": [
+            {
+                "name": "属性名",
+                "type": "str",
+                "default": "一般命名",
+                "description": "Sets 转置操作后，对数据集属性的命名方式： 一般命名：若不前缀，则转置后数据集的属性名默认为 Feature (1), Feature (2), ... 根据描述属性命名：当输入数据集包含描述属性时，可以选择根据描述属性的值对属性进行命名 取值范围：一般命名 根据描述属性命名"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Bag of Words",
+        "widget_id": "bag-of-words",
+        "package": "textmining",
+        "image": "BagofWords.svg",
+        "description": "Creates a Bag-of-Words representation from text data, computing word frequencies or TF-IDF scores for document analysis.",
+        "params": [
+            {
+                "name": "词频",
+                "type": "str",
+                "default": "",
+                "description": "词频计算方式： Count：表示文档中一个词出现的次数 Binary：文档中词出现或者不出现 Sublinear：术语频率对数 取值范围：计数 二元 次线性"
+            },
+            {
+                "name": "文档频率",
+                "type": "str",
+                "default": "逆文本频率指数",
+                "description": "有三个选项，分别是 无、IDF、Smooth IDF IDF：表示逆文档频率 Smooth IDF：用来添加一个文档频率，防止为零 取值范围：无 逆文本频率指数 平滑逆文本频率指数"
+            },
+            {
+                "name": "正则化",
+                "type": "str",
+                "default": "L1（元素总和）",
+                "description": "正则化方法，分别是无、L1（元素总和）、L2（欧几里得范数） 取值范围：无 L1（元素总和） L2（欧几里得范数）"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Concordance",
+        "widget_id": "concordance",
+        "package": "textmining",
+        "image": "Concordance.svg",
+        "description": "Displays a concordance (keyword-in-context view) showing occurrences of a specified word or phrase with surrounding context.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "搜索出的内容信息 Token：匹配的数量 类型：单独匹配的数量 匹配数：包含搜索内容的文档"
+            },
+            {
+                "name": "单词数",
+                "type": "str",
+                "default": "3",
+                "description": "Displays 搜索内容两侧的单词数 取值范围：1~10"
+            },
+            {
+                "name": "查询",
+                "type": "str",
+                "default": "to",
+                "description": "搜索内容 取值范围：Non-empty string"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Corpus Viewer",
+        "widget_id": "corpus-viewer",
+        "package": "textmining",
+        "image": "CorpusViewer.svg",
+        "description": "Provides an interactive viewer for exploring text corpus content, displaying documents and their metadata.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "Sets 文档：输入的文档数量 预处理：是否使用预处理器 POS标签：结果为真或假 N-grams 范围：如果 N-grams 在预处理文本中，结果会显示的范围 匹配数：RegExpi 过滤的文档数量"
+            },
+            {
+                "name": "搜索特征",
+                "type": "str",
+                "default": "Title",
+                "description": "RegExp 筛选器过滤特性 取值范围：文本数据集属性"
+            },
+            {
+                "name": "显示特征",
+                "type": "str",
+                "default": "Title",
+                "description": "Displays 特征 取值范围：文本数据集属性"
+            },
+            {
+                "name": "RegExp过滤器",
+                "type": "str",
+                "default": "",
+                "description": "用于过滤文档的 Python 正则表达式 取值范围：正则表达式"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Preprocess Text",
+        "widget_id": "preprocess-text",
+        "package": "textmining",
+        "image": "PreprocessText.svg",
+        "description": "Preprocesses text data by applying operations such as tokenization, stop word removal, stemming, and normalization.",
+        "params": [
+            {
+                "name": "预处理选项",
+                "type": "str",
+                "default": "",
+                "description": "点击需要添加的文本处理选项，之后点击“添加预处理”按钮添加预处理操作 取值范围：转换 词语切分 标准化 过滤 N-grams范围 词性标注"
+            },
+            {
+                "name": "转换",
+                "type": "str",
+                "default": "小写转换",
+                "description": "小写转换：在文本进行小写转换 移除重音字符：在文本中移除重音字符 解析 html：在文本中去除 html 的标签，如 Some text → Some text 移除 urls：移除文本中的 urls。如 This is a http://www.baidu.com/ url. → This is a url 取值范围：小写转换 移除重音字符 解析html 移除urls"
+            },
+            {
+                "name": "词法切分",
+                "type": "str",
+                "default": "空格",
+                "description": "将文本分解成更小的单位： 单词 & 标点符号：将文本以单词和逗号进行分割，如 This example. → (This), (example), (.) 空格：使用空格分割文本，如 This example. → (This), (example.) 语句：使用句号分割文本，只保留完成的语句，如 This example. Another example. → (This example.), (Another example.) 正则表达式：使用正则表达式分割文本。 取值范围：单词 & 标点符号 空格 语句 正则表达式"
+            },
+            {
+                "name": "标准化",
+                "type": "str",
+                "default": "波特词干器",
+                "description": "进行词形还原，除英语之外的其它语言使用： Porter Stemmer Snowball Stemmer WordNet Leammatizer UDPipe 取值范围：波特词干器 雪球词干器 词网归类 UDPipe"
+            },
+            {
+                "name": "过滤",
+                "type": "str",
+                "default": "停止词表",
+                "description": "Sets 删除或选择单词： 停止词表：从文本中删除停用词（例如删除”和“、”或“、”“...），选择过滤的语言，默认选择的是英语。可以点击“上传”按钮，添加自定义的停用词文件，文件支持 .txt 类型。 词典：仅保留所提供的文件中的字。点击“上传”按钮添加 .txt 文件。 正则表达式：删除与正则表达式匹配的字。默认为删除标点符号。 文件频率：文档频率使令牌出现在在不少于指定的 数量 / 比例 的文件。如果你提供整数作为参数，它仅保留令牌出现在指定数量的文件。例如 DF=（3，5）仅保留令牌出现在3或多少 5 或更少的文档。如果提供浮点数作为参数，它仅保留令牌出现在文档指定的百分比。例如 DF=（0.3，0.5）仅保留令牌出现在 30% 到 50% 的文档。默认返回所有标记。 频繁记号：保留指定数量的最频繁的令牌。默认是 100 个最频繁的令牌。 取值范围：停止词表 词典 正则表达式 文件频率 频繁记号"
+            },
+            {
+                "name": "N-grams",
+                "type": "str",
+                "default": "",
+                "description": "范围从 1 到 10。 取值范围：1~10"
+            },
+            {
+                "name": "词性标注",
+                "type": "str",
+                "default": "Averaged Perceptron Tagger",
+                "description": "进行词性标注操作 取值范围：Averaged Perceptron Tagger Treebank POS Tagger (MaxEnt)"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Sentiment Analysis",
+        "widget_id": "sentiment-analysis",
+        "package": "textmining",
+        "image": "SentimentAnalysis.svg",
+        "description": "Performs sentiment analysis on text corpora using models such as Liu Hu, Vader, Multilingual Sentiment, and SentiArt to predict the sentiment of each document.",
+        "params": [
+            {
+                "name": "Method",
+                "type": "str",
+                "default": "Liu Hu",
+                "description": "情感分析算法 取值范围：Liu Hu Vader Multilingual sentiment SentiArt"
+            }
+        ],
+        "type": "predict"
+    },
+    {
+        "widget_name": "Similarity Hashing",
+        "widget_id": "similarity-hashing",
+        "package": "textmining",
+        "image": "SimilarityHashing.svg",
+        "description": "Performs similarity hashing on text documents to efficiently find near-duplicate or similar documents using techniques like SimHash or MinHash.",
+        "params": [
+            {
+                "name": "Simhash 大小",
+                "type": "str",
+                "default": "64",
+                "description": "输出属性个数 取值范围：1~1024"
+            },
+            {
+                "name": "Shingle 长度",
+                "type": "str",
+                "default": "10",
+                "description": "shingle中的tokens数量 取值范围：1~100"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Topic Modelling",
+        "widget_id": "topic-modelling",
+        "package": "textmining",
+        "image": "TopicModelling.svg",
+        "description": "Performs topic modeling on text corpora using algorithms like LDA (Latent Dirichlet Allocation) to discover latent thematic structures in documents.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "隐式语义索引",
+                "description": "模型： 隐式语义索引 潜在狄利克雷分布 取值范围：隐式语义索引 潜在狄利克雷分布"
+            }
+        ],
+        "type": "model"
+    },
+    {
+        "widget_name": "Word Cloud",
+        "widget_id": "word-cloud",
+        "package": "textmining",
+        "image": "WordCloud.svg",
+        "description": "Generates a word cloud visualization from text data, displaying words sized proportionally to their frequency or importance.",
+        "params": [
+            {
+                "name": "添加颜色",
+                "type": "str",
+                "default": "勾选",
+                "description": "Whether to 对生成的词云进行颜色标记 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "单词角度",
+                "type": "str",
+                "default": "0°",
+                "description": "词云中单词的角度 取值范围：0° 30° 60° 90°"
+            },
+            {
+                "name": "词云表",
+                "type": "str",
+                "default": "",
+                "description": "文本中出现的单词以及对应的权重"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Word Enrichment",
+        "widget_id": "word-enrichment",
+        "package": "textmining",
+        "image": "WordEnrichment.svg",
+        "description": "Enriches text data by adding external semantic information, such as word embeddings or ontology-based annotations.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "Displays 的单词 取值范围：单词个数信息"
+            },
+            {
+                "name": "过滤",
+                "type": "str",
+                "default": "p值：0.01 FDR(错误发现率)：0.2",
+                "description": "Sets p 值 FDR(错误发现率) 获取结果：点击”获取结果“，根据在右侧显示单词列表 取值范围：p值：0~1 FDR(错误发现率)：0~1"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Aggregate",
+        "widget_id": "aggregate",
+        "package": "timeseries",
+        "image": "Aggregate.svg",
+        "description": "Aggregates time series data by resampling to different time frequencies (e.g., daily to monthly) and computing summary statistics.",
+        "params": [
+            {
+                "name": "聚集依据",
+                "type": "str",
+                "default": "天",
+                "description": "按秒、分钟、小时、天、周、月或年进行聚集 取值范围：秒 分 时 天 周 月 年"
+            },
+            {
+                "name": "聚集操作",
+                "type": "str",
+                "default": "Mean",
+                "description": "Specifies 每个属性的聚集操作 取值范围：对于连续型属性： Mean Sum Max Min Median Mode Std. Variance Product Weighted MA Exponential MA Harmonic Mean Geometric Mean Count nonzero Count defined 对于离散型属性： mode"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "As Time Series",
+        "widget_id": "as-timeseries",
+        "package": "timeseries",
+        "image": "AsTimeSeries.svg",
+        "description": "Converts regular tabular data into a time series format by specifying time index and value columns.",
+        "params": [
+            {
+                "name": "排序方案",
+                "type": "str",
+                "default": "根据实例顺序排序",
+                "description": "Specifies 排序属性：自定义排序属性，能够根据任何输入的连续属性进行排序 根据实例顺序排序：时间序列的顺序由实例顺序决定 取值范围：排序属性 根据实例顺序排序"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Difference",
+        "widget_id": "difference",
+        "package": "timeseries",
+        "image": "Difference.svg",
+        "description": "Applies differencing to time series data to remove trends and make the series stationary for further modeling.",
+        "params": [
+            {
+                "name": "运算指标",
+                "type": "str",
+                "default": "Difference",
+                "description": "差分运算指标 取值范围：Difference Quotient Percentage"
+            },
+            {
+                "name": "差序",
+                "type": "str",
+                "default": "1",
+                "description": "Selects 一阶或二阶离散差 取值范围：1~2"
+            },
+            {
+                "name": "位移",
+                "type": "str",
+                "default": "1",
+                "description": "求差前的移位 值等于1表示离散差分 取值范围：1~10000"
+            },
+            {
+                "name": "反转差分方向",
+                "type": "str",
+                "default": "不启用",
+                "description": "反转差分方向 取值范围：Enabled / Disabled"
+            },
+            {
+                "name": "操作的属性",
+                "type": "str",
+                "default": "Air passengers",
+                "description": "Selects 进行操作的属性 取值范围：Dataset attributes"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Granger Causality",
+        "widget_id": "granger-causality",
+        "package": "timeseries",
+        "image": "GrangerCausality.svg",
+        "description": "Tests for Granger causality between time series variables to determine whether one time series is useful in forecasting another.",
+        "params": [
+            {
+                "name": "Confidence Interval",
+                "type": "str",
+                "default": "95",
+                "description": "最大置信度 取值范围：90~99"
+            },
+            {
+                "name": "最大落后期",
+                "type": "str",
+                "default": "20",
+                "description": "检验的最大落后期 取值范围：1~50"
+            }
+        ],
+        "type": "evaluate"
+    },
+    {
+        "widget_name": "Model Evaluation",
+        "widget_id": "model-evaluation",
+        "package": "timeseries",
+        "image": "ModelEvaluation.svg",
+        "description": "Evaluates time series forecasting model performance using metrics such as MSE, RMSE, MAE, and MAPE.",
+        "params": [
+            {
+                "name": "折数",
+                "type": "str",
+                "default": "20",
+                "description": "交叉认证的折数 取值范围：1~100"
+            },
+            {
+                "name": "预测数",
+                "type": "str",
+                "default": "3",
+                "description": "模型预测结果个数 取值范围：1~100"
+            }
+        ],
+        "type": "evaluate"
+    },
+    {
+        "widget_name": "Seasonal Adjustment",
+        "widget_id": "seasonal-adjustment",
+        "package": "timeseries",
+        "image": "SeasonalAdjustment.svg",
+        "description": "Performs seasonal adjustment/decomposition on time series data to separate trend, seasonal, and residual components.",
+        "params": [
+            {
+                "name": "季节周期",
+                "type": "str",
+                "default": "12",
+                "description": "Specifies 时间单元的周期数（例如，对于月份，周期为12） 取值范围：2-500"
+            },
+            {
+                "name": "分解模型",
+                "type": "str",
+                "default": "可加模型",
+                "description": "季节调整时的分解方式 取值范围：可加模型 乘法模型"
+            },
+            {
+                "name": "属性",
+                "type": "str",
+                "default": "Air passengers",
+                "description": "数据集连续型属性 取值范围：Continuous attributes of dataset"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Note",
+        "widget_id": "note",
+        "package": "tool",
+        "image": "Note.svg",
+        "description": "Provides a sticky note widget for adding annotations, comments, or documentation within the workflow.",
+        "params": [
+            {
+                "name": "背景颜色",
+                "type": "str",
+                "default": "",
+                "description": "调节便签的背景颜色 取值范围：颜色取值"
+            },
+            {
+                "name": "边框颜色",
+                "type": "str",
+                "default": "",
+                "description": "调节便签边框的颜色 取值范围：颜色取值"
+            },
+            {
+                "name": "边框宽度",
+                "type": "str",
+                "default": "1",
+                "description": "调节便签边框宽度 取值范围：0~5"
+            },
+            {
+                "name": "便签内容",
+                "type": "str",
+                "default": "",
+                "description": "Displays 便签需要的内容"
+            }
+        ],
+        "type": "io"
+    },
+    {
+        "widget_name": "Python Script",
+        "widget_id": "python-script",
+        "package": "tool",
+        "image": "PythonScript.svg",
+        "description": "Allows users to write and execute custom Python scripts within the workflow, enabling arbitrary data processing and analysis.",
+        "params": [
+            {
+                "name": "python代码",
+                "type": "str",
+                "default": "",
+                "description": "编写需要执行的python代码，点击右下角最大化按钮，可使代码编辑框最大化 点击“运行”按钮可以查看代码执行结果 点击“删除输出”按钮可以删除输出 点击“添加输出”按钮可以添加输出 取值范围：可正常执行的python代码"
+            }
+        ],
+        "type": "preprocess"
+    },
+    {
+        "widget_name": "Box Plot",
+        "widget_id": "box-plot",
+        "package": "visualize",
+        "image": "BoxPlot.svg",
+        "description": "Displays a Box Plot visualization showing the distribution of data through quartiles, highlighting median, range, and potential outliers.",
+        "params": [
+            {
+                "name": "属性",
+                "type": "str",
+                "default": "sepal length",
+                "description": "想要绘制的箱型图的属性 取值范围：Dataset attributes"
+            },
+            {
+                "name": "分组属性",
+                "type": "str",
+                "default": "iris",
+                "description": "用于分组的属性（一般为离散型属性） 取值范围：数据集离散属性"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "CN2 Rule Viewer",
+        "widget_id": "cn2-rule-viewer",
+        "package": "visualize",
+        "image": "CN2RuleViewer.svg",
+        "description": "Provides an interactive viewer for CN2 classification rules, allowing inspection of induced rules and their coverage.",
+        "params": [],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Correspondence Analysis",
+        "widget_id": "correspondence-analysis",
+        "package": "visualize",
+        "image": "CorrespondenceAnalysis.svg",
+        "description": "Performs Correspondence Analysis to visualize relationships between categorical variables in a low-dimensional space.",
+        "params": [
+            {
+                "name": "离散属性",
+                "type": "str",
+                "default": "iris",
+                "description": "列出数据集中的所有离散属性 取值范围：数据集离散属性"
+            },
+            {
+                "name": "Axes",
+                "type": "str",
+                "default": "",
+                "description": "坐标轴 取值范围：离散属性值类别"
+            },
+            {
+                "name": "惯量贡献",
+                "type": "str",
+                "default": "",
+                "description": "说明对于分析各个维度的结果能够解释列联表中两变量联系的程度"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Data Info",
+        "widget_id": "data-info",
+        "package": "visualize",
+        "image": "DataInfo.svg",
+        "description": "Displays basic information about the dataset including size, attribute types, missing value counts, and summary statistics.",
+        "params": [
+            {
+                "name": "数据集大小",
+                "type": "str",
+                "default": "",
+                "description": "Displays 数据集的相关信息，包括数据集大小，属性个数"
+            },
+            {
+                "name": "特征列",
+                "type": "str",
+                "default": "",
+                "description": "Displays 特征属性（feature）中离散型、数值型、日期型、文本型属性的个数"
+            },
+            {
+                "name": "目标列",
+                "type": "str",
+                "default": "",
+                "description": "Displays 分类属性（ class or target）的信息，如果分类属性是离散型属性，也会展示类别个数"
+            },
+            {
+                "name": "元属性列",
+                "type": "str",
+                "default": "",
+                "description": "Displays meta（元属性）的信息"
+            },
+            {
+                "name": "数据位置",
+                "type": "str",
+                "default": "",
+                "description": "Displays 数据的存储位置"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Data Table",
+        "widget_id": "data-table",
+        "package": "visualize",
+        "image": "DataTable.svg",
+        "description": "Displays the dataset in a sortable, filterable tabular format for interactive data inspection and exploration.",
+        "params": [
+            {
+                "name": "Basic Information",
+                "type": "str",
+                "default": "",
+                "description": "Whether to 显示数据集的相关信息，包括数据集大小、有缺失值、属性类型以及属性个数等"
+            },
+            {
+                "name": "可视化选项",
+                "type": "str",
+                "default": "",
+                "description": "Whether to 对连续值进行可视化展示（显示比例条） 是否根据 class or target（分类属性）进行颜色标记"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Heat Map",
+        "widget_id": "heat-map",
+        "package": "visualize",
+        "image": "HeatMap.svg",
+        "description": "Displays a Heat Map visualization where data values are represented as colors in a grid, useful for showing patterns in matrices.",
+        "params": [
+            {
+                "name": "根据k-means进行合并",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 进行聚类操作并合并数据 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "簇数",
+                "type": "str",
+                "default": "50",
+                "description": "聚类簇数 取值范围：5~500"
+            },
+            {
+                "name": "显示平均值",
+                "type": "str",
+                "default": "不勾选",
+                "description": "Whether to 显示平均值 取值范围：Checked / Unchecked"
+            },
+            {
+                "name": "行附注",
+                "type": "str",
+                "default": "",
+                "description": "Selects 显示行附注的属性 取值范围：数据集字符型属性"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Periodogram",
+        "widget_id": "periodogram",
+        "package": "visualize",
+        "image": "Periodogram.svg",
+        "description": "Displays a Periodogram for time series analysis, showing the spectral density to identify dominant frequencies/cycles in the data.",
+        "params": [
+            {
+                "name": "周期属性",
+                "type": "str",
+                "default": "Air passengers",
+                "description": "Selects 需要进行绘制图表的属性 取值范围：Continuous attributes of dataset"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Polynomial Regression",
+        "widget_id": "polynomial-regression",
+        "package": "visualize",
+        "image": "PolynomialRegression.svg",
+        "description": "Visualizes polynomial regression fits, showing how polynomial functions of different degrees fit the data.",
+        "params": [
+            {
+                "name": "相关信息 (回归方法)",
+                "type": "str",
+                "default": "非空字符串",
+                "description": "回归方法 取值范围：模型名称，默认为Univariate Regression"
+            },
+            {
+                "name": "相关信息 (平均绝对误差)",
+                "type": "str",
+                "default": "",
+                "description": "平均绝对误差 取值范围：真实值与得出的多项式回归曲线的平均绝对误差值"
+            },
+            {
+                "name": "相关信息 (标准误差)",
+                "type": "str",
+                "default": "",
+                "description": "标准误差 取值范围：真实值与得出的多项式回归曲线的标准误差值"
+            },
+            {
+                "name": "坐标轴数据",
+                "type": "str",
+                "default": "数据集连续型属性",
+                "description": "输入属性 取值范围：x轴上的自变量"
+            },
+            {
+                "name": "目标属性",
+                "type": "str",
+                "default": "数据集连续型属性",
+                "description": "坐标轴数据 取值范围：y轴上的自变量"
+            },
+            {
+                "name": "多项式扩展",
+                "type": "str",
+                "default": "0~10",
+                "description": "坐标轴数据 取值范围：多项式展开次数"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Random Forest Viewer",
+        "widget_id": "random-forest-viewer",
+        "package": "visualize",
+        "image": "RandomForestViewer.svg",
+        "description": "Provides an interactive viewer for Random Forest models, displaying individual decision trees and feature importance.",
+        "params": [
+            {
+                "name": "森林信息",
+                "type": "str",
+                "default": "",
+                "description": "Displays 随机森林中树的数量"
+            },
+            {
+                "name": "树深度",
+                "type": "str",
+                "default": "3",
+                "description": "Displays 可视化图中的每棵树的深度 取值范围：1~数的最大深度"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Sieve Diagram",
+        "widget_id": "sieve-diagram",
+        "package": "visualize",
+        "image": "SieveDiagram.svg",
+        "description": "Displays a Sieve Diagram for visualizing the relationship between two categorical variables, using rectangular grids with area proportional to observed frequency.",
+        "params": [
+            {
+                "name": "属性选择",
+                "type": "str",
+                "default": "",
+                "description": "Selects 要在筛图中显示的属性 取值范围：Dataset attributes"
+            },
+            {
+                "name": "组合分数",
+                "type": "str",
+                "default": "",
+                "description": "可以找到最佳的属性组合"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Silhouette Plot",
+        "widget_id": "silhouette-plot",
+        "package": "visualize",
+        "image": "SilhouettePlot.svg",
+        "description": "Visualizes cluster cohesion using Silhouette Plot, showing silhouette scores that measure how similar each data point is to its own cluster compared to other clusters.",
+        "params": [
+            {
+                "name": "Distance",
+                "type": "str",
+                "default": "",
+                "description": "距离度量方式 取值范围：欧式距离 曼哈顿距离"
+            },
+            {
+                "name": "Cluster Label",
+                "type": "str",
+                "default": "iris",
+                "description": "聚类属性 取值范围：Discrete attributes of dataset"
+            },
+            {
+                "name": "Group by Cluster",
+                "type": "str",
+                "default": "勾选",
+                "description": "Whether to 根据聚类标签进行分组 取值范围：Checked / Unchecked"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Spiralogram",
+        "widget_id": "spiralogram",
+        "package": "visualize",
+        "image": "Spiralogram.svg",
+        "description": "Displays a Spiralogram visualization for showing time series data in a spiral layout, revealing periodic patterns.",
+        "params": [
+            {
+                "name": "坐标轴数据 (y轴)",
+                "type": "str",
+                "default": "years quarter months days days of week days of year weeks of year weeks of month",
+                "description": "y轴 取值范围：y轴数据，年、季度、月、天、一周中的天数、一年中的天数、一年中的周数、一月中的周数"
+            },
+            {
+                "name": "坐标轴数据 (径向)",
+                "type": "str",
+                "default": "years quarter months days days of week days of year weeks of year weeks of month hours of day minutes of hour",
+                "description": "径向 取值范围：径向数据，年、季度、月、天、一周中的天数、一年中的天数、一年中的周数、一月中的周数、一天中的小时数、一小时中的分钟数"
+            },
+            {
+                "name": "聚集操作",
+                "type": "str",
+                "default": "数据集连续型属性",
+                "description": "属性 取值范围：选择需要进行聚集操作的属性"
+            },
+            {
+                "name": "函数",
+                "type": "str",
+                "default": "Mean Sum Max Min Median Mode Std. Variance Product Weighted MA Exponential MA Harmonic Mean Geometric Mean Count nonzero Count defined",
+                "description": "聚集操作 取值范围：聚集函数"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Tree Viewer",
+        "widget_id": "tree-viewer",
+        "package": "visualize",
+        "image": "TreeViewer.svg",
+        "description": "Provides an interactive viewer for Decision Tree models, displaying the tree structure with split conditions and leaf predictions.",
+        "params": [
+            {
+                "name": "节点",
+                "type": "str",
+                "default": "",
+                "description": "节点个数"
+            },
+            {
+                "name": "叶子",
+                "type": "str",
+                "default": "",
+                "description": "叶子节点个数"
+            },
+            {
+                "name": "深度",
+                "type": "str",
+                "default": "2 层",
+                "description": "Displays 树的深度 取值范围：不限 1 层 2 层 3 层 4 层 5 层 6 层 7 层 8 层 9 层"
+            },
+            {
+                "name": "边宽",
+                "type": "str",
+                "default": "固定宽度",
+                "description": "树的边宽 固定宽度：所有边的宽度相同 相对宽度（根）：边的宽度根据节点中实例相对于训练数据中的所有实例的比列进行变化 相对宽度（父节点）：边的宽度根据节点中实例相对于父节点中的实例的比例进行变化 取值范围：固定宽度 相对宽度（根） 相对宽度（父节点）"
+            },
+            {
+                "name": "目标类",
+                "type": "str",
+                "default": "iris-setosa",
+                "description": "树中只展示该值相关信息 取值范围：数据集目标属性属性值"
+            }
+        ],
+        "type": "visualize"
+    },
+    {
+        "widget_name": "Venn Diagram",
+        "widget_id": "venn-diagram",
+        "package": "visualize",
+        "image": "VennDiagram.svg",
+        "description": "Displays a Venn Diagram visualization showing logical relationships and overlaps between multiple sets or groups.",
+        "params": [
+            {
+                "name": "信息",
+                "type": "str",
+                "default": "",
+                "description": "输入数据集信息"
+            },
+            {
+                "name": "数据实例标识",
+                "type": "str",
+                "default": "根据实例相等性标识",
+                "description": "用于比较数据的标识符 取值范围：根据实例相等性标识：按行标识 根据指定属性标识：按列标识"
+            }
+        ],
+        "type": "visualize"
+    }
+]

@@ -12,7 +12,7 @@ class Embedding_Model:
         if retriever != "bm25":
             model_path = os.path.join(get_project_root(), "embedding_models", retriever)
             word_embedding_model = models.Transformer(model_path)
-            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
+            pooling_model = models.Pooling(word_embedding_model.get_embedding_dimension())
             self.model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
         else:
             self.model = retriever

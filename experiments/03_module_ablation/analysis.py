@@ -4,28 +4,21 @@ from utils.utils import get_project_root
 analysis_result = {
     "method": [],
     "MLB+DSEval_RCR": [],
-    "MLB+DSEval_WGF1": [],
     "MLB+DSEval_Tokens": [],
     "UCI+CI+MI_RCR": [],
-    "UCI+CI+MI_WGF1": [],
     "UCI+CI+MI_Tokens": [],
     "MI_RCR": [],
-    "MI_WGF1": [],
     "MI_Tokens": [],
     "UCI_RCR": [],
-    "UCI_WGF1": [],
     "UCI_Tokens": [],
     "CI_RCR": [],
-    "CI_WGF1": [],
     "CI_Tokens": [],
     "MLB_RCR": [],
-    "MLB_WGF1": [],
     "MLB_Tokens": [],
     "DSEval_RCR": [],
-    "DSEval_WGF1": [],
     "DSEval_Tokens": []
 }
-root = os.path.join(get_project_root(), r"experiments/03_module_ablation")
+root = os.path.join(get_project_root(), r"experiments_results复现实验结果/03_module_ablation")
 # step4
 llms = ["qwen2_5-72b", "qwen2_5-14b-coder"]
 methods = {
@@ -71,11 +64,9 @@ for llm in llms:
             file_path = os.path.join(root, llm, f"{b}{method}.csv")
             data = pd.read_csv(file_path)
             rcr = f'{round(statistics.mean(data["rcr"]), 3)}±{round(statistics.variance(data["rcr"]), 2)}'
-            wgf1 = f'{round(statistics.mean(data["wgf1"]), 3)}±{round(statistics.variance(data["wgf1"]), 2)}'
             tokens = (data["input_tokens"].sum() * convert_cny_to_usd(0.004 * 1000) + data[
                 "output_tokens"].sum() * convert_cny_to_usd(0.012 * 1000)) / 1000000
             analysis_result[f"{benchmarks[b]}_RCR"].append(rcr)
-            analysis_result[f"{benchmarks[b]}_WGF1"].append(wgf1)
             analysis_result[f"{benchmarks[b]}_Tokens"].append(tokens)
         #
         # nl2workflow = pd.DataFrame()
@@ -98,9 +89,6 @@ for llm in llms:
         analysis_result["MLB+DSEval_RCR"].append(
             f'{round(statistics.mean(dddd["rcr"]), 3)}±{round(statistics.variance(dddd["rcr"]), 2)}'
         )
-        analysis_result["MLB+DSEval_WGF1"].append(
-            f'{round(statistics.mean(dddd["wgf1"]), 3)}±{round(statistics.variance(dddd["wgf1"]), 2)}'
-        )
         analysis_result["MLB+DSEval_Tokens"].append(
             round(
                 (
@@ -118,9 +106,6 @@ for llm in llms:
         # 计算平均 RCR 和 Tokens
         analysis_result["UCI+CI+MI_RCR"].append(
             f'{round(statistics.mean(dddd["rcr"]), 3)}±{round(statistics.variance(dddd["rcr"]), 2)}'
-        )
-        analysis_result["UCI+CI+MI_WGF1"].append(
-            f'{round(statistics.mean(dddd["wgf1"]), 3)}±{round(statistics.variance(dddd["wgf1"]), 2)}'
         )
         analysis_result["UCI+CI+MI_Tokens"].append(
             round(

@@ -65,6 +65,19 @@ def get_project_root():
 
     return project_root
 
+
+def get_data_info_path():
+    """Return the process-specific Agent data-context path.
+
+    Normal application runs keep using ``data/data_info.json``. Experiment
+    runners may set ``MLPLAT_DATA_INFO_PATH`` for process isolation so two
+    workflows cannot overwrite each other's prompt context.
+    """
+    configured_path = os.environ.get("MLPLAT_DATA_INFO_PATH", "").strip()
+    if configured_path:
+        return os.path.abspath(configured_path)
+    return os.path.join(get_project_root(), "data", "data_info.json")
+
 def plot_line_chart(X, Y, name):
     import matplotlib
     matplotlib.use('TkAgg')  # 或者其他适合您环境的后端
@@ -93,8 +106,8 @@ def plot_line_chart(X, Y, name):
     # # 展示图表（可选）
     # plt.show()
 
-def update_data_info(instruction="",dataset_info=""):
-    data_info_path = os.path.join(get_project_root(), "data/data_info.json")
+def update_data_info(instruction=None, dataset_info=None):
+    data_info_path = get_data_info_path()
     try:
         with open(data_info_path, 'r', encoding='utf-8') as f:
             data_info = json.load(f)
@@ -103,9 +116,10 @@ def update_data_info(instruction="",dataset_info=""):
             "instruction": "",
             "dataset_info": ""
         }
-    if instruction != "":
+    if instruction is not None:
         data_info["instruction"] = instruction
-    if data_info != "":
+    if dataset_info is not None:
         data_info["dataset_info"] = dataset_info
+    os.makedirs(os.path.dirname(data_info_path), exist_ok=True)
     with open(data_info_path, 'w', encoding='utf8') as f:
         json.dump(data_info, f, ensure_ascii=False, indent=4)
